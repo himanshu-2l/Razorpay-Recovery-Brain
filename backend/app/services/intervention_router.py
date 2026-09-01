@@ -12,6 +12,7 @@ from app.models.database import RootCause, InterventionType, LeakType
 from app.services.tax_clock_engine import tax_clock_engine
 from app.services.circuit_breaker import bank_circuit_breaker
 from app.services.autonomy_envelope import autonomy_envelope
+from app.services.smart_scheduler import smart_scheduler
 
 
 class InterventionRouter:
@@ -248,12 +249,20 @@ class InterventionRouter:
         if intervention in (InterventionType.WHATSAPP_NUDGE, InterventionType.EMAIL_NUDGE):
             nudge_content = self._build_nudge(root_cause, data)
 
+        # Calendar-Aligned Smart Retry Scheduling
+        smart_schedule = smart_scheduler.recommend_optimal_window(
+            root_cause=root_cause.value,
+            amount=effective_amount,
+            failure_timestamp=datetime.now(timezone.utc),
+        )
+
         return {
             "intervention": intervention,
             "reason": reason,
             "alternatives_rejected": alternatives_rejected,
             "nudge_content": nudge_content,
             "tax_clock": tax_clock_data,
+            "smart_schedule": smart_schedule,
             "counterfactual": {
                 "p_natural_recovery": round(p_natural, 4),
                 "p_intervention_recovery": round(p_action, 4),

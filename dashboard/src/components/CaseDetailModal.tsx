@@ -14,6 +14,7 @@ import {
   Ban,
   Scale,
   Sparkles,
+  Calendar,
 } from 'lucide-react';
 import type { CaseItem } from '../types';
 
@@ -423,6 +424,82 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                   </div>
                 </div>
               )}
+
+              {/* Section 2.7: Smart Calendar Retry Schedule (Payday & Month-End Alignment) */}
+              <div className="p-5 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-4 font-mono">
+                <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
+                  <div className="flex items-center space-x-2 text-xs font-bold uppercase text-cyan-400">
+                    <Calendar className="w-4 h-4" />
+                    <span>Smart Calendar Retry Schedule (Payday & Month-End)</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                    {caseItem.smart_schedule?.optimal_label || 'Optimal Retry Window Aligned'}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-[11px]">Recommended Timing Strategy:</span>
+                      <span className="text-cyan-300 font-bold">
+                        {caseItem.smart_schedule?.alignment || 'PAYDAY / SALARY CYCLE ALIGNED'}
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-[11px] leading-relaxed">
+                      {caseItem.smart_schedule?.reason ||
+                        'Deterministic candidate retry window selected to maximize liquidity recovery without customer fatigue.'}
+                    </p>
+                  </div>
+
+                  {/* 5-Candidate Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px]">
+                    <div className={`p-2 rounded-lg border ${
+                      caseItem.smart_schedule?.optimal_window === 'immediate'
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-200 font-bold'
+                        : 'bg-black/30 border-white/5 text-gray-400'
+                    }`}>
+                      <span className="block text-gray-500 text-[9px]">CANDIDATE 1</span>
+                      <span>Immediate (+1h)</span>
+                    </div>
+
+                    <div className={`p-2 rounded-lg border ${
+                      caseItem.smart_schedule?.optimal_window === 'plus_1_day_morning'
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-200 font-bold'
+                        : 'bg-black/30 border-white/5 text-gray-400'
+                    }`}>
+                      <span className="block text-gray-500 text-[9px]">CANDIDATE 2</span>
+                      <span>+1 Day (9 AM)</span>
+                    </div>
+
+                    <div className={`p-2 rounded-lg border ${
+                      caseItem.smart_schedule?.optimal_window === 'payday_window'
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-200 font-bold'
+                        : 'bg-black/30 border-white/5 text-gray-400'
+                    }`}>
+                      <span className="block text-gray-500 text-[9px]">CANDIDATE 3</span>
+                      <span>Payday (1st–5th)</span>
+                    </div>
+
+                    <div className={`p-2 rounded-lg border ${
+                      caseItem.smart_schedule?.optimal_window === 'plus_3_days_midday'
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-200 font-bold'
+                        : 'bg-black/30 border-white/5 text-gray-400'
+                    }`}>
+                      <span className="block text-gray-500 text-[9px]">CANDIDATE 4</span>
+                      <span>+3 Days (12 PM)</span>
+                    </div>
+
+                    <div className={`p-2 rounded-lg border ${
+                      caseItem.smart_schedule?.optimal_window === 'month_end_window'
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-200 font-bold'
+                        : 'bg-black/30 border-white/5 text-gray-400'
+                    }`}>
+                      <span className="block text-gray-500 text-[9px]">CANDIDATE 5</span>
+                      <span>Month-End (28th)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Section 3: Compliance Shield Status */}
               <div className={`p-5 rounded-2xl border space-y-3 ${

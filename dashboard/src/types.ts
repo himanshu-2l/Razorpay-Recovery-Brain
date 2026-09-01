@@ -74,6 +74,23 @@ export interface CaseItem {
     cfo_negotiation_lever: string;
     hinglish_script_snippet: string;
   } | null;
+  smart_schedule?: {
+    optimal_window: string;
+    optimal_label: string;
+    scheduled_at: string;
+    hours_from_failure: number;
+    alignment: string;
+    reason: string;
+    days_to_payday: number;
+    candidates: Array<{
+      type: string;
+      label: string;
+      scheduled_at: string;
+      hours_from_failure: number;
+      target_rationale: string;
+      alignment: string;
+    }>;
+  };
   requires_human_approval?: boolean;
   operator_approval?: {
     status: 'approved' | 'rejected';

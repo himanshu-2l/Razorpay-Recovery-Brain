@@ -546,6 +546,56 @@ async def demo_voice_call(request: Request):
     }
 
 
+# ─── Smart Calendar Retry Scheduler ───────────────────────────────────────
+
+@app.get("/api/scheduler/candidates")
+async def get_candidate_windows(timestamp: Optional[str] = None):
+    """
+    Generate the 5 deterministic candidate retry windows (Payday 1st-5th, Month-End, +1 Day 9 AM, +3 Days Midday, Immediate).
+    """
+    from app.services.smart_scheduler import smart_scheduler
+    from datetime import datetime, timezone
+
+    ref_time = datetime.fromisoformat(timestamp) if timestamp else datetime.now(timezone.utc)
+    candidates = smart_scheduler.generate_candidate_windows(ref_time)
+    return {
+        "status": "success",
+        "reference_time": ref_time.isoformat(),
+        "candidates": candidates,
+    }
+
+
+@app.post("/api/scheduler/recommend")
+async def recommend_retry_window(request: Request):
+    """
+    Recommend the optimal candidate retry window for a given root cause and amount.
+    """
+    from app.services.smart_scheduler import smart_scheduler
+    from datetime import datetime, timezone
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    root_cause = body.get("root_cause", "bd_insufficient_funds")
+    amount = float(body.get("amount", 5000.0))
+    ts_str = body.get("timestamp")
+    ref_time = datetime.fromisoformat(ts_str) if ts_str else datetime.now(timezone.utc)
+
+    recommendation = smart_scheduler.recommend_optimal_window(
+        root_cause=root_cause,
+        amount=amount,
+        failure_timestamp=ref_time,
+    )
+    return {
+        "status": "success",
+        "root_cause": root_cause,
+        "amount": amount,
+        "recommendation": recommendation,
+    }
+
+
 # ─── Statistics ───────────────────────────────────────────────────────────
 
 @app.get("/api/stats")

@@ -469,6 +469,53 @@ def test_15_voice_intent_classification_and_telephony_waterfall():
     print("  [OK] PASS: Voice intent classification, 4 persona strategies, and sub-800ms latency waterfall verified.")
 
 
+def test_16_calendar_aligned_smart_scheduler_and_candidate_windows():
+    print("\n[TEST 16] Calendar-Aligned Payday & Month-End Smart Scheduler + Candidate Windows")
+    from app.services.smart_scheduler import SmartScheduler, CandidateType
+    from app.services.intervention_router import InterventionRouter
+
+    # 1. Test 5 Deterministic Candidate Windows
+    ref_ts = datetime(2026, 9, 28, 10, 0, 0, tzinfo=timezone.utc)
+    candidates = SmartScheduler.generate_candidate_windows(ref_ts)
+    assert len(candidates) == 5
+    types = [c["type"] for c in candidates]
+    print(f"  -> Generated 5 Candidate Windows: {types}")
+    assert CandidateType.IMMEDIATE.value in types
+    assert CandidateType.PAYDAY_WINDOW.value in types
+    assert CandidateType.MONTH_END_WINDOW.value in types
+
+    # 2. Test Payday Recommendation for Insufficient Balance
+    rec_payday = SmartScheduler.recommend_optimal_window(
+        root_cause="bd_insufficient_funds",
+        amount=15000.0,
+        failure_timestamp=ref_ts,
+    )
+    print(f"  -> BD_INSUFFICIENT_FUNDS Recommendation (on 28th): {rec_payday['optimal_window']} | Reason: {rec_payday['reason']}")
+    assert rec_payday["optimal_window"] == CandidateType.PAYDAY_WINDOW.value
+
+    # 3. Test Immediate Retry for Technical Switch Failure
+    rec_tech = SmartScheduler.recommend_optimal_window(
+        root_cause="td_bank_down",
+        amount=15000.0,
+        failure_timestamp=ref_ts,
+    )
+    print(f"  -> TD_BANK_DOWN Recommendation: {rec_tech['optimal_window']} | Rationale: {rec_tech['reason']}")
+    assert rec_tech["optimal_window"] == CandidateType.IMMEDIATE.value
+
+    # 4. Verify Router Integration
+    router = InterventionRouter()
+    route_res = router.route(
+        root_cause=RootCause.BD_INSUFFICIENT_FUNDS,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"amount": 8000.0},
+    )
+    assert "smart_schedule" in route_res
+    assert route_res["smart_schedule"]["optimal_window"] is not None
+    print(f"  -> Router Attached Smart Schedule: {route_res['smart_schedule']['optimal_label']}")
+
+    print("  [OK] PASS: 5 candidate retry windows, payday calendar alignment, and router integration verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -489,7 +536,8 @@ if __name__ == "__main__":
     test_13_dynamic_autonomy_envelope_hysteresis()
     test_14_p10_p50_p90_bounds_and_ptp_lifecycle()
     test_15_voice_intent_classification_and_telephony_waterfall()
+    test_16_calendar_aligned_smart_scheduler_and_candidate_windows()
 
     print("\n=================================================================")
-    print("  ALL 15 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 16 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
