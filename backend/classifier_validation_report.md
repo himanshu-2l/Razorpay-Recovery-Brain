@@ -31,3 +31,13 @@
 | **`CHECKOUT_U`** | `0` | `0` | `0` | `20` | `0` |
 | **`B2B_RECEIV`** | `0` | `0` | `0` | `0` | `11` |
 
+## 4. Known Limitations & Misclassification Analysis
+
+### Zero Misclassifications on Current Deterministic Rule Patterns
+In the held-out test split (100 samples), 100% of structured synthetic cases mapped correctly to their root-cause classes based on error codes, descriptions, mandate thresholds, and cart step indicators.
+
+### Real-World Telemetry Limitations & Fallback Strategy
+1. **Answer Leakage Removed:** The previous development-only `root_cause_hint` gateway field has been completely stripped from both data generation and diagnosis inference. The engine now classifies solely on realistic webhook signals (`error_code`, `error_source`, `error_description`, `amount`, `is_recurring`, `attempt_count`).
+2. **Unstructured Gateway Noise:** In live production bank integrations, bank switches occasionally return generic `BAD_REQUEST_ERROR` with uninformative descriptions like *'Payment processing failed'*. For such edge cases where deterministic rules cannot establish >70% confidence, the engine falls back to LLM reasoning chain (`llm_service.py`) for semantic disambiguation.
+3. **Mandate Thresholds:** Recurring payments above ₹15,000 are deterministically flagged for AFA re-authorization per RBI's e-mandate framework.
+

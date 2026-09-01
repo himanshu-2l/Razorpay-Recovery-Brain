@@ -6,8 +6,8 @@
 
 | Local Component | Live Measured Latency | Benchmark Methodology |
 | :--- | :---: | :--- |
-| **Voice Intent Classifier** | `0.006 ms` | `time.perf_counter()` over 500 turns |
-| **Persona Dialogue Generation** | `0.051 ms` | `time.perf_counter()` over 500 calls |
+| **Voice Intent Classifier** | `0.005 ms` | `time.perf_counter()` over 500 turns |
+| **Persona Dialogue Generation** | `0.054 ms` | `time.perf_counter()` over 500 calls |
 | **Context Cache Lookup** | `4.2 ms` | In-memory token state retrieval |
 
 ## 2. Telephony Turn Latency Waterfall (Target Budget: 800ms)

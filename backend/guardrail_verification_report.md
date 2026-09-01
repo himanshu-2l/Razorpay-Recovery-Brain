@@ -6,10 +6,10 @@
 
 | Adversarial Scenario | Expected Guardrail Behavior | Verification Status | Cryptographic Audit Evidence |
 | :--- | :--- | :---: | :--- |
-| **a) Webhook Race Condition** | Exactly 1 winner, 9 duplicate rejections | **`PASSED`** | Event ID: `evt_adversarial_race_121101` |
-| **b) Economic Floor (< ₹100)** | Blocked from outreach, zero cost wasted | **`PASSED`** | Sequence #134 (`6efc6f683dc2d2b7...`) |
-| **c) Off-Hours (9:30 PM IST)** | Blocked & rescheduled to next day 10 AM | **`PASSED`** | Sequence #135 (`f797411412aee8c2...`) |
-| **d) High Stakes (≥ ₹50,000)** | Held for human approval, auto-action halted | **`PASSED`** | Sequence #136 (`282d985060d35099...`) |
+| **a) Webhook Race Condition** | Exactly 1 winner, 9 duplicate rejections | **`PASSED`** | Event ID: `evt_adversarial_race_5027cb` |
+| **b) Economic Floor (< ₹100)** | Blocked from outreach, zero cost wasted | **`PASSED`** | Sequence #134 (`fd5d437dd626baaa...`) |
+| **c) Off-Hours (9:30 PM IST)** | Blocked & rescheduled to next day 10 AM | **`PASSED`** | Sequence #135 (`1dcc09d6a5438759...`) |
+| **d) High Stakes (≥ ₹50,000)** | Held for human approval, auto-action halted | **`PASSED`** | Sequence #136 (`af5db00e1201fce6...`) |
 
 ## 2. Guardrail Evidence Details
 

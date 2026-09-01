@@ -413,6 +413,7 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
     confusion_matrix = {true_c: {pred_c: 0 for pred_c in CLASSES} for true_c in CLASSES}
     y_true = []
     y_pred = []
+    misclassified_cases = []
 
     t0 = time.perf_counter()
     for sample in heldout_test_set:
@@ -423,6 +424,16 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
         y_true.append(true_class)
         y_pred.append(pred_class)
         confusion_matrix[true_class][pred_class] += 1
+
+        if pred_class != true_class:
+            misclassified_cases.append({
+                "true_class": true_class,
+                "pred_class": pred_class,
+                "leak_type": sample["leak_type"].value,
+                "data": sample["data"],
+                "diagnosed_cause": diag["root_cause"].value,
+                "reasoning": diag.get("reasoning", "")
+            })
 
     eval_latency_ms = (time.perf_counter() - t0) * 1000
 
@@ -455,6 +466,7 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
 
     print(f"  -> Held-Out Accuracy: {overall_accuracy * 100:.1f}% ({total_correct}/{len(heldout_test_set)})")
     print(f"  -> Macro-Averaged F1 Score: {macro_f1:.3f}")
+    print(f"  -> Misclassified Cases: {len(misclassified_cases)}")
     print(f"  -> Evaluation Inference Latency: {eval_latency_ms:.2f}ms for 100 items ({eval_latency_ms/100:.3f}ms/item)")
 
     return {
@@ -465,6 +477,7 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
         "eval_latency_ms": eval_latency_ms,
         "metrics_per_class": metrics_per_class,
         "confusion_matrix": confusion_matrix,
+        "misclassified_cases": misclassified_cases,
         "classes": CLASSES
     }
 
@@ -718,6 +731,25 @@ def write_classifier_report(clf_res: Dict[str, Any], filepath: str):
             row_vals = " | ".join(f"`{cm[true_c][pred_c]}`" for pred_c in classes)
             f.write(f"| **`{true_c[:10]}`** | {row_vals} |\n")
         f.write("\n")
+
+        f.write("## 4. Known Limitations & Misclassification Analysis\n\n")
+        misclassified = clf_res.get("misclassified_cases", [])
+        if not misclassified:
+            f.write("### Zero Misclassifications on Current Deterministic Rule Patterns\n")
+            f.write("In the held-out test split (100 samples), 100% of structured synthetic cases mapped correctly to their root-cause classes based on error codes, descriptions, mandate thresholds, and cart step indicators.\n\n")
+        else:
+            f.write(f"### Identified Misclassifications ({len(misclassified)} cases)\n\n")
+            f.write("| True Class | Diagnosed Class | Leak Type | Input Key Signals | Diagnosed Reasoning |\n")
+            f.write("| :--- | :--- | :--- | :--- | :--- |\n")
+            for m in misclassified:
+                signals = str(m["data"])[:60] + "..."
+                f.write(f"| `{m['true_class']}` | `{m['pred_class']}` | `{m['leak_type']}` | `{signals}` | {m['reasoning'][:80]}... |\n")
+            f.write("\n")
+
+        f.write("### Real-World Telemetry Limitations & Fallback Strategy\n")
+        f.write("1. **Answer Leakage Removed:** The previous development-only `root_cause_hint` gateway field has been completely stripped from both data generation and diagnosis inference. The engine now classifies solely on realistic webhook signals (`error_code`, `error_source`, `error_description`, `amount`, `is_recurring`, `attempt_count`).\n")
+        f.write("2. **Unstructured Gateway Noise:** In live production bank integrations, bank switches occasionally return generic `BAD_REQUEST_ERROR` with uninformative descriptions like *'Payment processing failed'*. For such edge cases where deterministic rules cannot establish >70% confidence, the engine falls back to LLM reasoning chain (`llm_service.py`) for semantic disambiguation.\n")
+        f.write("3. **Mandate Thresholds:** Recurring payments above ₹15,000 are deterministically flagged for AFA re-authorization per RBI's e-mandate framework.\n\n")
 
 
 def write_voice_latency_report(v_res: Dict[str, Any], filepath: str):
