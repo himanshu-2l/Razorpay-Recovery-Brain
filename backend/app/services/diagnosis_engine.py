@@ -111,19 +111,7 @@ class DiagnosisEngine:
                 )
                 return cause, 0.78, "\n".join(reasoning_steps)
 
-        # Step 4: Gateway response hints (from our synthetic data)
-        if gateway_response.get("root_cause_hint"):
-            hint = gateway_response["root_cause_hint"]
-            try:
-                cause = RootCause(hint)
-                reasoning_steps.append(
-                    f"Gateway response contains root_cause_hint: {hint}"
-                )
-                return cause, 0.85, "\n".join(reasoning_steps)
-            except ValueError:
-                pass
-
-        # Step 5: Heuristic fallback based on retry count
+        # Step 4: Heuristic fallback based on retry count
         if attempt_count >= 3:
             reasoning_steps.append(
                 f"3+ failed attempts suggests persistent issue, not transient"

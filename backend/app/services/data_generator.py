@@ -157,7 +157,6 @@ def generate_payment_failures(customers: List[Dict], count: int = 20) -> List[Di
             "error_source": error_source,
             "gateway_response": {
                 "error_code": error_code,
-                "root_cause_hint": root_cause,
                 "bank_reference": f"REF{random.randint(100000, 999999)}",
                 "retry_recommended": root_cause.startswith("td_"),
             },
