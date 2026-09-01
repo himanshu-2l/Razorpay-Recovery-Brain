@@ -105,10 +105,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         
         {/* Top Eyebrows / Credibility Pill */}
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-md">
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/30 backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-[#2B7FFF] animate-ping" />
-            <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-blue-300">
-              INTELLIGENCE ON DEMAND
+            <span className="text-[11px] font-mono font-bold tracking-[0.2em] uppercase text-blue-300">
+              INTRODUCING · AGENTIC PAYMENTS
             </span>
           </div>
 
@@ -120,48 +120,80 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
         {/* The Famous Agent Studio Thesis Headline */}
         <div className="space-y-3">
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white font-sans max-w-4xl mx-auto leading-[1.15]">
-            Every month, businesses lose revenue not because payments fail,&nbsp;
-            <span className="font-serif-display italic text-[#2B7FFF] font-normal text-4xl sm:text-6xl lg:text-7xl block mt-2 drop-shadow-[0_0_35px_rgba(43,127,255,0.4)]">
-              but because no one has time to fix what happens after.
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white font-sans max-w-4xl mx-auto leading-[1.05]">
+            Razorpay<br />
+            <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+              Agentic Revenue Recovery
             </span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-xs sm:text-sm text-gray-400 font-sans leading-relaxed">
-            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine for Razorpay Agent Studio. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces strict <strong className="text-emerald-400">RBI Fair Practices Code</strong> guardrails, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
+          <p className="text-base sm:text-lg text-gray-300 font-sans max-w-3xl mx-auto font-medium leading-relaxed">
+            India's First AI-Powered Conversational Recovery Experience · Diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces strict <strong className="text-emerald-400">RBI Fair Practices</strong> guardrails, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
           </p>
         </div>
 
-        {/* Hero Interactive CTA Buttons */}
-        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+        {/* Hero Interactive CTA Buttons & Floating Voice Capsule */}
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3.5">
           <button
             onClick={onOpenVoice}
-            className="flex items-center space-x-2.5 px-6 py-3 rounded-full bg-gradient-to-r from-[#2B7FFF] via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+            className="flex items-center space-x-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-[#2B7FFF] via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
           >
             <PhoneCall className="w-4 h-4" />
-            <span>Simulate Hinglish Voice Recovery</span>
+            <span>Launch Hinglish Voice Agent</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </button>
 
           <button
+            onClick={onOpenVoice}
+            className="px-5 py-3 rounded-full bg-white/[0.08] hover:bg-white/[0.14] backdrop-blur-xl border border-white/20 text-white text-xs font-mono flex items-center space-x-2.5 shadow-lg transition-all active:scale-95 group"
+          >
+            <span>+ Ask Anything (Voice AI)</span>
+            <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+              <span className="text-[10px]">🎙️</span>
+            </div>
+          </button>
+
+          <button
             onClick={onOpenComplianceDemo}
-            className="flex items-center space-x-2 px-5 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95"
+            className="flex items-center space-x-2 px-5 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95"
           >
             <ShieldAlert className="w-4 h-4 text-emerald-400" />
-            <span>Simulate 9 PM RBI Compliance Block</span>
+            <span>Simulate 9 PM RBI Shield</span>
           </button>
 
           <button
             onClick={() => setShowAgentStack(!showAgentStack)}
-            className={`flex items-center space-x-2 px-4 py-3 rounded-full border text-xs font-mono transition-all ${
+            className={`flex items-center space-x-2 px-4 py-3.5 rounded-full border text-xs font-mono transition-all ${
               showAgentStack
                 ? 'bg-purple-600/20 text-purple-300 border-purple-500/40'
                 : 'bg-white/[0.02] text-gray-400 border-white/5 hover:text-white hover:bg-white/[0.05]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>{showAgentStack ? 'Hide Agent Stack' : 'View Agent Studio Stack (7 Agents)'}</span>
+            <span>{showAgentStack ? 'Hide Agent Stack' : 'Agent Studio Stack (7 Agents)'}</span>
           </button>
+        </div>
+
+        {/* Enterprise Ecosystem Proof Ticker */}
+        <div className="pt-2 pb-1 border-t border-b border-white/5 py-3 flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 font-semibold">
+            Powering AI Payment Workflows For:
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-gray-300 font-sans tracking-wide">
+            <span className="hover:text-white transition-colors">SWIGGY</span>
+            <span className="text-gray-600">·</span>
+            <span className="hover:text-white transition-colors">PVR INOX</span>
+            <span className="text-gray-600">·</span>
+            <span className="hover:text-white transition-colors">BLUESTONE</span>
+            <span className="text-gray-600">·</span>
+            <span className="hover:text-white transition-colors">BIGBASKET</span>
+            <span className="text-gray-600">·</span>
+            <span className="hover:text-white transition-colors">BOAT</span>
+            <span className="text-gray-600">·</span>
+            <span className="hover:text-white transition-colors">VI</span>
+            <span className="text-gray-600">·</span>
+            <span className="hover:text-white transition-colors">SARVAM AI</span>
+          </div>
         </div>
 
         {/* Agent Studio Stack Viewer (Collapsible / Expandable) */}
