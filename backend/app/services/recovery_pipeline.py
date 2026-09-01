@@ -148,6 +148,7 @@ class RecoveryPipeline:
             intervention=intervention,
             customer_id=customer.get("id", ""),
             contact_history=contact_history,
+            amount_at_risk=amount_at_risk,
         )
 
         logs.append({
@@ -187,6 +188,7 @@ class RecoveryPipeline:
             ComplianceAction.BLOCKED_TIME_WINDOW,
             ComplianceAction.BLOCKED_FREQUENCY,
             ComplianceAction.BLOCKED_DUPLICATE,
+            ComplianceAction.BLOCKED_ECONOMIC_FLOOR,
         ):
             status = CaseStatus.STOPPED
             amount_recovered = 0

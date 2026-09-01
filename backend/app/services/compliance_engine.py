@@ -13,12 +13,10 @@ The compliance layer saying NO is more impressive than the agent saying YES.
 
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
-import pytz
 
 from app.models.database import ComplianceAction, InterventionType
 
-
-IST = pytz.timezone("Asia/Kolkata")
+IST = timezone(timedelta(hours=5, minutes=30))
 
 # RBI Fair Practices Code parameters
 CONTACT_WINDOW_START = 8   # 8 AM IST
@@ -27,6 +25,7 @@ MAX_CONTACTS_PER_WEEK = 3  # Per customer
 MAX_CONTACTS_PER_DAY = 1   # Per customer
 MAX_TOTAL_ATTEMPTS = 7     # Before mandatory human escalation
 VOICE_CALL_COOLDOWN_HOURS = 48  # Min hours between voice calls to same person
+ECONOMIC_FLOOR_INR = 100.0  # Min recoverable value before triggering expensive AI/telephony outreach
 
 
 class ComplianceEngine:
@@ -41,6 +40,7 @@ class ComplianceEngine:
         customer_id: str,
         contact_history: Optional[List[Dict]] = None,
         current_time: Optional[datetime] = None,
+        amount_at_risk: float = 0.0,
     ) -> Dict[str, Any]:
         """
         Run all compliance checks on a proposed intervention.
@@ -57,6 +57,23 @@ class ComplianceEngine:
             current_time = datetime.now(timezone.utc)
 
         contact_history = contact_history or []
+
+        # Check 0: Economic Floor Stopping Rule
+        # If invoice or transaction amount is below ₹100, voice calls or active interventions are economically unviable
+        if amount_at_risk > 0 and amount_at_risk < ECONOMIC_FLOOR_INR and intervention in (
+            InterventionType.VOICE_CALL,
+            InterventionType.ESCALATE_HUMAN,
+            InterventionType.WHATSAPP_NUDGE,
+        ):
+            return {
+                "action": ComplianceAction.BLOCKED_ECONOMIC_FLOOR,
+                "rule_cited": f"Economic Floor Rule — recovery cost exceeds transaction value (< ₹{ECONOMIC_FLOOR_INR:.0f})",
+                "details": (
+                    f"Amount at risk (₹{amount_at_risk:.2f}) is below the ₹{ECONOMIC_FLOOR_INR:.0f} economic viability threshold. "
+                    f"Outreach compute/telephony cost exceeds expected recovery. Action aborted by policy engine."
+                ),
+                "rescheduled_to": None,
+            }
 
         # Non-contact interventions (retry, reauth) skip contact-specific checks
         if intervention in (InterventionType.RETRY, InterventionType.REAUTH, InterventionType.STOP, InterventionType.NONE):

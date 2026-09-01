@@ -99,6 +99,7 @@ class ComplianceAction(str, enum.Enum):
     BLOCKED_FREQUENCY = "blocked_frequency"
     BLOCKED_EXHAUSTED = "blocked_exhausted"
     BLOCKED_DUPLICATE = "blocked_duplicate"
+    BLOCKED_ECONOMIC_FLOOR = "blocked_economic_floor"
     RESCHEDULED = "rescheduled"
 
 
