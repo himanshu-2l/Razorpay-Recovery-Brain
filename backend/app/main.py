@@ -1040,6 +1040,69 @@ async def get_case_stages(case_id: str):
     raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
 
 
+# ─── Autonomy Envelope & Promise-to-Pay Endpoints ───────────────────────────
+
+from app.services.autonomy_envelope import autonomy_envelope
+from app.services.ptp_tracker import ptp_tracker
+
+
+@app.get("/api/autonomy/envelope")
+async def get_autonomy_envelope():
+    """Get active autonomy envelope state, threshold caps, and stability metrics."""
+    return autonomy_envelope.get_status()
+
+
+@app.post("/api/autonomy/contract")
+async def contract_autonomy_envelope(request: Request):
+    """Safeguard: Force contract autonomy envelope due to detected risk or rail outage."""
+    body = await request.json()
+    reason = body.get("reason", "Manual operator safeguard trigger")
+    autonomy_envelope.contract(reason=reason)
+    return {
+        "message": f"Autonomy envelope contracted to safeguard mode: {reason}",
+        "status": autonomy_envelope.get_status(),
+    }
+
+
+@app.post("/api/autonomy/expand")
+async def expand_autonomy_envelope():
+    """Expand autonomy envelope back to normal mode."""
+    for _ in range(5):
+        autonomy_envelope.record_stable_cycle()
+    return {
+        "message": "Autonomy envelope expanded back to normal operation.",
+        "status": autonomy_envelope.get_status(),
+    }
+
+
+@app.post("/api/ptp/record")
+async def record_promise_to_pay(request: Request):
+    """Record customer payment promise negotiated via voice or messaging."""
+    body = await request.json()
+    case_id = body.get("case_id", "case_manual_ptp")
+    customer_id = body.get("customer_id", "cust_ptp")
+    customer_name = body.get("customer_name", "Valued Customer")
+    amount = float(body.get("amount", 5000.0))
+    days_ahead = int(body.get("days_ahead", 3))
+    channel = body.get("channel", "voice_call")
+
+    ptp = ptp_tracker.record_promise(
+        case_id=case_id,
+        customer_id=customer_id,
+        customer_name=customer_name,
+        amount_promised=amount,
+        promised_days_ahead=days_ahead,
+        channel=channel,
+    )
+    return {"message": "Promise-to-Pay recorded successfully", "promise": ptp.to_dict()}
+
+
+@app.get("/api/ptp/promises")
+async def get_all_promises():
+    """List all registered customer Promises-to-Pay and their current fulfillment status."""
+    return {"promises": ptp_tracker.get_all()}
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
