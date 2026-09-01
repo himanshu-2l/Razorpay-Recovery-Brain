@@ -53,6 +53,12 @@ export interface CaseItem {
     intervention_cost_inr: number;
     churn_penalty_inr?: number;
     expected_net_recovery_inr: number;
+    revenue_bounds_inr?: {
+      p10_pessimistic: number;
+      p50_expected: number;
+      p90_optimistic: number;
+    };
+    autonomy_envelope_state?: 'EXPANDED' | 'CONTRACTED';
     requires_human_approval: boolean;
   };
   tax_clock?: {
