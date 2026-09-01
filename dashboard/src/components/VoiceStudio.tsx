@@ -23,6 +23,8 @@ export const VoiceStudio: React.FC = () => {
   const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [currentSpeaker, setCurrentSpeaker] = useState<'agent' | 'debtor' | null>(null);
+  const [gpuMode, setGpuMode] = useState<boolean>(false); // LLM-generated dialogue
+  const [gpuStatus, setGpuStatus] = useState<'online' | 'offline' | 'checking'>('checking');
 
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -31,12 +33,26 @@ export const VoiceStudio: React.FC = () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
     }
+
+    // Ping GPU server health on mount
+    const checkGpu = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/llm/health', { method: 'GET' });
+        const data = await res.json();
+        setGpuStatus(data.status === 'online' ? 'online' : 'offline');
+      } catch {
+        setGpuStatus('offline');
+      }
+    };
+    checkGpu();
+    const gpuInterval = setInterval(checkGpu, 30000); // re-check every 30s
+
     return () => {
-      // Cleanup any ongoing speech or timeouts on unmount
       if (synthRef.current) {
         synthRef.current.cancel();
       }
       timeoutsRef.current.forEach(clearTimeout);
+      clearInterval(gpuInterval);
     };
   }, []);
 
@@ -103,7 +119,31 @@ export const VoiceStudio: React.FC = () => {
     setActiveStep(0);
 
     try {
-      const response = await fetch('http://localhost:8000/api/demo/voice-call', {
+      // Route to LLM-generated dialogue if GPU mode is active
+      const endpoint = gpuMode && gpuStatus === 'online'
+        ? 'http://localhost:8000/api/llm/voice-call-dynamic'
+        : 'http://localhost:8000/api/demo/voice-call';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: phoneNumber,
+          debtor_name: debtorName,
+          debtor_company: 'Client Enterprises',
+          amount: invoiceAmount,
+          invoice_number: invoiceNumber,
+          days_overdue: 67,
+        }),
+      });
+      const data = await response.json();
+
+      // Normalize: LLM endpoint and scripted endpoint have same .conversation.flow shape
+      const normalizedData = data.mode === 'scripted'
+        ? null // GPU was offline, re-call scripted
+        : data;
+
+      const finalData = normalizedData ?? await (await fetch('http://localhost:8000/api/demo/voice-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,12 +153,12 @@ export const VoiceStudio: React.FC = () => {
           invoice_number: invoiceNumber,
           days_overdue: 67,
         }),
-      });
-      const data = await response.json();
-      setCallData(data);
+      })).json();
 
-      if (data.conversation?.flow) {
-        const flow = data.conversation.flow;
+      setCallData(finalData);
+
+      if (finalData.conversation?.flow) {
+        const flow = finalData.conversation.flow;
         let cumulativeDelay = 300;
 
         flow.forEach((item: { step: number; speaker: 'agent' | 'debtor'; text: string }, idx: number) => {
@@ -128,7 +168,6 @@ export const VoiceStudio: React.FC = () => {
           }, cumulativeDelay);
           timeoutsRef.current.push(t1);
 
-          // Estimate reading time per dialogue length + natural pause
           const duration = Math.max(2200, item.text.length * 75);
           cumulativeDelay += duration;
         });
@@ -163,9 +202,39 @@ export const VoiceStudio: React.FC = () => {
             <p className="text-xs text-gray-400 max-w-2xl">
               Indian SME payment delays average 73 days against 30-day terms. Our conversational AI agent initiates bounded, empathetic calls in natural Hinglish, negotiates a realistic date, and logs a verified Promise-to-Pay directly to the ledger.
             </p>
+            {/* GPU Server Status Pill */}
+            <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono border ${
+              gpuStatus === 'online'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : gpuStatus === 'offline'
+                ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                : 'bg-white/5 border-white/10 text-gray-500'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                gpuStatus === 'online' ? 'bg-emerald-400 animate-pulse' :
+                gpuStatus === 'offline' ? 'bg-red-400' : 'bg-gray-500'
+              }`} />
+              <span>GPU Server · Ollama · {gpuStatus === 'online' ? 'ONLINE' : gpuStatus === 'offline' ? 'OFFLINE' : 'CHECKING...'}</span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* LLM Mode Toggle */}
+            <button
+              onClick={() => setGpuMode(!gpuMode)}
+              disabled={gpuStatus !== 'online' || isCalling}
+              title={gpuStatus !== 'online' ? 'GPU server offline — start Ollama to enable' : gpuMode ? 'Switch to scripted mode' : 'Switch to LLM-generated mode'}
+              className={`px-3 py-1.5 rounded-full text-[10px] font-mono font-semibold border transition-all ${
+                gpuMode && gpuStatus === 'online'
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                  : gpuStatus !== 'online'
+                  ? 'bg-white/[0.02] border-white/5 text-gray-600 cursor-not-allowed'
+                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+              }`}
+            >
+              {gpuMode && gpuStatus === 'online' ? '🧠 Llama-3-8B LIVE' : '📄 Scripted Mode'}
+            </button>
+
             <button
               onClick={() => {
                 if (isCalling && synthRef.current) synthRef.current.cancel();
