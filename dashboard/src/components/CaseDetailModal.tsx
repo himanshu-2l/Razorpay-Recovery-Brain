@@ -212,6 +212,28 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
           </div>
         )}
 
+        {/* Reconciled Late Auth Banner */}
+        {caseItem.status === 'reconciled_late_auth' && (
+          <div className="p-4 bg-emerald-500/15 border-b border-emerald-500/30 flex items-center justify-between px-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
+                  Late Authorization Intercepted & Reconciled
+                </h4>
+                <p className="text-[11px] text-emerald-200/80 font-mono">
+                  Payment confirmed asynchronously ({caseItem.reconciliation?.trigger_event || 'payment.captured'}). In-flight recovery outreach halted safely.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              RECONCILED AUTOMATICALLY
+            </span>
+          </div>
+        )}
+
         {/* Modal Scrollable Content */}
         <div className="p-6 overflow-y-auto space-y-6">
           
@@ -245,6 +267,51 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                   <span className="text-[10px] text-gray-400">Classifier probability</span>
                 </div>
               </div>
+
+              {/* 4-Stage Execution Timeline Card */}
+              {caseItem.stages && caseItem.stages.length > 0 && (
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3 font-mono">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <div className="flex items-center space-x-2 text-xs font-bold uppercase text-blue-400">
+                      <Layers className="w-4 h-4" />
+                      <span>4-Stage Recovery Pipeline Execution Lifecycle</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400">Sub-10ms Total Latency</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+                    {caseItem.stages.map((st) => (
+                      <div
+                        key={st.stage_number}
+                        className={`p-3 rounded-xl border space-y-1.5 ${
+                          st.status === 'COMPLETED' || st.status === 'RECONCILED' || st.status === 'SEALED' || st.status === 'EXECUTED'
+                            ? 'bg-emerald-500/5 border-emerald-500/20'
+                            : st.status === 'AWAITING_APPROVAL'
+                            ? 'bg-amber-500/5 border-amber-500/20'
+                            : 'bg-white/[0.02] border-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase">Stage {st.stage_number}</span>
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                              st.status === 'COMPLETED' || st.status === 'RECONCILED' || st.status === 'SEALED' || st.status === 'EXECUTED'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : st.status === 'AWAITING_APPROVAL'
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse'
+                                : 'bg-red-500/10 text-red-400 border-red-500/30'
+                            }`}
+                          >
+                            {st.status}
+                          </span>
+                        </div>
+                        <h5 className="text-[11px] font-bold text-white leading-snug">{st.name}</h5>
+                        <p className="text-[10px] text-gray-400 leading-normal">{st.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Section 1: Diagnosis & Reasoning Chain */}
               <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">

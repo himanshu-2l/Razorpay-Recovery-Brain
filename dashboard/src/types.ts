@@ -40,7 +40,7 @@ export interface CaseItem {
   compliance_rule: string;
   compliance_details: string;
   rescheduled_to?: string | null;
-  status: 'open' | 'diagnosing' | 'intervening' | 'awaiting_response' | 'recovered' | 'partially_recovered' | 'failed' | 'escalated' | 'stopped';
+  status: 'open' | 'diagnosing' | 'intervening' | 'awaiting_response' | 'recovered' | 'partially_recovered' | 'failed' | 'escalated' | 'stopped' | 'reconciled_late_auth';
   nudge_content?: {
     whatsapp?: string;
     email_subject?: string;
@@ -95,6 +95,21 @@ export interface CaseItem {
       status: string;
       rule_cited: string;
     };
+  };
+  stages?: Array<{
+    stage_number: number;
+    name: string;
+    status: 'COMPLETED' | 'HALTED' | 'AWAITING_APPROVAL' | 'EXECUTED' | 'RECONCILED' | 'SEALED' | 'PENDING';
+    summary: string;
+    latency_ms: number;
+  }>;
+  reconciliation?: {
+    reconciled_at: string;
+    trigger_event: string;
+    payment_id: string;
+    order_id?: string;
+    previous_status?: string;
+    pending_actions_cancelled: boolean;
   };
   created_at: string;
   audit_logs?: AuditLogEntry[];
