@@ -56,7 +56,7 @@ def test_1_idempotency_race_condition():
 
 
 def test_2_rbi_compliance_time_window():
-    print("\n[TEST 2] RBI Fair Practices Code: 9:30 PM Night Window Gate")
+    print("\n[TEST 2] Responsible Collections Policy (Inspired by RBI FPC Principles): 9:30 PM Night Gate")
     compliance = ComplianceEngine()
     
     # 9:30 PM IST (21:30)
@@ -113,22 +113,23 @@ def test_4_diagnosis_engine_benchmark():
         (LeakType.B2B_RECEIVABLE, {"broken_promises": 3, "days_overdue": 75}, RootCause.RECV_CHRONIC),
     ]
 
-    start_time = time.time()
+    t0 = time.perf_counter()
     for leak_type, data, expected_cause in samples:
         res = engine.diagnose(leak_type, data)
         assert res["root_cause"] == expected_cause, f"Expected {expected_cause}, got {res['root_cause']}"
 
-    elapsed_ms = (time.time() - start_time) * 1000
+    elapsed_ms = (time.perf_counter() - t0) * 1000
     avg_latency = elapsed_ms / len(samples)
     
-    print(f"  -> Diagnosed {len(samples)} cases in {elapsed_ms:.2f}ms (Avg: {avg_latency:.2f}ms/case)")
+    print(f"  -> Diagnosed {len(samples)} cases in {elapsed_ms:.3f}ms (Live Measured Avg: {avg_latency:.3f}ms/case)")
     assert avg_latency < 10.0, f"Latency too high: {avg_latency}ms"
-    print("  [OK] PASS: All root causes accurately diagnosed at sub-10ms latency.")
+    print("  [OK] PASS: All root causes accurately diagnosed at live measured sub-10ms latency.")
 
 
 def test_5_razorpay_payment_link_generation():
-    print("\n[TEST 5] Razorpay Payment Link Generation & Metadata")
-    plink = razorpay_client.create_recovery_payment_link(
+    print("\n[TEST 5] Razorpay Payment Link Generation & Lifecycle Invalidation")
+    # Link 1
+    plink1 = razorpay_client.create_recovery_payment_link(
         amount_inr=1500.0,
         customer_name="Rohan Gupta",
         customer_phone="+919876543210",
@@ -137,15 +138,23 @@ def test_5_razorpay_payment_link_generation():
         invoice_number="INV-202688"
     )
 
-    print(f"  -> Link ID: {plink['id']}")
-    print(f"  -> Short URL: {plink['short_url']}")
-    print(f"  -> Amount Paise: {plink['amount']} (Rs {plink['amount']/100:.2f})")
+    # Link 2 (Superseding retry for the same invoice)
+    plink2 = razorpay_client.create_recovery_payment_link(
+        amount_inr=1500.0,
+        customer_name="Rohan Gupta",
+        customer_phone="+919876543210",
+        customer_email="rohan.gupta@example.com",
+        description="Invoice #INV-202688 Retry Link",
+        invoice_number="INV-202688"
+    )
 
-    assert plink["id"].startswith("plink_")
-    assert plink["amount"] == 150000
-    assert plink["customer"]["contact"] == "+919876543210"
-    assert plink["notes"]["invoice_number"] == "INV-202688"
-    print("  [OK] PASS: Payment link generated with accurate Razorpay API v1 payload structure.")
+    print(f"  -> Link 1 ID: {plink1['id']} (Status: {plink1['status']})")
+    print(f"  -> Link 2 ID: {plink2['id']} (Superseded Link: {plink2.get('invalidated_previous_link_id')})")
+
+    assert plink2["id"].startswith("plink_")
+    assert plink2["invalidated_previous_link_id"] == plink1["id"]
+    assert plink1["status"] == "cancelled"
+    print("  [OK] PASS: Payment link generated and prior link explicitly invalidated to prevent duplicate payments.")
 
 
 def test_6_cryptographic_audit_ledger_integrity():
@@ -320,16 +329,20 @@ def test_11_late_authorization_intercept_and_reconciler():
         order_id="order_test_late_auth_123",
         amount_paise=250000,
         cases_list=in_flight_cases,
+        event_id="evt_pay_cap_9912",
+        event_timestamp=1788299000,
     )
 
     print(f"  -> Match Found: {matched}")
     print(f"  -> Reconciled Status: {updated_case['status'].upper()}")
+    print(f"  -> Event ID Handled: {updated_case['reconciliation']['event_id']}")
     print(f"  -> Amount Recovered: Rs {updated_case['amount_recovered']:,.2f}")
     print(f"  -> Pending Actions Cancelled: {updated_case['reconciliation']['pending_actions_cancelled']}")
 
     assert matched is True
     assert updated_case["status"] == "reconciled_late_auth"
     assert updated_case["amount_recovered"] == 2500.0
+    assert updated_case["reconciliation"]["event_id"] == "evt_pay_cap_9912"
     print("  [OK] PASS: Late payment authorization intercepted; outreach halted safely without duplicate contact.")
 
 
@@ -446,7 +459,7 @@ def test_15_voice_intent_classification_and_telephony_waterfall():
     print(f"  -> Dispute Intent: {c_dispute['intent']} | Action: {c_dispute['action']}")
     assert c_dispute["intent"] == TurnIntent.ESCALATE_TO_HUMAN
 
-    # 2. Test 4 Collection Persona Strategies
+    # 2. Test 4 Collection Persona Strategies & Mandatory AI Disclosure
     for persona in [VoicePersona.FIRST_TIME_MISS, VoicePersona.REPEAT_DELINQUENT, VoicePersona.DISPUTE_PENDING, VoicePersona.BROKEN_PTP]:
         flow_res = VoiceIntentClassifier.generate_persona_flow(
             persona=persona,
@@ -458,7 +471,10 @@ def test_15_voice_intent_classification_and_telephony_waterfall():
         assert len(flow_res["flow"]) >= 5
         assert "latency_waterfall" in flow_res
         assert flow_res["latency_waterfall"]["within_budget"] is True
-        print(f"  -> Persona [{flow_res['persona_label']}]: {flow_res['strategy']} | Turns: {len(flow_res['flow'])}")
+        # Verify AI Disclosure Opener
+        opener_text = flow_res["flow"][0]["text"].lower()
+        assert "automated" in opener_text or "assistant" in opener_text, "Persona must include automated assistant disclosure in opener"
+        print(f"  -> Persona [{flow_res['persona_label']}]: {flow_res['strategy']} | Turns: {len(flow_res['flow'])} (AI Disclosed)")
 
     # 3. Test Sub-800ms Latency Waterfall
     waterfall = VoiceIntentClassifier.compute_turn_latency_waterfall()

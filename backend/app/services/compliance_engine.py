@@ -1,7 +1,7 @@
 """
 Compliance + Audit Layer — Every action passes through this gate.
 
-Implements RBI Fair Practices Code for collections:
+Implements a Responsible Collections Policy inspired by RBI Fair Practices Code principles:
 - Contact window: 8 AM – 7 PM IST only
 - Max contact frequency per customer per week
 - No abusive/coercive language
@@ -18,7 +18,7 @@ from app.models.database import ComplianceAction, InterventionType
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
-# RBI Fair Practices Code parameters
+# Responsible Collections Policy parameters (inspired by RBI Fair Practices principles)
 CONTACT_WINDOW_START = 8   # 8 AM IST
 CONTACT_WINDOW_END = 19    # 7 PM IST
 MAX_CONTACTS_PER_WEEK = 3  # Per customer
@@ -30,8 +30,8 @@ ECONOMIC_FLOOR_INR = 100.0  # Min recoverable value before triggering expensive 
 
 class ComplianceEngine:
     """
-    Gatekeeper that checks every intervention against RBI Fair Practices Code
-    and internal stopping rules before allowing execution.
+    Gatekeeper that checks every intervention against Responsible Collections Policy
+    (grounded in RBI Fair Practices principles) and internal stopping rules before allowing execution.
     """
 
     def check(
@@ -48,26 +48,37 @@ class ComplianceEngine:
         Returns:
         {
             "action": ComplianceAction (allowed/blocked_*/rescheduled),
-            "rule_cited": str (which specific rule),
-            "details": str (human-readable explanation),
-            "rescheduled_to": datetime or None
+            "rule_cited": str,
+            "details": str,
+            "rescheduled_to": Optional[datetime],
         }
         """
+        if contact_history is None:
+            contact_history = []
+
         if current_time is None:
             current_time = datetime.now(timezone.utc)
 
-        contact_history = contact_history or []
-
-        # Check 0: Economic Floor Stopping Rule
-        # If invoice or transaction amount is below ₹100, voice calls or active interventions are economically unviable
-        if amount_at_risk > 0 and amount_at_risk < ECONOMIC_FLOOR_INR and intervention in (
-            InterventionType.VOICE_CALL,
-            InterventionType.ESCALATE_HUMAN,
-            InterventionType.WHATSAPP_NUDGE,
+        # Non-contact interventions pass through (RETRY, REAUTH, NONE, STOP)
+        if intervention in (
+            InterventionType.RETRY,
+            InterventionType.REAUTH,
+            InterventionType.NONE,
+            InterventionType.STOP,
         ):
             return {
+                "action": ComplianceAction.ALLOWED,
+                "rule_cited": "Non-outreach intervention — no customer contact restrictions apply",
+                "details": f"{intervention.value} is an automated/system action, allowed immediately.",
+                "rescheduled_to": None,
+            }
+
+        # Check 0: Economic Floor Stopping Rule (Minimum Viable Recovery Value)
+        # Prevents spending ₹15 telephony or ₹2.5 WhatsApp compute to chase ₹45 invoices
+        if amount_at_risk > 0 and amount_at_risk < ECONOMIC_FLOOR_INR:
+            return {
                 "action": ComplianceAction.BLOCKED_ECONOMIC_FLOOR,
-                "rule_cited": f"Economic Floor Rule — recovery cost exceeds transaction value (< ₹{ECONOMIC_FLOOR_INR:.0f})",
+                "rule_cited": "Economic Floor Rule — Minimum viable recovery threshold ₹100",
                 "details": (
                     f"Amount at risk (₹{amount_at_risk:.2f}) is below the ₹{ECONOMIC_FLOOR_INR:.0f} economic viability threshold. "
                     f"Outreach compute/telephony cost exceeds expected recovery. Action aborted by policy engine."
@@ -75,23 +86,13 @@ class ComplianceEngine:
                 "rescheduled_to": None,
             }
 
-        # Non-contact interventions (retry, reauth) skip contact-specific checks
-        if intervention in (InterventionType.RETRY, InterventionType.REAUTH, InterventionType.STOP, InterventionType.NONE):
-            return {
-                "action": ComplianceAction.ALLOWED,
-                "rule_cited": "non_contact_intervention",
-                "details": f"{intervention.value} does not require customer contact — compliance checks not applicable.",
-                "rescheduled_to": None,
-            }
-
-        # Check 1: Contact window (8 AM – 7 PM IST)
+        # Check 1: Time of day (8 AM – 7 PM IST only)
         ist_time = current_time.astimezone(IST)
-        current_hour = ist_time.hour
+        hour = ist_time.hour
 
-        if current_hour < CONTACT_WINDOW_START or current_hour >= CONTACT_WINDOW_END:
-            # Calculate next allowed time
-            if current_hour >= CONTACT_WINDOW_END:
-                # After 7 PM → next day 10 AM
+        if hour < CONTACT_WINDOW_START or hour >= CONTACT_WINDOW_END:
+            if hour >= CONTACT_WINDOW_END:
+                # After 7 PM → tomorrow 10 AM
                 next_day = ist_time + timedelta(days=1)
                 next_allowed = next_day.replace(
                     hour=10, minute=0, second=0, microsecond=0
@@ -104,7 +105,7 @@ class ComplianceEngine:
 
             return {
                 "action": ComplianceAction.BLOCKED_TIME_WINDOW,
-                "rule_cited": "RBI Fair Practices Code — Contact permitted only 8 AM – 7 PM IST",
+                "rule_cited": "Responsible Collections Policy (RBI FPC Principles) — Contact permitted only 8 AM – 7 PM IST",
                 "details": (
                     f"Current time: {ist_time.strftime('%I:%M %p IST')}. "
                     f"Contact blocked outside 8 AM – 7 PM window. "

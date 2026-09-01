@@ -217,6 +217,8 @@ class InterventionRouter:
         cost_inr = self.INTERVENTION_COSTS.get(intervention, 0.0)
 
         # Churn penalty modeling (protecting high-LTV customer relationships)
+        # Rationale: 10% of churn-adjacent customer LTV is a conservative enterprise baseline
+        # to account for relationship fatigue and customer replacement cost.
         customer_ltv = data.get("customer_ltv", 12000.0)
         p_churn = 0.015 if intervention in (InterventionType.RETRY, InterventionType.EMAIL_NUDGE) else 0.035
         churn_penalty_inr = p_churn * customer_ltv * 0.10  # 10% penalty weight
@@ -224,7 +226,7 @@ class InterventionRouter:
         incremental_prob = max(0.0, p_action - p_natural)
         enrv_inr = max(0.0, (incremental_prob * effective_amount) - cost_inr - churn_penalty_inr)
 
-        # Empirical Uncertainty Bounds (P10 Pessimistic, P50 Expected, P90 Optimistic)
+        # Assumed Uncertainty Band (P10 Pessimistic Floor, P50 Expected Net, P90 Optimistic Ceiling)
         revenue_bounds_inr = {
             "p10_pessimistic": round(enrv_inr * 0.65, 2),
             "p50_expected": round(enrv_inr, 2),
@@ -293,7 +295,7 @@ class InterventionRouter:
             (RootCause.BD_LIMIT_EXCEEDED, InterventionType.EMAIL_NUDGE):
                 "Bank limit exceeded. Not urgent — email with 'try tomorrow' is appropriate.",
             (RootCause.MANDATE_REAUTH, InterventionType.REAUTH):
-                "RBI e-mandate re-authorization required. Blind retry will fail repeatedly. Must trigger re-auth flow.",
+                "Trigger customer-side re-authorization request via SMS/WhatsApp. Additional Factor Authentication (AFA) legally requires customer action inside their UPI app; agent dispatches instant re-auth push.",
             (RootCause.CARD_EXPIRED, InterventionType.EMAIL_NUDGE):
                 "Card expired. Customer needs to update payment method — email with update link.",
             (RootCause.CHECKOUT_PRICE_SHOCK, InterventionType.STOP):
@@ -301,7 +303,7 @@ class InterventionRouter:
             (RootCause.CHECKOUT_3DS_FAILURE, InterventionType.RETRY):
                 "3DS verification failed at bank. Worth retrying with a different gateway route.",
             (RootCause.SUB_MANDATE_BUG, InterventionType.REAUTH):
-                "The documented RBI >₹15K mandate bug. Blind retries will keep failing. Need re-authorization.",
+                "RBI >₹15K mandate limit threshold hit. Customer must complete step-up AFA in their UPI app; agent triggers re-auth notification.",
         }
 
         key = (root_cause, intervention)

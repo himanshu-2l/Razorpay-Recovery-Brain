@@ -75,7 +75,7 @@ const COMPARISON = [
     note: 'We add 1-click WhatsApp intent',
   },
   {
-    feature: 'RBI Fair Practices Guardrails',
+    feature: 'Responsible Collections Policy (RBI FPC-Inspired)',
     us: true,
     them: false,
     note: 'Time windows, frequency caps',
@@ -187,12 +187,12 @@ export const ImpactCounter: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistical Uncertainty Confidence Bands (P10 / P50 / P90) */}
+      {/* Assumed Recovery Uncertainty Band (P10 / P50 / P90) */}
       <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3 font-mono">
         <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
           <div className="flex items-center space-x-2 text-xs font-bold uppercase text-purple-400">
             <Zap className="w-4 h-4" />
-            <span>Statistical Recovery Uncertainty Bounds (P10 · P50 · P90 Confidence Intervals)</span>
+            <span>Assumed Recovery Uncertainty Band (P10 Floor · P50 Expected Net · P90 Upside)</span>
           </div>
           <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/30">
             AUTONOMY ENVELOPE: EXPANDED
@@ -201,21 +201,21 @@ export const ImpactCounter: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-            <span className="text-[10px] text-gray-400 block uppercase">P10 (Pessimistic Floor)</span>
+            <span className="text-[10px] text-gray-400 block uppercase">P10 (Assumed Floor · 0.65x)</span>
             <span className="text-base font-bold text-gray-300">₹1,76,800</span>
-            <span className="text-[9px] text-gray-500 block">Conservative 65% lower bound</span>
+            <span className="text-[9px] text-gray-500 block">Conservative 65% floor bound</span>
           </div>
 
           <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-1">
-            <span className="text-[10px] text-purple-300 block uppercase font-bold">P50 (Expected Net Value)</span>
+            <span className="text-[10px] text-purple-300 block uppercase font-bold">P50 (Expected Net ENRV · 1.0x)</span>
             <span className="text-base font-bold text-white">₹2,72,000</span>
-            <span className="text-[9px] text-purple-400 block">Central ENRV calibrated estimate</span>
+            <span className="text-[9px] text-purple-400 block">Central net recoverable value</span>
           </div>
 
           <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-            <span className="text-[10px] text-gray-400 block uppercase">P90 (Optimistic Upside)</span>
+            <span className="text-[10px] text-gray-400 block uppercase">P90 (Assumed Ceiling · 1.25x)</span>
             <span className="text-base font-bold text-emerald-400">₹3,40,000</span>
-            <span className="text-[9px] text-gray-500 block">High-engagement 125% upside</span>
+            <span className="text-[9px] text-gray-500 block">High-engagement 125% ceiling</span>
           </div>
         </div>
       </div>

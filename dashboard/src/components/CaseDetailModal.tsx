@@ -515,7 +515,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                       <ShieldAlert className="w-5 h-5 text-red-400" />
                     )}
                     <span className="text-xs font-mono font-semibold uppercase text-white">
-                      Step 3 · RBI Fair Practices Compliance Gate
+                      Step 3 · Responsible Collections Gate (RBI FPC-Inspired)
                     </span>
                   </div>
                   <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${

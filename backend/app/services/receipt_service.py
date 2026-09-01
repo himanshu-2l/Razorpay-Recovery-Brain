@@ -70,7 +70,7 @@ class DecisionReceiptService:
             },
             "compliance_citations": {
                 "status": case.get("compliance_status", "allowed"),
-                "rule_cited": case.get("compliance_rule", "RBI Fair Practices Code — Standard contact hours & frequency checked"),
+                "rule_cited": case.get("compliance_rule", "Responsible Collections Policy (RBI FPC Principles) — Contact window & frequency verified"),
             },
         }
 

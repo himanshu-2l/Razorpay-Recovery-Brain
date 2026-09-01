@@ -27,9 +27,12 @@ class OutcomeReconciler:
         order_id: Optional[str],
         amount_paise: int,
         cases_list: List[Dict[str, Any]],
+        event_id: Optional[str] = None,
+        event_timestamp: Optional[Any] = None,
     ) -> Tuple[bool, Optional[Dict[str, Any]], str]:
         """
         Reconcile an incoming payment webhook against in-flight recovery cases.
+        Keys off Razorpay event_id and event_timestamp to prevent out-of-order delivery races.
         Returns: (matched: bool, updated_case: Optional[Dict], message: str)
         """
         if event_type not in ("payment.captured", "payment.authorized", "order.paid"):
@@ -52,6 +55,8 @@ class OutcomeReconciler:
                 case["reconciliation"] = {
                     "reconciled_at": datetime.now(timezone.utc).isoformat(),
                     "trigger_event": event_type,
+                    "event_id": event_id or f"evt_rec_{payment_id}",
+                    "event_timestamp": event_timestamp,
                     "payment_id": payment_id,
                     "order_id": order_id,
                     "previous_status": old_status,
@@ -63,6 +68,8 @@ class OutcomeReconciler:
                     event_type="LATE_AUTH_RECONCILED",
                     case_id=case["id"],
                     payload={
+                        "event_id": event_id or f"evt_rec_{payment_id}",
+                        "event_timestamp": event_timestamp,
                         "payment_id": payment_id,
                         "order_id": order_id,
                         "amount_inr": amount_inr,
@@ -73,7 +80,7 @@ class OutcomeReconciler:
 
                 msg = (
                     f"Late payment authorization intercepted for Case {case['id']} "
-                    f"(Payment ID: {payment_id}). All pending outreach halted safely."
+                    f"(Payment ID: {payment_id} | Event ID: {event_id or 'authoritative'}). All pending outreach halted safely."
                 )
                 return True, case, msg
 

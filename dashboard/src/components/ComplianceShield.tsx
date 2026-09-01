@@ -38,10 +38,10 @@ export const ComplianceShield: React.FC<ComplianceShieldProps> = ({ summary }) =
               <span>THE GATE · BOUNDED INTERVENTION ENGINE</span>
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight font-display">
-              RBI Fair Practices Code Enforcement & Audit Vault
+              Responsible Collections Policy & Compliance Shield
             </h2>
             <p className="text-xs text-gray-400 max-w-2xl">
-              "The compliance layer visibly refusing to act is more impressive than the agent acting." Every proposed action must pass strict non-negotiable checks (8 AM – 7 PM window, weekly frequency caps, and stopping rules) before execution.
+              "The compliance layer visibly refusing to act is more impressive than the agent acting." Enforces strict non-negotiable checks (inspired by RBI Fair Practices Code principles: 8 AM – 7 PM window, weekly frequency caps, and economic floor stopping rules) before execution.
             </p>
           </div>
         </div>

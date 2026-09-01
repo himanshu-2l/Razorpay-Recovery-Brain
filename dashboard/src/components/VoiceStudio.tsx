@@ -428,7 +428,7 @@ export const VoiceStudio: React.FC = () => {
           {/* Compliance Checklist */}
           <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/20 space-y-2 pt-3">
             <span className="text-[10px] font-mono font-bold text-purple-300 uppercase tracking-wider block">
-              RBI Fair Practices Hard Guards:
+              Responsible Collections Policy (RBI FPC-Inspired):
             </span>
             <div className="space-y-1 text-[11px] text-gray-300 font-mono">
               <div className="flex items-center space-x-1.5 text-emerald-400">
@@ -441,7 +441,7 @@ export const VoiceStudio: React.FC = () => {
               </div>
               <div className="flex items-center space-x-1.5 text-emerald-400">
                 <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-                <span>Section 43B(h) MSME 45-day tax advisory</span>
+                <span>Automated AI Assistant disclosure required</span>
               </div>
             </div>
           </div>

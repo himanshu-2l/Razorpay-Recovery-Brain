@@ -128,7 +128,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </h1>
 
           <p className="max-w-2xl mx-auto text-xs sm:text-sm text-gray-400 font-sans leading-relaxed">
-            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine for Razorpay Agent Studio. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces strict <strong className="text-emerald-400">RBI Fair Practices Code</strong> guardrails, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
+            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine for Razorpay Agent Studio. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces a strict <strong className="text-emerald-400">Responsible Collections Policy (RBI FPC-Inspired)</strong>, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
           </p>
         </div>
 
@@ -148,7 +148,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             className="flex items-center space-x-2 px-5 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95"
           >
             <ShieldAlert className="w-4 h-4 text-emerald-400" />
-            <span>Simulate 9 PM RBI Compliance Block</span>
+            <span>Simulate 9 PM Out-of-Hours Policy Block</span>
           </button>
 
           <button
@@ -229,7 +229,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <Lock className="w-3.5 h-3.5" />
               <span>03. RBI Mandate Bug</span>
             </div>
-            <p className="text-[11px] text-gray-400">Detects &gt;₹15K re-auth failures with 24-hr pre-debit compliance.</p>
+            <p className="text-[11px] text-gray-400">Triggers re-auth notification for &gt;₹15K limits with 24-hr pre-debit buffer.</p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
@@ -259,7 +259,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
           <div className="flex items-center space-x-2 text-[10px] font-mono text-emerald-400 flex-shrink-0">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>100% RBI Fair Practices Compliant</span>
+            <span>Responsible Collections Policy (RBI FPC-Inspired)</span>
           </div>
         </div>
 

@@ -29,24 +29,22 @@ class RazorpayClientWrapper:
     Provides verified HMAC signature validation and Payment Link creation.
     """
 
-    def __init__(self, key_id: Optional[str] = None, key_secret: Optional[str] = None):
-        self.key_id = key_id or RAZORPAY_KEY_ID
-        self.key_secret = key_secret or RAZORPAY_KEY_SECRET
+    def __init__(self):
+        self.key_id = os.getenv("RAZORPAY_KEY_ID", "rzp_test_recovery_brain")
+        self.key_secret = os.getenv("RAZORPAY_KEY_SECRET", "sec_recovery_secret_key")
+        self._active_links_by_invoice: Dict[str, Dict[str, Any]] = {}
 
-    def verify_webhook_signature(self, body_bytes: bytes, signature: str, secret: Optional[str] = None) -> bool:
+    def verify_webhook_signature(self, raw_body: bytes, signature: str) -> bool:
         """
-        Verify that an incoming webhook payload was genuinely signed by Razorpay.
-        Uses HMAC SHA256 over raw request body bytes.
+        Cryptographic verification of Razorpay HMAC-SHA256 signature on raw webhook bytes.
         """
-        webhook_secret = secret or RAZORPAY_WEBHOOK_SECRET
-        if not signature or not webhook_secret:
+        if not signature:
             return False
-
         try:
             expected_signature = hmac.new(
-                webhook_secret.encode("utf-8"),
-                body_bytes,
-                hashlib.sha256
+                key=self.key_secret.encode("utf-8"),
+                msg=raw_body,
+                digestmod=hashlib.sha256
             ).hexdigest()
             return hmac.compare_digest(expected_signature, signature)
         except Exception as e:
@@ -65,12 +63,27 @@ class RazorpayClientWrapper:
     ) -> Dict[str, Any]:
         """
         Create a personalized Razorpay Payment Link for invoice recovery or cart rescue.
+        Explicitly invalidates any previously issued, still-active link for the same invoice
+        to prevent duplicate-payment risk from two simultaneously valid payment links.
         Amount is converted to Paise (₹1 = 100 paise).
         """
         amount_paise = int(amount_inr * 100)
         link_id = f"plink_{uuid.uuid4().hex[:14]}"
         short_url = f"https://rzp.io/i/{uuid.uuid4().hex[:7]}"
+        now_ts = int(datetime.now(timezone.utc).timestamp())
         expire_by = int((datetime.now(timezone.utc) + timedelta(hours=expire_hours)).timestamp())
+
+        # Check and invalidate previous active link for this invoice
+        invalidated_link_id = None
+        inv_key = invoice_number or customer_email or "default"
+        if inv_key in self._active_links_by_invoice:
+            prior_link = self._active_links_by_invoice[inv_key]
+            if prior_link.get("status") == "created":
+                prior_link["status"] = "cancelled"
+                prior_link["cancelled_at"] = now_ts
+                prior_link["invalidation_reason"] = "superseded_by_new_retry_link"
+                invalidated_link_id = prior_link.get("id")
+                logger.info(f"Invalidated prior payment link {invalidated_link_id} for invoice {inv_key} to prevent double payment.")
 
         payment_link = {
             "id": link_id,
@@ -92,14 +105,18 @@ class RazorpayClientWrapper:
                 "email": True
             },
             "reminder_enable": True,
+            "invalidated_previous_link_id": invalidated_link_id,
             "notes": {
                 "recovery_agent": "Vasool AI",
                 "invoice_number": invoice_number or "N/A",
-                "trace_origin": "revenue_recovery_brain"
+                "trace_origin": "revenue_recovery_brain",
+                "lifecycle_safety": "single_active_link_enforced",
             },
-            "created_at": int(datetime.now(timezone.utc).timestamp()),
+            "created_at": now_ts,
             "expire_by": expire_by
         }
+
+        self._active_links_by_invoice[inv_key] = payment_link
         logger.info(f"Created Razorpay Recovery Payment Link: {link_id} for ₹{amount_inr:.2f} -> {short_url}")
         return payment_link
 

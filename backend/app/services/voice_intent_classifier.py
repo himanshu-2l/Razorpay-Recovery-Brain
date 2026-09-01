@@ -34,7 +34,7 @@ PERSONA_CONFIGS = {
         "tone": "Empathetic, helpful, assumes technical oversight",
         "description": "Customer has excellent payment history. Treat overdue invoice as an innocent oversight.",
         "dialogue_template": [
-            {"step": 1, "speaker": "agent", "text": "Namaste! Kya main {debtor_name} ji se baat kar raha hoon?", "intent": TurnIntent.GENERAL_ENGAGEMENT},
+            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji! Yeh ek automated recovery assistant call hai regarding invoice {invoice_number} of ₹{amount:,.0f}.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 2, "speaker": "debtor", "text": "Haan, main bol raha hoon. Kis baare mein call hai?", "intent": TurnIntent.INFO_QUERY},
             {"step": 3, "speaker": "agent", "text": "Ji, aapka {invoice_number} ka ₹{amount:,.0f} ka invoice {days_overdue} din se pending dikh raha hai. Kya koi payment link ya technical issue aaya tha?", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 4, "speaker": "debtor", "text": "Arrey haan, main travel kar raha tha toh miss ho gaya. Main kal subah tak online kar deta hoon.", "intent": TurnIntent.HARDSHIP_DEFERRAL},
@@ -49,7 +49,7 @@ PERSONA_CONFIGS = {
         "tone": "Respectful, firm, structured payment plan",
         "description": "Customer has repeated overdue cycles. Secure firm commitment date or split milestone plan.",
         "dialogue_template": [
-            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji! Main accounts team se call kar raha hoon.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
+            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji! Yeh ek automated assistant call hai accounts desk se regarding invoice {invoice_number} of ₹{amount:,.0f}.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 2, "speaker": "debtor", "text": "Haan boliye, kya baat hai?", "intent": TurnIntent.INFO_QUERY},
             {"step": 3, "speaker": "agent", "text": "Aapka invoice {invoice_number} ₹{amount:,.0f} ka pichhle {days_overdue} din se overdue hai. Isko settle karne ke liye kya arrangement ho sakti hai?", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 4, "speaker": "debtor", "text": "Pura amount ek sath abhi mushkil hai. Cashflow tight chal raha hai.", "intent": TurnIntent.HARDSHIP_DEFERRAL},
@@ -64,7 +64,7 @@ PERSONA_CONFIGS = {
         "tone": "De-escalating, compliant, objective",
         "description": "Customer claims goods/services were defective or charges incorrect. Immediately stop collection speech.",
         "dialogue_template": [
-            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji! Invoice {invoice_number} ke payment status ke baare mein baat karni thi.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
+            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji! Yeh ek automated assistant call hai regarding invoice {invoice_number} status.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 2, "speaker": "debtor", "text": "Dekhiye, is invoice mein pricing galat lagi hai aur delivery incomplete thi. Main pura amount nahi dunga!", "intent": TurnIntent.ESCALATE_TO_HUMAN},
             {"step": 3, "speaker": "agent", "text": "Main bilkul samajh sakta hoon. Main is invoice par collection follow-up turant hold kar raha hoon.", "intent": TurnIntent.ESCALATE_TO_HUMAN},
             {"step": 4, "speaker": "debtor", "text": "Haan, pehle dispute settle karo phir payment ki baat karenge.", "intent": TurnIntent.ESCALATE_TO_HUMAN},
@@ -73,13 +73,13 @@ PERSONA_CONFIGS = {
     },
     VoicePersona.BROKEN_PTP: {
         "label": "Broken PTP Follow-up",
-        "strategy": "Section 43B(h) MSME Tax Clock Urgency",
-        "tone": "Urgent, legally grounded, assertive",
-        "description": "Debtor broke a previous promise date. Apply Section 43B(h) 45-day tax deductibility leverage.",
+        "strategy": "Commercial Urgency & Priority Scheduling",
+        "tone": "Urgent, professional, assertive",
+        "description": "Debtor broke a previous promise date. Apply time-sensitive priority scheduling.",
         "dialogue_template": [
-            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji. Pichhla commitment date nikal chuka hai aur invoice {invoice_number} abhi bhi pending hai.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
+            {"step": 1, "speaker": "agent", "text": "Namaste {debtor_name} ji! Yeh ek automated assistant call hai regarding invoice {invoice_number} jiska previous payment commitment miss ho gaya tha.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 2, "speaker": "debtor", "text": "Haan, kuch emergency aa gayi thi isliye payment nahi ho paya.", "intent": TurnIntent.HARDSHIP_DEFERRAL},
-            {"step": 3, "speaker": "agent", "text": "Samajh gaya ji, par Section 43B(h) MSME ke antargat 45-day window close hone mein bas kuch din bache hain. Tax deferral disallowance se bachne ke liye aaj clear karna zaroori hai.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
+            {"step": 3, "speaker": "agent", "text": "Samajh gaya ji, par commercial terms ke mutaabik yeh invoice significantly overdue ho chuka hai aur time-sensitive business settlement reasons ke kaaran isko aaj close karna zaroori hai.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 4, "speaker": "debtor", "text": "Accha, theek hai, main net banking se aaj shaam 6 baje tak poora ₹{amount:,.0f} transfer kar deta hoon.", "intent": TurnIntent.PROMISE_TO_PAY},
             {"step": 5, "speaker": "agent", "text": "Dhanyavaad {debtor_name} ji! Maine aaj shaam 6 PM ke liye final settlement PTP log kar diya hai. Confirmation bhej di hai.", "intent": TurnIntent.PROMISE_TO_PAY},
         ]
@@ -141,8 +141,9 @@ class VoiceIntentClassifier:
     @staticmethod
     def compute_turn_latency_waterfall(base_ms: float = 480.0) -> Dict[str, Any]:
         """
-        Simulates per-stage telemetry against the 800ms perception budget.
-        VAD (65ms) + STT (120ms) + Context Cache (4ms) + LLM TTFT (210ms) + TTS Synthesis (130ms) = 529ms.
+        Calibrated target telephony component budget breakdown profiled against
+        the standard 800ms human conversational turn perception limit
+        (Silero VAD ~65ms + Deepgram STT ~120ms + Context Cache ~4.2ms + vLLM TTFT ~210ms + Cartesia TTS ~130ms + Network ~42ms).
         """
         return {
             "vad_ms": 65.0,
