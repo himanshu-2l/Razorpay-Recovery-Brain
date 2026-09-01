@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 
 from app.models.database import RootCause, InterventionType, LeakType
+from app.services.tax_clock_engine import tax_clock_engine
+from app.services.circuit_breaker import bank_circuit_breaker
 
 
 class InterventionRouter:
@@ -154,7 +156,8 @@ class InterventionRouter:
     ) -> Dict[str, Any]:
         """
         Route a diagnosed case to the single best intervention.
-        Computes Expected Net Recoverable Value (ENRV) against Do-Nothing Counterfactual.
+        Computes Expected Net Recoverable Value (ENRV) against Do-Nothing Counterfactual,
+        incorporating Section 43B(h) tax leverage, bank circuit breaker, and churn risk.
         """
         # Extract amount
         effective_amount = amount_inr or data.get("amount", 0.0)
@@ -163,12 +166,26 @@ class InterventionRouter:
 
         # Default intervention from the map
         intervention = self.INTERVENTION_MAP.get(root_cause, InterventionType.ESCALATE_HUMAN)
+        tax_clock_data = None
 
-        # B2B receivable routing: amount and age determine voice vs text
-        if leak_type == LeakType.B2B_RECEIVABLE:
+        # Bank Gateway Circuit Breaker Check
+        bank_code = data.get("bank", data.get("error_source", "HDFC"))
+        if intervention == InterventionType.RETRY and not bank_circuit_breaker.is_rail_available(bank_code):
+            # Rail is experiencing technical outage; suppress futile retries
+            intervention = InterventionType.WHATSAPP_NUDGE
+            reason = (
+                f"Bank rail outage detected on {bank_code.upper()} switch (Circuit Breaker Tripped). "
+                f"Automated retry suppressed to prevent repeated failure; offering instant alternate payment method link."
+            )
+        # B2B receivable routing: amount, age, and Section 43B(h) tax clock determine strategy
+        elif leak_type == LeakType.B2B_RECEIVABLE:
             amount = data.get("amount", 0)
             days_overdue = data.get("days_overdue", 0)
             broken_promises = data.get("broken_promises", 0)
+
+            # Evaluate Section 43B(h) tax status
+            tax_clock = tax_clock_engine.evaluate(amount=effective_amount, days_overdue=days_overdue)
+            tax_clock_data = tax_clock.to_dict()
 
             if broken_promises >= 2:
                 intervention = InterventionType.ESCALATE_HUMAN
@@ -180,24 +197,30 @@ class InterventionRouter:
                 intervention = InterventionType.VOICE_CALL
                 reason = (
                     f"High-value (₹{amount:,.0f}) or significantly overdue "
-                    f"({days_overdue} days) — voice call more effective than text."
+                    f"({days_overdue} days). Section 43B(h) urgency: {tax_clock.urgency_level.upper()} "
+                    f"— voice call provides direct CFO negotiation leverage."
                 )
             else:
                 intervention = InterventionType.WHATSAPP_NUDGE
                 reason = (
                     f"Low-to-mid value (₹{amount:,.0f}), {days_overdue} days overdue. "
-                    f"WhatsApp nudge is sufficient and lower cost."
+                    f"WhatsApp nudge with Section 43B(h) 45-day deadline reminder is sufficient."
                 )
         else:
             reason = self._generate_reason(root_cause, intervention, data)
 
-        # Mathematical Counterfactual & ENRV Economics
+        # Mathematical Counterfactual & ENRV Economics with Churn Penalty
         p_natural = self.NATURAL_RECOVERY_BASELINES.get(root_cause, 0.05)
         p_action = self.INTERVENTION_SUCCESS_RATES.get(intervention, 0.50)
         cost_inr = self.INTERVENTION_COSTS.get(intervention, 0.0)
 
+        # Churn penalty modeling (protecting high-LTV customer relationships)
+        customer_ltv = data.get("customer_ltv", 12000.0)
+        p_churn = 0.015 if intervention in (InterventionType.RETRY, InterventionType.EMAIL_NUDGE) else 0.035
+        churn_penalty_inr = p_churn * customer_ltv * 0.10  # 10% penalty weight
+
         incremental_prob = max(0.0, p_action - p_natural)
-        enrv_inr = (incremental_prob * effective_amount) - cost_inr
+        enrv_inr = max(0.0, (incremental_prob * effective_amount) - cost_inr - churn_penalty_inr)
 
         # Human-in-the-loop requirement for high-stakes actions
         requires_human_approval = bool(effective_amount >= 50000 or intervention == InterventionType.ESCALATE_HUMAN)
@@ -217,11 +240,13 @@ class InterventionRouter:
             "reason": reason,
             "alternatives_rejected": alternatives_rejected,
             "nudge_content": nudge_content,
+            "tax_clock": tax_clock_data,
             "counterfactual": {
                 "p_natural_recovery": round(p_natural, 4),
                 "p_intervention_recovery": round(p_action, 4),
                 "incremental_lift_pct": round((p_action - p_natural) * 100, 1),
                 "intervention_cost_inr": cost_inr,
+                "churn_penalty_inr": round(churn_penalty_inr, 2),
                 "expected_net_recovery_inr": round(enrv_inr, 2),
                 "requires_human_approval": requires_human_approval,
             },

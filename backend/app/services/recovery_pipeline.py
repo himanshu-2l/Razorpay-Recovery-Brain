@@ -268,6 +268,7 @@ class RecoveryPipeline:
                 if compliance_result["rescheduled_to"] else None
             ),
             "status": status.value,
+            "tax_clock": route_result.get("tax_clock"),
             "nudge_content": route_result.get("nudge_content"),
             "created_at": datetime.now(timezone.utc).isoformat(),
             "audit_logs": logs,
