@@ -817,6 +817,114 @@ async def get_idempotency_stats():
     }
 
 
+# ─── Cryptographic Audit Ledger & HITL Endpoints ────────────────────────────
+
+from app.core.audit_ledger import audit_ledger
+from app.services.receipt_service import receipt_service
+
+
+@app.get("/api/audit/verify")
+async def verify_audit_ledger():
+    """
+    Cryptographically verify the entire SHA-256 hash chain from Genesis to Head.
+    Proves tamper-resistance of all recovery actions to judges and compliance auditors.
+    """
+    is_valid, total_blocks, error = audit_ledger.verify_integrity()
+    records = audit_ledger.get_records(limit=10)
+    return {
+        "integrity_verified": is_valid,
+        "total_chained_blocks": total_blocks,
+        "error": error,
+        "head_hash": records[-1]["content_hash"] if records else "0",
+        "recent_blocks": records,
+    }
+
+
+@app.get("/api/receipts/{case_id}")
+async def get_decision_receipt(case_id: str):
+    """
+    Get the cryptographic Decision Receipt for a case.
+    """
+    if batch_results:
+        for c in batch_results.get("cases", []):
+            if c["id"] == case_id:
+                receipt = c.get("receipt") or receipt_service.generate_receipt(c)
+                return receipt
+    raise HTTPException(status_code=404, detail=f"Receipt for case {case_id} not found.")
+
+
+@app.post("/api/cases/{case_id}/approve")
+async def approve_case_action(case_id: str, request: Request):
+    """
+    Human-In-The-Loop (HITL) 1-Click Operator Approval.
+    Executes the paused recovery action for high-value cases (> ₹50,000).
+    """
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    operator_note = body.get("note", "Approved by Merchant Finance Operator")
+
+    if batch_results:
+        for c in batch_results.get("cases", []):
+            if c["id"] == case_id:
+                c["status"] = "recovered"
+                c["amount_recovered"] = c.get("amount_at_risk", 0.0)
+                c["operator_approval"] = {
+                    "status": "approved",
+                    "approved_at": datetime.now(timezone.utc).isoformat(),
+                    "note": operator_note,
+                }
+                # Log to cryptographic audit ledger
+                audit_ledger.record_event(
+                    event_type="HUMAN_OPERATOR_APPROVED",
+                    case_id=case_id,
+                    payload={"amount": c["amount_at_risk"], "note": operator_note}
+                )
+                # Re-seal receipt
+                c["receipt"] = receipt_service.generate_receipt(c)
+                return {
+                    "status": "approved",
+                    "case_id": case_id,
+                    "amount_recovered": c["amount_recovered"],
+                    "receipt": c["receipt"],
+                }
+
+    raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+
+
+@app.post("/api/cases/{case_id}/reject")
+async def reject_case_action(case_id: str, request: Request):
+    """
+    Human-In-The-Loop (HITL) 1-Click Operator Rejection.
+    Stops the proposed recovery action and preserves customer relationship.
+    """
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    operator_reason = body.get("reason", "Rejected by Merchant Finance Operator")
+
+    if batch_results:
+        for c in batch_results.get("cases", []):
+            if c["id"] == case_id:
+                c["status"] = "stopped"
+                c["amount_recovered"] = 0.0
+                c["operator_approval"] = {
+                    "status": "rejected",
+                    "rejected_at": datetime.now(timezone.utc).isoformat(),
+                    "reason": operator_reason,
+                }
+                # Log to cryptographic audit ledger
+                audit_ledger.record_event(
+                    event_type="HUMAN_OPERATOR_REJECTED",
+                    case_id=case_id,
+                    payload={"reason": operator_reason}
+                )
+                c["receipt"] = receipt_service.generate_receipt(c)
+                return {
+                    "status": "rejected",
+                    "case_id": case_id,
+                    "receipt": c["receipt"],
+                }
+
+    raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

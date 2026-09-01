@@ -16,6 +16,10 @@ from app.services.intervention_router import InterventionRouter
 from app.services.compliance_engine import ComplianceEngine
 
 
+from app.core.audit_ledger import audit_ledger
+from app.services.receipt_service import receipt_service
+
+
 class RecoveryPipeline:
     """
     End-to-end recovery pipeline that processes a batch of revenue-at-risk cases.
@@ -43,7 +47,7 @@ class RecoveryPipeline:
             customer=customer,
             customer_history=customer_history,
             contact_history=contact_history,
-            amount_at_risk=transaction.get("amount", 0) / 100,  # Convert paise to INR
+            amount_at_risk=transaction.get("amount", 0) / 100 if transaction.get("amount", 0) > 10000 else transaction.get("amount", 0),
         )
 
     def process_checkout_abandonment(
@@ -58,7 +62,7 @@ class RecoveryPipeline:
             data={**case_data, "customer_name": customer.get("name", "")},
             customer=customer,
             contact_history=contact_history,
-            amount_at_risk=case_data.get("amount", 0) / 100,
+            amount_at_risk=case_data.get("amount", 0) / 100 if case_data.get("amount", 0) > 10000 else case_data.get("amount", 0),
         )
 
     def process_subscription_failure(
@@ -73,7 +77,7 @@ class RecoveryPipeline:
             data={**sub_data, "customer_name": customer.get("name", "")},
             customer=customer,
             contact_history=contact_history,
-            amount_at_risk=sub_data.get("amount", 0) / 100,
+            amount_at_risk=sub_data.get("amount", 0) / 100 if sub_data.get("amount", 0) > 10000 else sub_data.get("amount", 0),
         )
 
     def process_overdue_invoice(
@@ -81,6 +85,7 @@ class RecoveryPipeline:
         invoice: Dict[str, Any],
         customer: Dict[str, Any],
         contact_history: Optional[List[Dict]] = None,
+        current_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Process an overdue B2B invoice through the pipeline."""
         return self._process_case(
@@ -88,7 +93,8 @@ class RecoveryPipeline:
             data={**invoice, "customer_name": customer.get("name", "")},
             customer=customer,
             contact_history=contact_history,
-            amount_at_risk=invoice.get("amount", 0),  # Already in INR
+            amount_at_risk=invoice.get("amount", 0),
+            current_time=current_time,
         )
 
     def _process_case(
@@ -99,6 +105,7 @@ class RecoveryPipeline:
         customer_history: Optional[List[Dict]] = None,
         contact_history: Optional[List[Dict]] = None,
         amount_at_risk: float = 0,
+        current_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Core pipeline: diagnose → route → compliance → simulate execution."""
         case_id = str(uuid.uuid4())
@@ -107,6 +114,18 @@ class RecoveryPipeline:
         # Step 1: DIAGNOSE
         diagnosis = self.diagnosis.diagnose(leak_type, data, customer_history)
         root_cause = diagnosis["root_cause"]
+
+        # Audit Ledger: Intent Recording
+        audit_ledger.record_event(
+            event_type="ACTION_INTENT",
+            case_id=case_id,
+            payload={
+                "leak_type": leak_type.value,
+                "amount_at_risk": amount_at_risk,
+                "root_cause": root_cause.value,
+                "confidence": diagnosis["confidence"],
+            }
+        )
 
         logs.append({
             "case_id": case_id,
@@ -121,14 +140,16 @@ class RecoveryPipeline:
             }
         })
 
-        # Step 2: ROUTE
+        # Step 2: ROUTE & COUNTERFACTUAL MATH
         route_result = self.router.route(
             root_cause=root_cause,
             leak_type=leak_type,
             data=data,
             customer_contact_history=contact_history,
+            amount_inr=amount_at_risk,
         )
         intervention = route_result["intervention"]
+        counterfactual = route_result.get("counterfactual", {})
 
         logs.append({
             "case_id": case_id,
@@ -140,6 +161,7 @@ class RecoveryPipeline:
                 "chosen_intervention": intervention.value,
                 "reason": route_result["reason"],
                 "alternatives_rejected": route_result["alternatives_rejected"],
+                "counterfactual": counterfactual,
             }
         })
 
@@ -149,6 +171,7 @@ class RecoveryPipeline:
             customer_id=customer.get("id", ""),
             contact_history=contact_history,
             amount_at_risk=amount_at_risk,
+            current_time=current_time,
         )
 
         logs.append({
@@ -166,15 +189,20 @@ class RecoveryPipeline:
 
         # Step 4: DETERMINE STATUS
         if compliance_result["action"] == ComplianceAction.ALLOWED:
-            # Simulate execution
-            status, amount_recovered = self._simulate_execution(
-                intervention, root_cause, amount_at_risk, data
-            )
+            if counterfactual.get("requires_human_approval"):
+                # Human-In-The-Loop gate for high-stakes recovery
+                status = CaseStatus.AWAITING_RESPONSE
+                amount_recovered = 0
+            else:
+                # Bounded automated execution
+                status, amount_recovered = self._simulate_execution(
+                    intervention, root_cause, amount_at_risk, data
+                )
 
             logs.append({
                 "case_id": case_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "action": "executed",
+                "action": "executed" if status != CaseStatus.AWAITING_RESPONSE else "queued_for_approval",
                 "actor": "execution_layer",
                 "details": {
                     "step": "execution",
@@ -230,6 +258,8 @@ class RecoveryPipeline:
             "chosen_intervention": intervention.value,
             "intervention_reason": route_result["reason"],
             "alternatives_rejected": route_result["alternatives_rejected"],
+            "counterfactual": counterfactual,
+            "requires_human_approval": counterfactual.get("requires_human_approval", False),
             "compliance_status": compliance_result["action"].value,
             "compliance_rule": compliance_result["rule_cited"],
             "compliance_details": compliance_result["details"],
@@ -242,6 +272,10 @@ class RecoveryPipeline:
             "created_at": datetime.now(timezone.utc).isoformat(),
             "audit_logs": logs,
         }
+
+        # Generate Cryptographic Decision Receipt
+        receipt = receipt_service.generate_receipt(case)
+        case["receipt"] = receipt
 
         self.cases.append(case)
         self.audit_logs.extend(logs)
