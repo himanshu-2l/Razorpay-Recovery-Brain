@@ -97,18 +97,70 @@ class InterventionRouter:
         },
     }
 
+    # Operational cost per intervention (INR)
+    INTERVENTION_COSTS = {
+        InterventionType.RETRY: 0.0,
+        InterventionType.REAUTH: 0.0,
+        InterventionType.EMAIL_NUDGE: 0.50,
+        InterventionType.WHATSAPP_NUDGE: 2.50,
+        InterventionType.VOICE_CALL: 15.00,
+        InterventionType.ESCALATE_HUMAN: 50.00,
+        InterventionType.STOP: 0.0,
+        InterventionType.NONE: 0.0,
+    }
+
+    # Baseline natural recovery probabilities (Do-Nothing Counterfactual)
+    NATURAL_RECOVERY_BASELINES = {
+        RootCause.TD_BANK_DOWN: 0.22,
+        RootCause.TD_NPCI_TIMEOUT: 0.25,
+        RootCause.BD_INSUFFICIENT_FUNDS: 0.08,
+        RootCause.BD_WRONG_PIN: 0.12,
+        RootCause.BD_LIMIT_EXCEEDED: 0.15,
+        RootCause.MANDATE_REAUTH: 0.03,
+        RootCause.CARD_EXPIRED: 0.01,
+        RootCause.CHECKOUT_PAYMENT_MISMATCH: 0.05,
+        RootCause.CHECKOUT_3DS_FAILURE: 0.18,
+        RootCause.CHECKOUT_PRICE_SHOCK: 0.01,
+        RootCause.CHECKOUT_FRICTION: 0.09,
+        RootCause.SUB_MANDATE_BUG: 0.02,
+        RootCause.SUB_CARD_EXPIRED: 0.01,
+        RootCause.SUB_BALANCE: 0.10,
+        RootCause.RECV_OVERSIGHT: 0.20,
+        RootCause.RECV_CASH_FLOW: 0.08,
+        RootCause.RECV_DISPUTE: 0.02,
+        RootCause.RECV_CHRONIC: 0.01,
+        RootCause.UNKNOWN: 0.05,
+    }
+
+    # Expected success probabilities under targeted intervention
+    INTERVENTION_SUCCESS_RATES = {
+        InterventionType.RETRY: 0.82,
+        InterventionType.REAUTH: 0.74,
+        InterventionType.WHATSAPP_NUDGE: 0.68,
+        InterventionType.EMAIL_NUDGE: 0.45,
+        InterventionType.VOICE_CALL: 0.78,
+        InterventionType.ESCALATE_HUMAN: 0.55,
+        InterventionType.STOP: 0.00,
+        InterventionType.NONE: 0.00,
+    }
+
     def route(
         self,
         root_cause: RootCause,
         leak_type: LeakType,
         data: Dict[str, Any],
         customer_contact_history: Optional[List[Dict]] = None,
+        amount_inr: float = 0.0,
     ) -> Dict[str, Any]:
         """
         Route a diagnosed case to the single best intervention.
-
-        Returns intervention details including type, reason, and alternatives rejected.
+        Computes Expected Net Recoverable Value (ENRV) against Do-Nothing Counterfactual.
         """
+        # Extract amount
+        effective_amount = amount_inr or data.get("amount", 0.0)
+        if effective_amount > 10000 and leak_type == LeakType.PAYMENT_FAILURE:
+            effective_amount = effective_amount / 100.0  # paise to INR
+
         # Default intervention from the map
         intervention = self.INTERVENTION_MAP.get(root_cause, InterventionType.ESCALATE_HUMAN)
 
@@ -139,7 +191,18 @@ class InterventionRouter:
         else:
             reason = self._generate_reason(root_cause, intervention, data)
 
-        # Cross-reference: don't double-contact same customer same day
+        # Mathematical Counterfactual & ENRV Economics
+        p_natural = self.NATURAL_RECOVERY_BASELINES.get(root_cause, 0.05)
+        p_action = self.INTERVENTION_SUCCESS_RATES.get(intervention, 0.50)
+        cost_inr = self.INTERVENTION_COSTS.get(intervention, 0.0)
+
+        incremental_prob = max(0.0, p_action - p_natural)
+        enrv_inr = (incremental_prob * effective_amount) - cost_inr
+
+        # Human-in-the-loop requirement for high-stakes actions
+        requires_human_approval = bool(effective_amount >= 50000 or intervention == InterventionType.ESCALATE_HUMAN)
+
+        # Cross-reference: evaluate rejected alternatives
         alternatives_rejected = self._evaluate_alternatives(
             root_cause, intervention, leak_type, data
         )
@@ -154,6 +217,14 @@ class InterventionRouter:
             "reason": reason,
             "alternatives_rejected": alternatives_rejected,
             "nudge_content": nudge_content,
+            "counterfactual": {
+                "p_natural_recovery": round(p_natural, 4),
+                "p_intervention_recovery": round(p_action, 4),
+                "incremental_lift_pct": round((p_action - p_natural) * 100, 1),
+                "intervention_cost_inr": cost_inr,
+                "expected_net_recovery_inr": round(enrv_inr, 2),
+                "requires_human_approval": requires_human_approval,
+            },
             "routed_at": datetime.now(timezone.utc).isoformat(),
         }
 
