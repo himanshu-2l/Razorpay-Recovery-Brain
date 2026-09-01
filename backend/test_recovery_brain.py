@@ -241,6 +241,62 @@ def test_8_human_in_the_loop_approval_gate():
     print("  [OK] PASS: High-stakes intervention held safely for operator approval.")
 
 
+def test_9_section_43bh_tax_clock_engine():
+    print("\n[TEST 9] Section 43B(h) MSME Tax Clock Engine & B2B Leverage Analysis")
+    from app.services.tax_clock_engine import tax_clock_engine
+
+    # Scenario A: 32 days overdue (13 days before 45-day deadline)
+    status_a = tax_clock_engine.evaluate(amount=500000.0, days_overdue=32)
+    print(f"  -> Invoice: Rs {status_a.invoice_amount:,.2f} (32 days overdue)")
+    print(f"  -> Days Remaining to 45-day Deadline: {status_a.days_until_45d_deadline}")
+    print(f"  -> Tax Deferral Penalty Avoided: Rs {status_a.deferral_cost_inr:,.2f}")
+    print(f"  -> Urgency: {status_a.urgency_level.upper()}")
+    print(f"  -> CFO Lever: {status_a.cfo_negotiation_lever[:65]}...")
+
+    assert status_a.applies is True
+    assert status_a.days_until_45d_deadline == 13
+    assert status_a.deferral_cost_inr == 15000.0  # 500k * 0.25 * 0.12
+    assert status_a.urgency_level == "elevated"
+
+    # Scenario B: 52 days overdue (Breached by 7 days)
+    status_b = tax_clock_engine.evaluate(amount=200000.0, days_overdue=52)
+    assert status_b.is_breached is True
+    assert status_b.urgency_level == "breached"
+    print("  [OK] PASS: Section 43B(h) 45-day tax clock and deferral calculations verified.")
+
+
+def test_10_bank_gateway_circuit_breaker():
+    print("\n[TEST 10] Bank Gateway & Issuer Circuit Breaker (Retry Suppression on Outages)")
+    from app.services.circuit_breaker import bank_circuit_breaker
+    from app.services.intervention_router import InterventionRouter
+
+    # 1. Verify healthy rail
+    assert bank_circuit_breaker.is_rail_available("HDFC") is True
+
+    # 2. Simulate HDFC rail outage
+    bank_circuit_breaker.simulate_rail_outage("HDFC", force_tripped=True)
+    assert bank_circuit_breaker.is_rail_available("HDFC") is False
+    print("  -> HDFC Rail Outage Simulated (Status: TRIPPED)")
+
+    # 3. Verify router suppresses RETRY and switches to alternate payment link
+    router = InterventionRouter()
+    route_res = router.route(
+        root_cause=RootCause.TD_BANK_DOWN,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"bank": "HDFC", "amount": 250000},
+    )
+
+    print(f"  -> Routed Action: {route_res['intervention'].value.upper()}")
+    print(f"  -> Reason: {route_res['reason']}")
+
+    assert route_res["intervention"] == InterventionType.WHATSAPP_NUDGE
+    assert "Circuit Breaker Tripped" in route_res["reason"]
+    print("  [OK] PASS: Retry safely suppressed during bank rail outage; alternate link offered.")
+
+    # Reset circuit breaker
+    bank_circuit_breaker.simulate_rail_outage("HDFC", force_tripped=False)
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -254,7 +310,9 @@ if __name__ == "__main__":
     test_6_cryptographic_audit_ledger_integrity()
     test_7_counterfactual_enrv_and_receipts()
     test_8_human_in_the_loop_approval_gate()
+    test_9_section_43bh_tax_clock_engine()
+    test_10_bank_gateway_circuit_breaker()
 
     print("\n=================================================================")
-    print("  ALL 8 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 10 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
