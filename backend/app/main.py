@@ -983,6 +983,63 @@ async def get_case_tax_clock(case_id: str):
     raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
 
 
+# ─── Late Authorization Reconciler & Multi-Stage Planner Endpoints ───────────
+
+from app.services.outcome_reconciler import outcome_reconciler
+from app.services.stage_planner import stage_planner
+
+
+@app.post("/api/webhooks/reconcile-late-auth")
+async def reconcile_late_authorization(request: Request):
+    """
+    Simulate / Ingest late payment authorization event (payment.captured / payment.authorized).
+    Intercepts in-flight recovery cases, halts active outreach, and updates status to 'reconciled_late_auth'.
+    """
+    body = await request.json()
+    event_type = body.get("event", "payment.captured")
+    payment_id = body.get("payment_id", f"pay_late_{uuid.uuid4().hex[:8]}")
+    order_id = body.get("order_id")
+    amount_paise = body.get("amount", 250000)
+
+    cases_list = batch_results.get("cases", []) if batch_results else []
+    matched, updated_case, message = outcome_reconciler.reconcile_payment_event(
+        event_type=event_type,
+        payment_id=payment_id,
+        order_id=order_id,
+        amount_paise=amount_paise,
+        cases_list=cases_list,
+    )
+
+    if matched and updated_case:
+        # Re-generate stages and receipt
+        updated_case["stages"] = stage_planner.generate_stages(updated_case)
+        updated_case["receipt"] = receipt_service.generate_receipt(updated_case)
+
+    return {
+        "matched": matched,
+        "message": message,
+        "payment_id": payment_id,
+        "case": updated_case,
+    }
+
+
+@app.get("/api/cases/{case_id}/stages")
+async def get_case_stages(case_id: str):
+    """
+    Get the 4-stage execution timeline for a recovery case.
+    """
+    if batch_results:
+        for c in batch_results.get("cases", []):
+            if c["id"] == case_id:
+                stages = c.get("stages") or stage_planner.generate_stages(c)
+                return {
+                    "case_id": case_id,
+                    "stages": stages,
+                }
+
+    raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

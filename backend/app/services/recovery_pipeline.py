@@ -18,6 +18,8 @@ from app.services.compliance_engine import ComplianceEngine
 
 from app.core.audit_ledger import audit_ledger
 from app.services.receipt_service import receipt_service
+from app.services.stage_planner import stage_planner
+from app.services.outcome_reconciler import outcome_reconciler
 
 
 class RecoveryPipeline:
@@ -274,9 +276,10 @@ class RecoveryPipeline:
             "audit_logs": logs,
         }
 
-        # Generate Cryptographic Decision Receipt
+        # Generate Cryptographic Decision Receipt & Stages
         receipt = receipt_service.generate_receipt(case)
         case["receipt"] = receipt
+        case["stages"] = stage_planner.generate_stages(case)
 
         self.cases.append(case)
         self.audit_logs.extend(logs)
