@@ -148,6 +148,99 @@ def test_5_razorpay_payment_link_generation():
     print("  [OK] PASS: Payment link generated with accurate Razorpay API v1 payload structure.")
 
 
+def test_6_cryptographic_audit_ledger_integrity():
+    print("\n[TEST 6] Cryptographic Audit Ledger: SHA-256 Chaining & Integrity Verification")
+    from app.core.audit_ledger import audit_ledger
+
+    # Append sequential events
+    r1 = audit_ledger.record_event("TEST_EVENT_A", "case_test_1", {"action": "retry"})
+    r2 = audit_ledger.record_event("TEST_EVENT_B", "case_test_1", {"action": "nudge"})
+
+    assert r2.prev_hash == r1.content_hash, "Chaining failed: prev_hash does not match parent content_hash"
+    
+    is_valid, count, err = audit_ledger.verify_integrity()
+    print(f"  -> Total Verified Blocks: {count}")
+    print(f"  -> Chain Head Hash: {r2.content_hash[:16]}...")
+    print(f"  -> Integrity Status: {'VALID (TAMPER-FREE)' if is_valid else 'CORRUPTED'}")
+
+    assert is_valid, f"Integrity check failed: {err}"
+    print("  [OK] PASS: SHA-256 hash chain mathematically verified from Genesis to Head.")
+
+
+def test_7_counterfactual_enrv_and_receipts():
+    print("\n[TEST 7] Counterfactual Economics (ENRV) & Cryptographic Decision Receipts")
+    from app.services.intervention_router import InterventionRouter
+    from app.services.receipt_service import receipt_service
+
+    router = InterventionRouter()
+    route_res = router.route(
+        root_cause=RootCause.TD_BANK_DOWN,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"error_code": "GATEWAY_ERROR"},
+        amount_inr=5000.0,
+    )
+
+    cf = route_res["counterfactual"]
+    print(f"  -> Natural Recovery Baseline: {cf['p_natural_recovery']*100:.1f}%")
+    print(f"  -> Agent Recovery: {cf['p_intervention_recovery']*100:.1f}%")
+    print(f"  -> Incremental Lift: +{cf['incremental_lift_pct']:.1f}%")
+    print(f"  -> Expected Net Recoverable Value (ENRV): Rs {cf['expected_net_recovery_inr']:.2f}")
+
+    assert cf["expected_net_recovery_inr"] > 0
+    assert cf["p_intervention_recovery"] > cf["p_natural_recovery"]
+
+    # Generate receipt
+    dummy_case = {
+        "id": "case_enrv_test",
+        "leak_type": "payment_failure",
+        "amount_at_risk": 5000.0,
+        "amount_recovered": 5000.0,
+        "root_cause": "td_bank_down",
+        "chosen_intervention": "retry",
+        "status": "recovered",
+        "counterfactual": cf,
+    }
+    receipt = receipt_service.generate_receipt(dummy_case)
+    print(f"  -> Receipt ID: {receipt['receipt_id']}")
+    print(f"  -> Cryptographic Seal: {receipt['sha256_seal'][:16]}...")
+
+    assert receipt["receipt_id"].startswith("rcpt_")
+    assert "sha256_seal" in receipt
+    print("  [OK] PASS: Counterfactual math and cryptographic Decision Receipts verified.")
+
+
+def test_8_human_in_the_loop_approval_gate():
+    print("\n[TEST 8] Human-In-The-Loop (HITL) High-Stakes Approval Gate (> Rs 50,000)")
+    from app.services.recovery_pipeline import RecoveryPipeline
+
+    pipeline = RecoveryPipeline()
+    # Daytime (2 PM IST) so compliance gate passes
+    day_time_ist = datetime.now(IST).replace(hour=14, minute=0, second=0, microsecond=0)
+    day_time_utc = day_time_ist.astimezone(timezone.utc)
+
+    # High-value B2B invoice case (> ₹50,000)
+    high_val_invoice = {
+        "id": "inv_high_value_101",
+        "amount": 125000.0,  # ₹1,25,000 > ₹50,000
+        "days_overdue": 65,
+        "broken_promises": 1,
+    }
+    customer = {
+        "id": "cust_enterprise_1",
+        "name": "Acme Global Tech",
+        "company": "Acme Global Tech Pvt Ltd",
+    }
+
+    case = pipeline.process_overdue_invoice(high_val_invoice, customer, current_time=day_time_utc)
+    print(f"  -> Amount: Rs {case['amount_at_risk']:,.2f}")
+    print(f"  -> Requires Human Approval: {case['requires_human_approval']}")
+    print(f"  -> Initial Status: {case['status']}")
+
+    assert case["requires_human_approval"] is True
+    assert case["status"] == "awaiting_response"
+    print("  [OK] PASS: High-stakes intervention held safely for operator approval.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -158,7 +251,10 @@ if __name__ == "__main__":
     test_3_economic_floor_stopping_rule()
     test_4_diagnosis_engine_benchmark()
     test_5_razorpay_payment_link_generation()
+    test_6_cryptographic_audit_ledger_integrity()
+    test_7_counterfactual_enrv_and_receipts()
+    test_8_human_in_the_loop_approval_gate()
 
     print("\n=================================================================")
-    print("  ALL 5 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 8 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
