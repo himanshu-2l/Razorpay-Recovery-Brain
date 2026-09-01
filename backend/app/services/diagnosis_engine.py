@@ -10,10 +10,15 @@ Most systems treat both the same. We don't.
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple, List
 
 from app.models.database import RootCause, LeakType, InterventionType
+
+logger = logging.getLogger(__name__)
+
+LLM_CONFIDENCE_THRESHOLD = 0.60  # below this → ask the GPU server
 
 
 class DiagnosisEngine:
@@ -283,8 +288,7 @@ class DiagnosisEngine:
         customer_history: Optional[List[Dict]] = None
     ) -> Dict[str, Any]:
         """
-        Main diagnosis entry point. Routes to the appropriate classifier.
-
+        Synchronous main diagnosis entry point. Routes to the appropriate classifier.
         Returns a structured diagnosis result.
         """
         if leak_type == LeakType.PAYMENT_FAILURE:
@@ -308,3 +312,95 @@ class DiagnosisEngine:
             "reasoning_chain": reasoning,
             "diagnosed_at": datetime.now(timezone.utc).isoformat(),
         }
+
+    async def diagnose_with_llm(
+        self,
+        leak_type: LeakType,
+        data: Dict[str, Any],
+        customer_history: Optional[List[Dict]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Async diagnosis that enhances low-confidence rule results with LLM reasoning.
+
+        Flow:
+          1. Run synchronous rule-based diagnosis
+          2. If confidence < LLM_CONFIDENCE_THRESHOLD AND leak_type is payment failure:
+             → call Mistral-7B on GPU server to resolve
+          3. Merge LLM result back into case (preserves rule result on fallback)
+        """
+        from app.services import llm_service  # lazy import avoids circular dependency
+
+        # Step 1: Rule engine first
+        result = self.diagnose(leak_type, data, customer_history)
+        result["llm_enhanced"] = False
+        result["llm_reasoning"] = None
+
+        # Step 2: LLM enhancement only for low-confidence payment failures
+        if (
+            result["confidence"] < LLM_CONFIDENCE_THRESHOLD
+            and leak_type == LeakType.PAYMENT_FAILURE
+        ):
+            logger.info(
+                f"Rule engine confidence {result['confidence']:.2f} < threshold "
+                f"{LLM_CONFIDENCE_THRESHOLD}. Calling LLM for enhanced diagnosis."
+            )
+            try:
+                history_summary = ""
+                if customer_history:
+                    failed = sum(1 for h in customer_history if h.get("status") == "failed")
+                    history_summary = (
+                        f"{len(customer_history)} prior transactions, "
+                        f"{failed} failures"
+                    )
+
+                llm_result = await llm_service.resolve_ambiguous_case(
+                    error_code=data.get("error_code", ""),
+                    error_description=data.get("error_description", ""),
+                    error_source=data.get("error_source", ""),
+                    amount=data.get("amount", 0),
+                    attempt_count=data.get("attempt_count", 1),
+                    method=data.get("method", "unknown"),
+                    customer_history_summary=history_summary,
+                )
+
+                if llm_result is not None:
+                    # Map LLM string → RootCause enum (with safety fallback)
+                    try:
+                        llm_root_cause = RootCause(llm_result["root_cause"])
+                    except ValueError:
+                        logger.warning(
+                            f"LLM returned unknown root_cause: {llm_result['root_cause']}. "
+                            f"Keeping rule-engine result."
+                        )
+                        llm_root_cause = result["root_cause"]
+
+                    # Only accept LLM result if it improves confidence meaningfully
+                    llm_confidence = llm_result["confidence"]
+                    if llm_confidence > result["confidence"]:
+                        old_root_cause = result["root_cause"]
+                        result["root_cause"] = llm_root_cause
+                        result["confidence"] = llm_confidence
+                        result["llm_enhanced"] = True
+                        result["llm_reasoning"] = llm_result.get("reasoning", "")
+                        result["reasoning_chain"] = (
+                            result["reasoning_chain"]
+                            + f"\n[LLM Enhancement] Mistral-7B reclassified "
+                            f"{old_root_cause.value} → {llm_root_cause.value} "
+                            f"(confidence {llm_confidence:.2f}): "
+                            + result["llm_reasoning"]
+                        )
+                        logger.info(
+                            f"LLM improved diagnosis: {old_root_cause.value} → "
+                            f"{llm_root_cause.value} ({llm_confidence:.2f})"
+                        )
+                    else:
+                        logger.info(
+                            f"LLM returned lower confidence ({llm_confidence:.2f}) "
+                            f"than rules ({result['confidence']:.2f}). Keeping rule result."
+                        )
+
+            except Exception as e:
+                logger.error(f"LLM enhancement failed: {e}", exc_info=True)
+                # Graceful: return rule-based result unchanged
+
+        return result
