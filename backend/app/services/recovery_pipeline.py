@@ -41,6 +41,7 @@ class RecoveryPipeline:
         customer: Dict[str, Any],
         customer_history: Optional[List[Dict]] = None,
         contact_history: Optional[List[Dict]] = None,
+        current_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Process a single payment failure through the full pipeline."""
         return self._process_case(
@@ -50,6 +51,7 @@ class RecoveryPipeline:
             customer_history=customer_history,
             contact_history=contact_history,
             amount_at_risk=transaction.get("amount", 0) / 100 if transaction.get("amount", 0) > 10000 else transaction.get("amount", 0),
+            current_time=current_time,
         )
 
     def process_checkout_abandonment(
@@ -57,6 +59,7 @@ class RecoveryPipeline:
         case_data: Dict[str, Any],
         customer: Dict[str, Any],
         contact_history: Optional[List[Dict]] = None,
+        current_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Process a checkout abandonment through the pipeline."""
         return self._process_case(
@@ -65,6 +68,7 @@ class RecoveryPipeline:
             customer=customer,
             contact_history=contact_history,
             amount_at_risk=case_data.get("amount", 0) / 100 if case_data.get("amount", 0) > 10000 else case_data.get("amount", 0),
+            current_time=current_time,
         )
 
     def process_subscription_failure(
@@ -72,6 +76,7 @@ class RecoveryPipeline:
         sub_data: Dict[str, Any],
         customer: Dict[str, Any],
         contact_history: Optional[List[Dict]] = None,
+        current_time: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Process a subscription failure through the pipeline."""
         return self._process_case(
@@ -80,6 +85,7 @@ class RecoveryPipeline:
             customer=customer,
             contact_history=contact_history,
             amount_at_risk=sub_data.get("amount", 0) / 100 if sub_data.get("amount", 0) > 10000 else sub_data.get("amount", 0),
+            current_time=current_time,
         )
 
     def process_overdue_invoice(

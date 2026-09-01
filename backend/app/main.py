@@ -1049,6 +1049,9 @@ async def reconcile_late_authorization(request: Request):
     payment_id = body.get("payment_id", f"pay_late_{uuid.uuid4().hex[:8]}")
     order_id = body.get("order_id")
     amount_paise = body.get("amount", 250000)
+    customer_id = body.get("customer_id")
+    customer_email = body.get("customer_email")
+    customer_phone = body.get("customer_phone")
 
     cases_list = batch_results.get("cases", []) if batch_results else []
     matched, updated_case, message = outcome_reconciler.reconcile_payment_event(
@@ -1057,6 +1060,9 @@ async def reconcile_late_authorization(request: Request):
         order_id=order_id,
         amount_paise=amount_paise,
         cases_list=cases_list,
+        customer_id=customer_id,
+        customer_email=customer_email,
+        customer_phone=customer_phone,
     )
 
     if matched and updated_case:

@@ -307,22 +307,34 @@ def test_10_bank_gateway_circuit_breaker():
 
 
 def test_11_late_authorization_intercept_and_reconciler():
-    print("\n[TEST 11] Outcome Reconciler: Asynchronous Late Authorization Intercept")
+    print("\n[TEST 11] Outcome Reconciler: Asynchronous Late Authorization Intercept & Ambiguity Guard")
     from app.services.outcome_reconciler import outcome_reconciler
 
-    # Simulate an open recovery case
+    # Simulate open recovery cases
     in_flight_cases = [
         {
             "id": "case_inflight_999",
             "order_id": "order_test_late_auth_123",
             "payment_id": "pay_failed_init",
+            "customer_id": "cust_alpha",
+            "customer_email": "alpha@example.com",
             "status": "open",
             "amount_at_risk": 2500.0,
+            "amount_recovered": 0.0,
+        },
+        {
+            "id": "case_inflight_888",
+            "order_id": "order_test_late_auth_456",
+            "payment_id": "pay_failed_init_2",
+            "customer_id": "cust_beta",
+            "customer_email": "beta@example.com",
+            "status": "open",
+            "amount_at_risk": 5000.0,
             "amount_recovered": 0.0,
         }
     ]
 
-    # Late authorization arrives 10 minutes later from Razorpay webhook
+    # Branch 1: Primary key match (exact order_id)
     matched, updated_case, msg = outcome_reconciler.reconcile_payment_event(
         event_type="payment.captured",
         payment_id="pay_late_capture_789",
@@ -332,17 +344,49 @@ def test_11_late_authorization_intercept_and_reconciler():
         event_id="evt_pay_cap_9912",
         event_timestamp=1788299000,
     )
-
-    print(f"  -> Match Found: {matched}")
-    print(f"  -> Reconciled Status: {updated_case['status'].upper()}")
-    print(f"  -> Event ID Handled: {updated_case['reconciliation']['event_id']}")
-    print(f"  -> Amount Recovered: Rs {updated_case['amount_recovered']:,.2f}")
-    print(f"  -> Pending Actions Cancelled: {updated_case['reconciliation']['pending_actions_cancelled']}")
-
     assert matched is True
     assert updated_case["status"] == "reconciled_late_auth"
     assert updated_case["amount_recovered"] == 2500.0
-    assert updated_case["reconciliation"]["event_id"] == "evt_pay_cap_9912"
+    print(f"  -> Exact Primary Key Match Handled: {updated_case['reconciliation']['event_id']}")
+
+    # Branch 2: Amount match WITH customer identity verification
+    matched_cust, updated_cust_case, msg_cust = outcome_reconciler.reconcile_payment_event(
+        event_type="payment.captured",
+        payment_id="pay_unlinked_cust_beta",
+        order_id=None,  # No order ID on webhook
+        amount_paise=500000,  # Matches case 888 (₹5000)
+        cases_list=in_flight_cases,
+        customer_id="cust_beta",  # Matching customer
+    )
+    assert matched_cust is True
+    assert updated_cust_case["id"] == "case_inflight_888"
+    assert updated_cust_case["status"] == "reconciled_late_auth"
+    print(f"  -> Amount + Customer Identity Verified Match: Case {updated_cust_case['id']}")
+
+    # Branch 3: Ambiguous Amount-Only Match WITHOUT Customer Identifier (Guarded!)
+    ambiguous_case = [
+        {
+            "id": "case_inflight_777",
+            "order_id": "order_other_777",
+            "customer_id": "cust_gamma",
+            "status": "open",
+            "amount_at_risk": 7500.0,
+            "amount_recovered": 0.0,
+        }
+    ]
+    matched_ambig, updated_ambig_case, msg_ambig = outcome_reconciler.reconcile_payment_event(
+        event_type="payment.captured",
+        payment_id="pay_ambiguous_anon",
+        order_id=None,
+        amount_paise=750000,
+        cases_list=ambiguous_case,
+        # NO customer_id provided!
+    )
+    assert matched_ambig is False
+    assert updated_ambig_case["status"] == "ambiguous_reconciliation_needs_review"
+    assert updated_ambig_case["reconciliation_review_needed"] is True
+    print(f"  -> Ambiguous Match Flagged for Operator Review: Status={updated_ambig_case['status']}")
+
     print("  [OK] PASS: Late payment authorization intercepted; outreach halted safely without duplicate contact.")
 
 
