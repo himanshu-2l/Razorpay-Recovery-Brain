@@ -299,6 +299,64 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                 )}
               </div>
 
+              {/* Section 2.5: Section 43B(h) MSME Tax Clock Leverage */}
+              {(caseItem.tax_clock?.applies || caseItem.leak_type === 'b2b_receivable') && (
+                <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-4 font-mono">
+                  <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                    <div className="flex items-center space-x-2 text-xs font-bold uppercase text-amber-400">
+                      <Scale className="w-4 h-4" />
+                      <span>Section 43B(h) Income Tax Act · MSME 45-Day Clock</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                      caseItem.tax_clock?.urgency_level === 'breached'
+                        ? 'bg-red-500/15 text-red-400 border-red-500/30'
+                        : caseItem.tax_clock?.urgency_level === 'critical'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 animate-pulse'
+                        : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    }`}>
+                      URGENCY: {(caseItem.tax_clock?.urgency_level || 'ELEVATED').toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                      <span className="text-[10px] text-gray-400 block">45-Day Deadline</span>
+                      <span className="text-sm font-bold text-white">
+                        {caseItem.tax_clock?.days_until_45d_deadline !== undefined
+                          ? caseItem.tax_clock.days_until_45d_deadline >= 0
+                            ? `${caseItem.tax_clock.days_until_45d_deadline} Days Remaining`
+                            : `Breached ${Math.abs(caseItem.tax_clock.days_until_45d_deadline)}d Ago`
+                          : '14 Days Remaining'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                      <span className="text-[10px] text-gray-400 block">Tax Deferral Penalty Avoided</span>
+                      <span className="text-sm font-bold text-emerald-400">
+                        {formatCurrency(caseItem.tax_clock?.deferral_cost_inr || caseItem.amount_at_risk * 0.03)}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                      <span className="text-[10px] text-gray-400 block">Statutory Framework</span>
+                      <span className="text-xs font-semibold text-amber-300/90">
+                        MSMED Act 2006 (Sec 15)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/60 border border-amber-500/20 text-xs space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">
+                      Consultative CFO Negotiation Strategy:
+                    </span>
+                    <p className="text-gray-300 text-xs leading-relaxed">
+                      {caseItem.tax_clock?.cfo_negotiation_lever ||
+                        `Settling within the 45-day window keeps this ₹${caseItem.amount_at_risk.toLocaleString('en-IN')} expense deductible in the current financial year under Section 43B(h).`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Section 3: Compliance Shield Status */}
               <div className={`p-5 rounded-2xl border space-y-3 ${
                 caseItem.compliance_status === 'allowed'

@@ -51,9 +51,23 @@ export interface CaseItem {
     p_intervention_recovery: number;
     incremental_lift_pct: number;
     intervention_cost_inr: number;
+    churn_penalty_inr?: number;
     expected_net_recovery_inr: number;
     requires_human_approval: boolean;
   };
+  tax_clock?: {
+    applies: boolean;
+    invoice_amount: number;
+    due_date: string;
+    deadline_date: string;
+    days_overdue: number;
+    days_until_45d_deadline: number;
+    is_breached: boolean;
+    deferral_cost_inr: number;
+    urgency_level: string;
+    cfo_negotiation_lever: string;
+    hinglish_script_snippet: string;
+  } | null;
   requires_human_approval?: boolean;
   operator_approval?: {
     status: 'approved' | 'rejected';
