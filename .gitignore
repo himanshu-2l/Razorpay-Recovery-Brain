@@ -22,3 +22,9 @@ Thumbs.db
 # Data
 synthetic_batch.json
 *.log
+*.token
+*.secret
+.env*
+!.env.example
+server_config*
+
