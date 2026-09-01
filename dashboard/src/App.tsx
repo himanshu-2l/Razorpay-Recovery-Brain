@@ -9,6 +9,7 @@ import { ComplianceShield } from './components/ComplianceShield';
 import { WebhookPlayground } from './components/WebhookPlayground';
 import { ImpactCounter } from './components/ImpactCounter';
 import { LiveEventTicker } from './components/LiveEventTicker';
+import { StickyAgentShowcase } from './components/StickyAgentShowcase';
 import type { BatchSummary, CaseItem } from './types';
 
 export const App: React.FC = () => {
@@ -116,6 +117,11 @@ export const App: React.FC = () => {
           <div className="space-y-8 animate-in fade-in duration-300">
             <StatsGrid summary={summary} loading={loading} />
             <LiveEventTicker />
+            <StickyAgentShowcase
+              onOpenVoice={() => setActiveTab('voice')}
+              onOpenCompliance={() => setActiveTab('compliance')}
+              onOpenWebhook={() => setActiveTab('sandbox')}
+            />
             <ImpactCounter />
             <CaseTable cases={cases} onSelectCase={handleSelectCase} />
           </div>
