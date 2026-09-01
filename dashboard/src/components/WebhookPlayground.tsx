@@ -1,436 +1,522 @@
 import React, { useState } from 'react';
-import {
-  Send,
-  Zap,
-  Clock,
-  ShieldCheck,
-  Code2,
-  Sparkles,
-  RefreshCw,
-  Copy,
-  Check
-} from 'lucide-react';
-import type { CaseItem } from '../types';
+import { Zap, Code2, Send, CheckCircle2, XCircle, Loader2, Terminal } from 'lucide-react';
+
+type WebhookEvent = 'payment.failed.bank_timeout' | 'payment.failed.insufficient_funds' | 'subscription.halted' | 'invoice.overdue' | 'order.abandoned';
+
+interface ScenarioPreset {
+  id: WebhookEvent;
+  label: string;
+  description: string;
+  color: string;
+  borderColor: string;
+  tagColor: string;
+  leakType: string;
+  payload: object;
+}
+
+const SCENARIOS: ScenarioPreset[] = [
+  {
+    id: 'payment.failed.bank_timeout',
+    label: 'Payment Failed · Bank Timeout',
+    description: 'NPCI switch timeout — Classic Technical Degradation. Instant Retry expected.',
+    color: 'bg-blue-950/30',
+    borderColor: 'border-blue-500/40',
+    tagColor: 'text-blue-300',
+    leakType: 'TD',
+    payload: {
+      event: 'payment.failed',
+      payload: {
+        payment: {
+          entity: {
+            id: 'pay_demo_timeout_001',
+            method: 'upi',
+            amount: 249900,
+            customer_id: 'cust_demo_001',
+            email: 'aarav.mehta@example.com',
+            contact: '+919876543210',
+            error_code: 'GATEWAY_ERROR',
+            error_description: 'Transaction timed out at NPCI UPI switch',
+            error_source: 'bank',
+            notes: { customer_name: 'Aarav Mehta' },
+          },
+        },
+      },
+    },
+  },
+  {
+    id: 'payment.failed.insufficient_funds',
+    label: 'Payment Failed · Insufficient Funds',
+    description: 'Genuine NSF decline — Business Decline. WhatsApp soft nudge expected.',
+    color: 'bg-amber-950/30',
+    borderColor: 'border-amber-500/40',
+    tagColor: 'text-amber-300',
+    leakType: 'BD',
+    payload: {
+      event: 'payment.failed',
+      payload: {
+        payment: {
+          entity: {
+            id: 'pay_demo_nsf_002',
+            method: 'netbanking',
+            amount: 599900,
+            customer_id: 'cust_demo_002',
+            email: 'priya.sharma@example.com',
+            contact: '+919712345678',
+            error_code: 'BAD_REQUEST_ERROR',
+            error_description: 'Your payment was declined by the bank due to insufficient funds',
+            error_source: 'customer',
+            notes: { customer_name: 'Priya Sharma' },
+          },
+        },
+      },
+    },
+  },
+  {
+    id: 'subscription.halted',
+    label: 'Subscription Halted · Mandate Expired',
+    description: 'UPI Autopay debit limit exceeded. Subscription at churn risk. MRR impact ₹1,999/mo.',
+    color: 'bg-purple-950/30',
+    borderColor: 'border-purple-500/40',
+    tagColor: 'text-purple-300',
+    leakType: 'MRR',
+    payload: {
+      event: 'subscription.halted',
+      payload: {
+        subscription: {
+          entity: {
+            id: 'sub_demo_halt_003',
+            plan_id: 'plan_pro_monthly',
+            charge_amount: 199900,
+            error_description: 'UPI Autopay mandate debit limit exceeded on issuing bank',
+          },
+        },
+        customer: {
+          entity: {
+            id: 'cust_demo_sub_003',
+            name: 'Pooja Verma',
+            email: 'pooja.v@example.com',
+            contact: '+919812345678',
+          },
+        },
+      },
+    },
+  },
+  {
+    id: 'invoice.overdue',
+    label: 'B2B Invoice Overdue · 48 Days',
+    description: 'SME receivable beyond 31-60 day aging bucket. Hinglish voice agent engaged.',
+    color: 'bg-red-950/30',
+    borderColor: 'border-red-500/40',
+    tagColor: 'text-red-300',
+    leakType: 'B2B',
+    payload: {
+      event: 'invoice.overdue',
+      payload: {
+        invoice: {
+          entity: {
+            invoice_number: 'INV-20268421',
+            amount: 125000,
+            days_overdue: 48,
+            customer_id: 'cust_b2b_004',
+            customer_name: 'Kavita Industries Pvt Ltd',
+            customer_phone: '+919823456789',
+            dispute_flag: false,
+          },
+        },
+      },
+    },
+  },
+  {
+    id: 'order.abandoned',
+    label: 'Cart Abandoned · ₹4,500 · High Intent',
+    description: 'Payment method selection stage drop-off. Dynamic discount offer expected.',
+    color: 'bg-emerald-950/30',
+    borderColor: 'border-emerald-500/40',
+    tagColor: 'text-emerald-300',
+    leakType: 'CART',
+    payload: {
+      event: 'order.abandoned',
+      payload: {
+        order: {
+          entity: {
+            id: 'order_demo_005',
+            amount: 450000,
+            items_count: 2,
+            stage: 'payment_method_selection',
+            customer_id: 'cust_cart_005',
+            customer_name: 'Rohan Gupta',
+            customer_phone: '+919712345678',
+            customer_email: 'rohan.gupta@example.com',
+          },
+        },
+      },
+    },
+  },
+];
 
 interface WebhookResponse {
   status: string;
   event: string;
   trace_id: string;
   latency_ms: number;
-  case: CaseItem;
+  case?: {
+    id: string;
+    leak_type: string;
+    root_cause: string;
+    root_cause_confidence: number;
+    reasoning_chain: string;
+    chosen_intervention: string;
+    intervention_reason: string;
+    compliance_status: string;
+    compliance_rule: string;
+    amount_at_risk: number;
+    alternatives_rejected?: Array<{ action: string; rejected_because: string }>;
+  };
 }
 
-const PRESET_PAYLOADS: Record<string, { label: string; event: string; icon: string; description: string; json: object }> = {
-  payment_failed_npci: {
-    label: 'Payment Failed (NPCI Bank Timeout)',
-    event: 'payment.failed',
-    icon: '⚡',
-    description: 'Technical failure at NPCI switch. Smart retry queues optimal mandate retry without user disturbance.',
-    json: {
-      event: 'payment.failed',
-      payload: {
-        payment: {
-          entity: {
-            id: 'pay_Hk829Jsn1920L',
-            amount: 250000,
-            currency: 'INR',
-            status: 'failed',
-            method: 'upi',
-            error_code: 'BAD_REQUEST_ERROR',
-            error_description: 'Transaction timed out at NPCI switch. Bank core system unresponsive.',
-            error_source: 'bank',
-            error_step: 'payment_authorization',
-            error_reason: 'bank_network_failure',
-            customer_id: 'cust_live_001',
-            email: 'aarav.mehta@example.com',
-            contact: '+919876543210',
-            notes: {
-              customer_name: 'Aarav Mehta',
-              order_id: 'order_N821948291'
-            }
-          }
-        }
-      }
-    }
-  },
-  subscription_halted_mandate: {
-    label: 'Subscription Halted (Mandate Limit)',
-    event: 'subscription.halted',
-    icon: '🔄',
-    description: 'Recurring autopay declined due to card/mandate limit. Generates dynamic backup payment link.',
-    json: {
-      event: 'subscription.halted',
-      payload: {
-        subscription: {
-          entity: {
-            id: 'sub_G9204918234Kl',
-            plan_id: 'plan_enterprise_monthly',
-            charge_amount: 199900,
-            status: 'halted',
-            error_code: 'MANDATE_LIMIT_EXCEEDED',
-            error_description: 'Mandate debit limit exceeded on issuing bank. RBI 24hr pre-debit required.',
-            customer_id: 'cust_sub_992'
-          }
-        },
-        customer: {
-          entity: {
-            id: 'cust_sub_992',
-            name: 'Pooja Verma',
-            email: 'pooja.v@example.com',
-            contact: '+919812345678'
-          }
-        }
-      }
-    }
-  },
-  invoice_overdue_sme: {
-    label: 'Invoice Overdue (B2B 48-Day Aging)',
-    event: 'invoice.overdue',
-    icon: '📞',
-    description: 'High-value delayed SME receivable. Escalates to Hinglish conversational voice recovery agent.',
-    json: {
-      event: 'invoice.overdue',
-      payload: {
-        invoice: {
-          entity: {
-            id: 'inv_8429104820',
-            invoice_number: 'INV-20268421',
-            amount: 125000,
-            days_overdue: 48,
-            customer_name: 'Kavita Industries Pvt Ltd',
-            customer_phone: '+919823456789',
-            dispute_flag: false
-          }
-        }
-      }
-    }
-  },
-  order_abandoned_high_intent: {
-    label: 'Cart Abandoned (High LTV Intent)',
-    event: 'order.abandoned',
-    icon: '🛒',
-    description: 'Checkout drop-off at payment selection. Generates personalized 1-click WhatsApp payment intent.',
-    json: {
-      event: 'order.abandoned',
-      payload: {
-        order: {
-          entity: {
-            id: 'order_Cart918237',
-            amount: 450000,
-            stage: 'payment_method_selection',
-            items_count: 2,
-            customer_id: 'cust_cart_441',
-            customer_name: 'Rohan Gupta',
-            customer_phone: '+919712345678',
-            customer_email: 'rohan.gupta@example.com'
-          }
-        }
-      }
-    }
-  }
+const LEAK_TYPE_LABELS: Record<string, string> = {
+  payment_failure: 'Payment Failure',
+  checkout_abandonment: 'Cart Abandonment',
+  subscription_failure: 'Subscription Churn',
+  b2b_receivable: 'B2B Invoice',
+};
+
+const COMPLIANCE_COLORS: Record<string, string> = {
+  allowed: 'text-emerald-400',
+  blocked_time_window: 'text-red-400',
+  blocked_frequency: 'text-red-400',
+  blocked_exhausted: 'text-red-400',
+  rescheduled: 'text-amber-400',
 };
 
 export const WebhookPlayground: React.FC = () => {
-  const [selectedPreset, setSelectedPreset] = useState<string>('payment_failed_npci');
+  const [selectedScenario, setSelectedScenario] = useState<WebhookEvent>('payment.failed.bank_timeout');
   const [jsonPayload, setJsonPayload] = useState<string>(
-    JSON.stringify(PRESET_PAYLOADS.payment_failed_npci.json, null, 2)
+    JSON.stringify(SCENARIOS[0].payload, null, 2)
   );
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isCustom, setIsCustom] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<WebhookResponse | null>(null);
-  const [copied, setCopied] = useState<boolean>(false);
-  const [history, setHistory] = useState<WebhookResponse[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSelectPreset = (key: string) => {
-    setSelectedPreset(key);
-    setJsonPayload(JSON.stringify(PRESET_PAYLOADS[key].json, null, 2));
+  const handleScenarioSelect = (scenario: ScenarioPreset) => {
+    setSelectedScenario(scenario.id);
+    setJsonPayload(JSON.stringify(scenario.payload, null, 2));
+    setIsCustom(false);
+    setResponse(null);
+    setError(null);
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(jsonPayload);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleFireWebhook = async () => {
+    setIsLoading(true);
+    setResponse(null);
+    setError(null);
 
-  const handleSendWebhook = async () => {
+    let parsedPayload: object;
     try {
-      setIsSubmitting(true);
-      const parsed = JSON.parse(jsonPayload);
+      parsedPayload = JSON.parse(jsonPayload);
+    } catch {
+      setError('Invalid JSON — please fix your payload.');
+      setIsLoading(false);
+      return;
+    }
 
+    try {
       const res = await fetch('http://localhost:8000/api/webhook/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed),
+        body: JSON.stringify(parsedPayload),
       });
-
-      const data = await res.json();
+      const data: WebhookResponse = await res.json();
       setResponse(data);
-      if (data.status === 'processed') {
-        setHistory((prev) => [data, ...prev.slice(0, 4)]);
-      }
-    } catch (err) {
-      console.error('Error dispatching webhook:', err);
+    } catch {
+      setError('Backend unreachable — make sure the FastAPI server is running on port 8000.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      
+    <div className="space-y-6">
+
       {/* Header Banner */}
       <div className="glass-panel p-6 rounded-3xl border border-blue-500/20 relative overflow-hidden glow-blue">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-[#2B7FFF] text-xs font-mono">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>LIVE WEBHOOK INGESTION ENGINE · SUB-500MS SLA</span>
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono">
+              <Zap className="w-3.5 h-3.5" />
+              <span>LIVE SANDBOX · RAZORPAY WEBHOOK SIMULATOR</span>
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight font-display">
-              Real-Time Webhook Diagnostic Sandbox
+              Interactive Webhook Playground
             </h2>
             <p className="text-xs text-gray-400 max-w-2xl">
-              Dispatch raw Razorpay webhook payloads directly to the Revenue Recovery Brain. Observe instant root-cause diagnosis, intelligent intervention selection, and strict RBI compliance validation in real-time.
+              Fire real Razorpay-format webhook events at the Recovery Brain. Select a preset scenario or paste raw JSON.
+              The engine diagnoses root cause, selects the optimal intervention, and runs compliance checks — all in under 500ms.
             </p>
           </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="px-4 py-2 rounded-2xl bg-black/40 border border-white/10 text-right">
-              <span className="text-[10px] font-mono text-gray-400 block uppercase">Target Endpoint</span>
-              <span className="text-xs font-mono text-emerald-400 font-semibold">POST /api/webhook/razorpay</span>
+          <div className="flex flex-col items-end gap-2">
+            <div className="text-[11px] font-mono text-gray-400 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10">
+              POST /api/webhook/razorpay
+            </div>
+            <div className="text-[10px] font-mono text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              avg. latency &lt; 500ms
             </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-[400px] h-[250px] bg-blue-600/10 blur-[90px] pointer-events-none -z-0" />
+        {/* Ambient glow */}
+        <div className="absolute top-0 right-0 w-[500px] h-[200px] bg-blue-600/8 blur-[100px] pointer-events-none -z-0" />
       </div>
 
-      {/* Preset Selector Tabs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {Object.entries(PRESET_PAYLOADS).map(([key, item]) => {
-          const isSelected = selectedPreset === key;
-          return (
-            <button
-              key={key}
-              onClick={() => handleSelectPreset(key)}
-              className={`p-3.5 rounded-2xl text-left transition-all border ${
-                isSelected
-                  ? 'bg-blue-600/15 border-blue-500/40 shadow-lg shadow-blue-500/10'
-                  : 'bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-lg">{item.icon}</span>
-                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full ${
-                  isSelected ? 'bg-blue-500/20 text-blue-300' : 'bg-white/5 text-gray-400'
-                }`}>
-                  {item.event}
-                </span>
-              </div>
-              <div className="text-xs font-semibold text-white mb-1">{item.label}</div>
-              <div className="text-[11px] text-gray-400 line-clamp-2">{item.description}</div>
-            </button>
-          );
-        })}
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-      {/* Main Sandbox Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: JSON Payload Editor */}
-        <div className="lg:col-span-6 glass-panel p-5 rounded-2xl border border-white/10 flex flex-col justify-between space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center space-x-2">
-                <Code2 className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-mono font-semibold text-white uppercase tracking-wider">
-                  Webhook Payload (JSON)
-                </span>
-              </div>
-              <button
-                onClick={handleCopy}
-                className="flex items-center space-x-1 text-[11px] text-gray-400 hover:text-white transition-all font-mono"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy JSON'}</span>
-              </button>
+        {/* Left: Scenario Picker + JSON Editor */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* Presets */}
+          <div className="glass-panel p-4 rounded-2xl border border-white/10 space-y-3">
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-gray-400">
+              Preset Event Scenarios
+            </span>
+            <div className="space-y-2">
+              {SCENARIOS.map(scenario => (
+                <button
+                  key={scenario.id}
+                  onClick={() => handleScenarioSelect(scenario)}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    selectedScenario === scenario.id && !isCustom
+                      ? `${scenario.color} ${scenario.borderColor}`
+                      : 'bg-white/[0.02] border-white/5 hover:border-white/15'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-white font-mono">{scenario.label}</span>
+                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${scenario.color} ${scenario.tagColor} border ${scenario.borderColor}`}>
+                      {scenario.leakType}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 leading-relaxed">{scenario.description}</span>
+                </button>
+              ))}
             </div>
-
-            <textarea
-              value={jsonPayload}
-              onChange={(e) => setJsonPayload(e.target.value)}
-              rows={16}
-              className="w-full p-3.5 rounded-xl bg-black/60 border border-white/10 text-xs font-mono text-blue-300 focus:outline-none focus:border-blue-500/50 resize-none selection:bg-blue-500/30"
-              spellCheck={false}
-            />
           </div>
 
-          <div className="pt-2 flex items-center justify-between gap-3">
-            <button
-              onClick={() => setJsonPayload(JSON.stringify(PRESET_PAYLOADS[selectedPreset].json, null, 2))}
-              className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 text-xs font-mono border border-white/10 transition-all flex items-center space-x-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset JSON</span>
-            </button>
-
-            <button
-              onClick={handleSendWebhook}
-              disabled={isSubmitting}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-50"
-            >
-              <Send className={`w-3.5 h-3.5 ${isSubmitting ? 'animate-spin' : ''}`} />
-              <span>{isSubmitting ? 'Diagnosing Webhook...' : 'Dispatch Webhook (<500ms)'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Right Column: Live Diagnostic Response View */}
-        <div className="lg:col-span-6 glass-panel p-5 rounded-2xl border border-white/10 space-y-4 flex flex-col justify-between">
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center space-x-2">
-                <Zap className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-mono font-semibold text-white uppercase tracking-wider">
-                  Live Diagnostic Output
+          {/* JSON Editor */}
+          <div className="glass-panel p-4 rounded-2xl border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                <Code2 className="w-3.5 h-3.5" /> Payload Editor
+              </span>
+              {isCustom && (
+                <span className="text-[10px] font-mono text-amber-400 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                  Custom
                 </span>
-              </div>
-              {response?.latency_ms !== undefined && (
-                <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
-                  <Clock className="w-3 h-3" />
-                  <span>{response.latency_ms} ms</span>
-                </div>
               )}
             </div>
+            <textarea
+              value={jsonPayload}
+              onChange={e => {
+                setJsonPayload(e.target.value);
+                setIsCustom(true);
+              }}
+              rows={14}
+              spellCheck={false}
+              className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-[11px] text-emerald-300 font-mono resize-none focus:outline-none focus:border-blue-500/40 transition-colors"
+            />
+            <button
+              onClick={handleFireWebhook}
+              disabled={isLoading}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-semibold flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98] disabled:opacity-60"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Processing through Brain...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>Fire Webhook →</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
-            {!response ? (
-              <div className="py-20 text-center text-gray-500 font-mono text-xs space-y-2">
-                <Send className="w-6 h-6 mx-auto text-gray-600 opacity-60" />
-                <p>Click "Dispatch Webhook" to execute real-time AI diagnosis and rule validation.</p>
+        {/* Right: Live Response Viewer */}
+        <div className="lg:col-span-3 space-y-4">
+
+          {!response && !error && !isLoading && (
+            <div className="glass-panel rounded-2xl border border-white/10 flex flex-col items-center justify-center py-24 space-y-3">
+              <Terminal className="w-10 h-10 text-gray-600" />
+              <p className="text-sm text-gray-500 font-mono">Select a scenario and fire a webhook</p>
+              <p className="text-[11px] text-gray-600 font-mono">The AI Brain's diagnosis will appear here</p>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="glass-panel rounded-2xl border border-blue-500/20 glow-blue flex flex-col items-center justify-center py-24 space-y-4">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full border-2 border-blue-500/20" />
+                <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-2 border-t-blue-400 animate-spin" />
               </div>
-            ) : (
-              <div className="space-y-3.5 animate-in fade-in duration-300">
-                
-                {/* Meta Pills */}
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-                  <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300">
-                    Trace: <span className="text-white font-bold">{response.trace_id}</span>
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300">
-                    Event: <span className="font-bold">{response.event}</span>
-                  </span>
-                  <span className={`px-2.5 py-1 rounded-lg border font-bold ${
-                    response.case.compliance_status === 'allowed'
-                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                      : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+              <div className="text-center space-y-1">
+                <p className="text-sm text-blue-300 font-mono font-semibold">Processing Webhook...</p>
+                <p className="text-[11px] text-gray-500 font-mono">Diagnosing root cause · Checking compliance · Routing intervention</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="glass-panel p-6 rounded-2xl border border-red-500/30 space-y-3">
+              <div className="flex items-center space-x-2">
+                <XCircle className="w-5 h-5 text-red-400" />
+                <span className="text-sm font-bold text-red-300 font-mono">Error</span>
+              </div>
+              <p className="text-xs text-red-300 font-mono leading-relaxed">{error}</p>
+            </div>
+          )}
+
+          {response && !isLoading && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+
+              {/* Top: Trace Header */}
+              <div className="glass-panel p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <span className="text-sm font-bold text-white font-mono">{response.status.toUpperCase()}</span>
+                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">{response.trace_id}</div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className={`text-xs font-mono font-bold px-3 py-1.5 rounded-full ${
+                    response.latency_ms < 300 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                    response.latency_ms < 500 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                    'bg-red-500/10 text-red-400 border border-red-500/20'
                   }`}>
-                    {response.case.compliance_status === 'allowed' ? '✅ COMPLIANT' : '⚠️ GUARD RESCHEDULED'}
-                  </span>
-                </div>
-
-                {/* Root Cause Card */}
-                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-mono">
-                    <span className="text-gray-400 uppercase font-semibold">Diagnosed Root Cause</span>
-                    <span className="text-blue-400 font-bold">
-                      Confidence: {(response.case.root_cause_confidence * 100).toFixed(0)}%
-                    </span>
+                    {response.latency_ms}ms
                   </div>
-                  <div className="text-sm font-semibold text-white font-mono">
-                    {response.case.root_cause}
-                  </div>
-                  <div className="text-[11px] text-gray-300 font-mono">
-                    {response.case.reasoning_chain}
+                  <div className="text-xs font-mono text-gray-400 px-2 py-1 rounded-full bg-white/[0.04] border border-white/10">
+                    {response.event}
                   </div>
                 </div>
+              </div>
 
-                {/* Chosen Intervention Card */}
-                <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/20 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-mono">
-                    <span className="text-purple-300 uppercase font-semibold">Chosen Smart Intervention</span>
-                    <span className="text-emerald-400 font-bold">
-                      Status: {response.case.status.toUpperCase()}
+              {response.case && (
+                <>
+                  {/* Root Cause Analysis */}
+                  <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
+                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-400 block">
+                      Root Cause Analysis
                     </span>
-                  </div>
-                  <div className="text-xs font-semibold text-white font-mono flex items-center space-x-2">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>{response.case.chosen_intervention.replace(/_/g, ' ').toUpperCase()}</span>
-                  </div>
-                  <div className="text-[11px] text-gray-300 font-mono">
-                    {response.case.intervention_reason}
-                  </div>
-                </div>
-
-                {/* Alternatives Rejected */}
-                {response.case.alternatives_rejected?.length > 0 && (
-                  <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
-                    <span className="text-[10px] font-mono text-gray-400 uppercase font-semibold block">
-                      Alternatives Explicitly Rejected:
-                    </span>
-                    <div className="space-y-1">
-                      {response.case.alternatives_rejected.map((alt, idx) => (
-                        <div key={idx} className="text-[11px] font-mono text-gray-400 flex items-start space-x-1.5">
-                          <span className="text-red-400">✕</span>
-                          <span>
-                            <strong className="text-gray-300">{alt.action}</strong>: {alt.rejected_because}
-                          </span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-blue-950/20 border border-blue-500/20">
+                        <div className="text-[10px] font-mono text-blue-400 uppercase mb-1">Leak Type</div>
+                        <div className="text-sm font-bold text-white font-mono">
+                          {LEAK_TYPE_LABELS[response.case.leak_type] || response.case.leak_type}
                         </div>
-                      ))}
+                      </div>
+                      <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20">
+                        <div className="text-[10px] font-mono text-amber-400 uppercase mb-1">Root Cause</div>
+                        <div className="text-sm font-bold text-white font-mono truncate" title={response.case.root_cause}>
+                          {response.case.root_cause}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Confidence Bar */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-gray-400">Diagnosis Confidence</span>
+                        <span className="text-[10px] font-mono font-bold text-white">
+                          {(response.case.root_cause_confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${
+                            response.case.root_cause_confidence >= 0.85 ? 'bg-emerald-400' :
+                            response.case.root_cause_confidence >= 0.65 ? 'bg-amber-400' : 'bg-red-400'
+                          }`}
+                          style={{ width: `${response.case.root_cause_confidence * 100}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Reasoning Chain */}
+                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                      <div className="text-[10px] font-mono text-gray-400 uppercase mb-1.5">Reasoning Chain</div>
+                      <p className="text-[11px] text-gray-300 font-mono leading-relaxed">
+                        {response.case.reasoning_chain}
+                      </p>
                     </div>
                   </div>
-                )}
 
-                {/* RBI Compliance Rule */}
-                <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-[11px] font-mono space-y-1">
-                  <div className="flex items-center space-x-1.5 text-emerald-400 font-semibold">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>RBI Compliance Verification:</span>
+                  {/* Chosen Intervention */}
+                  <div className="glass-panel p-5 rounded-2xl border border-purple-500/20 space-y-3">
+                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-400 block">
+                      Chosen Intervention
+                    </span>
+                    <div className="flex items-center justify-between">
+                      <div className="text-base font-bold text-white font-mono">
+                        {response.case.chosen_intervention.replace(/_/g, ' ').toUpperCase()}
+                      </div>
+                      <div className={`text-xs font-mono font-bold px-2.5 py-1 rounded-full border ${
+                        COMPLIANCE_COLORS[response.case.compliance_status] || 'text-gray-400'
+                      } ${
+                        response.case.compliance_status === 'allowed' 
+                          ? 'bg-emerald-500/10 border-emerald-500/20' 
+                          : 'bg-red-500/10 border-red-500/20'
+                      }`}>
+                        {response.case.compliance_status.replace(/_/g, ' ').toUpperCase()}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-300 font-mono leading-relaxed">
+                      {response.case.intervention_reason}
+                    </p>
+                    {response.case.compliance_rule && (
+                      <div className="text-[10px] font-mono text-gray-500">
+                        Rule: {response.case.compliance_rule}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-gray-300">
-                    Rule: <span className="text-white font-bold">{response.case.compliance_rule}</span>
+
+                  {/* Alternatives Rejected */}
+                  {response.case.alternatives_rejected && response.case.alternatives_rejected.length > 0 && (
+                    <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
+                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-400 block">
+                        Alternatives Rejected
+                      </span>
+                      <div className="space-y-2">
+                        {response.case.alternatives_rejected.map((alt, idx) => (
+                          <div key={idx} className="flex items-start space-x-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <XCircle className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-[11px] font-mono font-bold text-gray-300">
+                                {alt.action.replace(/_/g, ' ')}
+                              </span>
+                              <p className="text-[10px] font-mono text-gray-500 mt-0.5">{alt.rejected_because}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Amount at Risk */}
+                  <div className="glass-panel p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                    <span className="text-xs font-mono text-gray-400">Amount at Risk</span>
+                    <span className="text-lg font-bold text-white font-mono">
+                      ₹{response.case.amount_at_risk.toLocaleString('en-IN')}
+                    </span>
                   </div>
-                  <div className="text-gray-400 text-[10px]">
-                    {response.case.compliance_details}
-                  </div>
-                </div>
-
-              </div>
-            )}
-
-          </div>
-
-          {/* Micro Footer Notice */}
-          <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-gray-400">
-            <span>Deterministic State Machine Active</span>
-            <span>Razorpay API v1 Emulated</span>
-          </div>
-
+                </>
+              )}
+            </div>
+          )}
         </div>
-
       </div>
-
-      {/* Recent Dispatched History */}
-      {history.length > 0 && (
-        <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
-          <span className="text-xs font-mono font-semibold uppercase tracking-wider text-gray-400">
-            Session Webhook History
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {history.map((h, i) => (
-              <div key={i} className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1 font-mono text-xs">
-                <div className="flex items-center justify-between text-[10px] text-gray-400">
-                  <span>{h.trace_id}</span>
-                  <span className="text-emerald-400">{h.latency_ms}ms</span>
-                </div>
-                <div className="font-semibold text-white truncate">{h.event}</div>
-                <div className="text-[11px] text-purple-300 truncate">
-                  {h.case.chosen_intervention.replace(/_/g, ' ')}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

@@ -10,7 +10,7 @@ import { WebhookPlayground } from './components/WebhookPlayground';
 import type { BatchSummary, CaseItem } from './types';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook'>('overview');
   const [summary, setSummary] = useState<BatchSummary | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null);
@@ -123,7 +123,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'sandbox' && (
+        {(activeTab === 'sandbox' || activeTab === 'webhook') && (
           <div className="animate-in fade-in duration-300">
             <WebhookPlayground />
           </div>
