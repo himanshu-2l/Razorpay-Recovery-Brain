@@ -7,6 +7,8 @@ import { CaseDetailModal } from './components/CaseDetailModal';
 import { VoiceStudio } from './components/VoiceStudio';
 import { ComplianceShield } from './components/ComplianceShield';
 import { WebhookPlayground } from './components/WebhookPlayground';
+import { ImpactCounter } from './components/ImpactCounter';
+import { LiveEventTicker } from './components/LiveEventTicker';
 import type { BatchSummary, CaseItem } from './types';
 
 export const App: React.FC = () => {
@@ -113,6 +115,8 @@ export const App: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="space-y-8 animate-in fade-in duration-300">
             <StatsGrid summary={summary} loading={loading} />
+            <LiveEventTicker />
+            <ImpactCounter />
             <CaseTable cases={cases} onSelectCase={handleSelectCase} />
           </div>
         )}

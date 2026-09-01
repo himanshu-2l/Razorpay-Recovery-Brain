@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, PhoneCall, RefreshCw, Layers, Terminal, Sparkles, Webhook } from 'lucide-react';
+import { ShieldCheck, PhoneCall, RefreshCw, Layers, Terminal, Sparkles } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook';
@@ -64,9 +64,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>50+ Cases</span>
           </button>
           <button
-            onClick={() => setActiveTab('sandbox')}
+            onClick={() => setActiveTab('webhook')}
             className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
-              activeTab === 'sandbox'
+              activeTab === 'webhook' || activeTab === 'sandbox'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                 : 'text-gray-400 hover:text-blue-300'
             }`}
@@ -87,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('compliance')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
               activeTab === 'compliance'
                 ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
                 : 'text-gray-400 hover:text-emerald-400'
@@ -95,17 +95,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>RBI Compliance</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('webhook')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
-              activeTab === 'webhook'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-gray-400 hover:text-blue-300'
-            }`}
-          >
-            <Webhook className="w-3.5 h-3.5" />
-            <span>Webhook Sandbox</span>
           </button>
         </nav>
 
