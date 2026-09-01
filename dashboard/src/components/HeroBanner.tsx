@@ -122,7 +122,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         <div className="space-y-3">
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white font-sans max-w-4xl mx-auto leading-[1.15]">
             Every month, businesses lose revenue not because payments fail,&nbsp;
-            <span className="font-display italic text-[#2B7FFF] font-normal drop-shadow-[0_0_35px_rgba(43,127,255,0.4)]">
+            <span className="font-serif-display italic text-[#2B7FFF] font-normal text-4xl sm:text-6xl lg:text-7xl block mt-2 drop-shadow-[0_0_35px_rgba(43,127,255,0.4)]">
               but because no one has time to fix what happens after.
             </span>
           </h1>

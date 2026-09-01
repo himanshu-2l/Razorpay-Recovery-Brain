@@ -13,7 +13,13 @@
 }
 
 .font-display {
-  font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif;
+  font-family: 'Inter Tight', 'Geist', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+.font-serif-display {
+  font-family: 'Instrument Serif', Georgia, serif;
 }
 
 .font-sans {

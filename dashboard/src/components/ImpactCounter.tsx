@@ -236,11 +236,18 @@ export const ImpactCounter: React.FC = () => {
           </div>
         </div>
 
+        {/* Table Column Headers */}
+        <div className="grid grid-cols-[1fr_120px_120px] px-5 py-2.5 bg-white/[0.03] border-b border-white/5 text-[10px] font-mono text-gray-400 uppercase tracking-wider font-semibold">
+          <span>Feature & Capability</span>
+          <span className="text-center text-emerald-400">Recovery Brain</span>
+          <span className="text-center text-blue-400">Agent Studio</span>
+        </div>
+
         <div className="divide-y divide-white/[0.03]">
           {COMPARISON.map((row, i) => (
             <div
               key={i}
-              className="grid grid-cols-[1fr_100px_100px] items-center px-5 py-2.5 hover:bg-white/[0.02] transition-colors"
+              className="grid grid-cols-[1fr_120px_120px] items-center px-5 py-2.5 hover:bg-white/[0.02] transition-colors"
             >
               <div>
                 <span className="text-xs text-white font-medium">{row.feature}</span>
@@ -260,10 +267,10 @@ export const ImpactCounter: React.FC = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-[1fr_100px_100px] px-5 py-2 bg-white/[0.02] border-t border-white/5 text-[9px] font-mono text-gray-500 uppercase tracking-wider">
-          <span></span>
-          <span className="text-center text-emerald-400">Recovery Brain</span>
-          <span className="text-center text-blue-400">Agent Studio</span>
+        <div className="grid grid-cols-[1fr_120px_120px] px-5 py-2.5 bg-white/[0.02] border-t border-white/5 text-[9px] font-mono text-gray-400 uppercase tracking-wider">
+          <span className="font-semibold text-gray-300">Total 8 Core Capabilities Evaluated</span>
+          <span className="text-center font-bold text-emerald-400">8 / 8 Supported</span>
+          <span className="text-center text-blue-400">2 / 8 Basic</span>
         </div>
       </div>
     </div>
