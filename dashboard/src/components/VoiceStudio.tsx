@@ -1,17 +1,104 @@
-import React, { useState } from 'react';
-import { PhoneCall, PhoneOff, Mic, Volume2, CheckCircle2, Calendar, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  PhoneCall,
+  PhoneOff,
+  Mic,
+  Volume2,
+  VolumeX,
+  CheckCircle2,
+  Calendar,
+  Sparkles,
+  Radio
+} from 'lucide-react';
 import type { VoiceCallDemoResponse } from '../types';
 
 export const VoiceStudio: React.FC = () => {
-  const [isCalling, setIsCalling] = useState(false);
+  const [isCalling, setIsCalling] = useState<boolean>(false);
   const [callData, setCallData] = useState<VoiceCallDemoResponse | null>(null);
   const [activeStep, setActiveStep] = useState<number>(0);
-  const [phoneNumber, setPhoneNumber] = useState('+91 98765 43210');
-  const [debtorName, setDebtorName] = useState('Rajesh Sharma');
-  const [invoiceAmount, setInvoiceAmount] = useState(85000);
-  const [invoiceNumber, setInvoiceNumber] = useState('INV-20268421');
+  const [phoneNumber, setPhoneNumber] = useState<string>('+91 98765 43210');
+  const [debtorName, setDebtorName] = useState<string>('Rajesh Sharma');
+  const [invoiceAmount, setInvoiceAmount] = useState<number>(85000);
+  const [invoiceNumber, setInvoiceNumber] = useState<string>('INV-20268421');
+  const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [currentSpeaker, setCurrentSpeaker] = useState<'agent' | 'debtor' | null>(null);
+
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+    return () => {
+      // Cleanup any ongoing speech or timeouts on unmount
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+      timeoutsRef.current.forEach(clearTimeout);
+    };
+  }, []);
+
+  const speakText = (text: string, speaker: 'agent' | 'debtor') => {
+    if (!audioEnabled || !synthRef.current) return;
+
+    try {
+      synthRef.current.cancel(); // cancel any previous utterance
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Select voice if available
+      const voices = synthRef.current.getVoices();
+      const hindiOrIndianVoice = voices.find(
+        (v) => v.lang.includes('hi') || v.lang.includes('IN') || v.name.includes('India')
+      );
+
+      if (hindiOrIndianVoice) {
+        utterance.voice = hindiOrIndianVoice;
+      }
+
+      if (speaker === 'agent') {
+        utterance.pitch = 1.1;
+        utterance.rate = 1.0;
+      } else {
+        utterance.pitch = 0.9;
+        utterance.rate = 0.95;
+      }
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setCurrentSpeaker(speaker);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setCurrentSpeaker(null);
+      };
+
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setCurrentSpeaker(null);
+      };
+
+      synthRef.current.speak(utterance);
+    } catch (e) {
+      console.warn('Speech synthesis error:', e);
+    }
+  };
+
+  const stopCall = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+    setIsCalling(false);
+    setIsSpeaking(false);
+    setCurrentSpeaker(null);
+  };
 
   const triggerCall = async () => {
+    stopCall();
     setIsCalling(true);
     setActiveStep(0);
 
@@ -30,20 +117,32 @@ export const VoiceStudio: React.FC = () => {
       const data = await response.json();
       setCallData(data);
 
-      // Animate the conversation steps
       if (data.conversation?.flow) {
-        data.conversation.flow.forEach((_item: unknown, idx: number) => {
-          setTimeout(() => {
+        const flow = data.conversation.flow;
+        let cumulativeDelay = 300;
+
+        flow.forEach((item: { step: number; speaker: 'agent' | 'debtor'; text: string }, idx: number) => {
+          const t1 = setTimeout(() => {
             setActiveStep(idx + 1);
-          }, (idx + 1) * 900);
+            speakText(item.text, item.speaker);
+          }, cumulativeDelay);
+          timeoutsRef.current.push(t1);
+
+          // Estimate reading time per dialogue length + natural pause
+          const duration = Math.max(2200, item.text.length * 75);
+          cumulativeDelay += duration;
         });
+
+        const endTimeout = setTimeout(() => {
+          setIsCalling(false);
+          setIsSpeaking(false);
+          setCurrentSpeaker(null);
+        }, cumulativeDelay + 800);
+        timeoutsRef.current.push(endTimeout);
       }
     } catch (err) {
       console.error('Error triggering voice call:', err);
-    } finally {
-      setTimeout(() => {
-        setIsCalling(false);
-      }, 7000);
+      setIsCalling(false);
     }
   };
 
@@ -66,27 +165,43 @@ export const VoiceStudio: React.FC = () => {
             </p>
           </div>
 
-          <button
-            onClick={triggerCall}
-            disabled={isCalling}
-            className={`px-6 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 ${
-              isCalling
-                ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-purple-600/30'
-            }`}
-          >
-            {isCalling ? (
-              <>
-                <PhoneOff className="w-4 h-4" />
-                <span>Call Active in Hinglish...</span>
-              </>
-            ) : (
-              <>
-                <PhoneCall className="w-4 h-4" />
-                <span>Simulate Real-Time Voice Call</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => {
+                if (isCalling && synthRef.current) synthRef.current.cancel();
+                setAudioEnabled(!audioEnabled);
+              }}
+              className={`p-3 rounded-full border transition-all ${
+                audioEnabled
+                  ? 'bg-purple-600/20 text-purple-300 border-purple-500/30 hover:bg-purple-600/30'
+                  : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+              }`}
+              title={audioEnabled ? 'Audio Speech Synthesis ON' : 'Audio Muted'}
+            >
+              {audioEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
+            </button>
+
+            <button
+              onClick={isCalling ? stopCall : triggerCall}
+              className={`px-6 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 ${
+                isCalling
+                  ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
+                  : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-purple-600/30'
+              }`}
+            >
+              {isCalling ? (
+                <>
+                  <PhoneOff className="w-4 h-4" />
+                  <span>End Live Simulation</span>
+                </>
+              ) : (
+                <>
+                  <PhoneCall className="w-4 h-4" />
+                  <span>Simulate Real-Time Voice Call</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Ambient Purple Glow */}
@@ -108,7 +223,8 @@ export const VoiceStudio: React.FC = () => {
                 type="text"
                 value={debtorName}
                 onChange={(e) => setDebtorName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono"
+                disabled={isCalling}
+                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-purple-500/50"
               />
             </div>
 
@@ -118,7 +234,8 @@ export const VoiceStudio: React.FC = () => {
                 type="text"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono"
+                disabled={isCalling}
+                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-purple-500/50"
               />
             </div>
 
@@ -128,7 +245,8 @@ export const VoiceStudio: React.FC = () => {
                 type="text"
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono"
+                disabled={isCalling}
+                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-purple-500/50"
               />
             </div>
 
@@ -138,7 +256,8 @@ export const VoiceStudio: React.FC = () => {
                 type="number"
                 value={invoiceAmount}
                 onChange={(e) => setInvoiceAmount(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono"
+                disabled={isCalling}
+                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white font-mono focus:outline-none focus:border-purple-500/50"
               />
             </div>
           </div>
@@ -171,60 +290,81 @@ export const VoiceStudio: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <div className="flex items-center space-x-2">
-                <Volume2 className="w-4 h-4 text-purple-400" />
+                <Radio className="w-4 h-4 text-purple-400 animate-pulse" />
                 <span className="text-xs font-mono font-semibold text-white uppercase tracking-wider">
-                  Live Conversational Feed & Audio Spectrum
+                  Live Conversational Feed & Voice Synthesis
                 </span>
               </div>
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                isCalling ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : 'bg-white/5 text-gray-400 border-white/10'
-              }`}>
-                {isCalling ? 'STREAMING ACTIVE' : 'CALL STANDBY'}
-              </span>
+              <div className="flex items-center space-x-2">
+                {currentSpeaker && (
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                    currentSpeaker === 'agent' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                  }`}>
+                    {currentSpeaker === 'agent' ? 'Agent Speaking' : 'Debtor Speaking'}
+                  </span>
+                )}
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                  isCalling ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' : 'bg-white/5 text-gray-400 border-white/10'
+                }`}>
+                  {isCalling ? 'STREAMING ACTIVE' : 'CALL STANDBY'}
+                </span>
+              </div>
             </div>
 
-            {/* Audio Visualizer Waves */}
-            <div className="h-16 rounded-xl bg-black/40 border border-white/5 flex items-center justify-center space-x-1.5 px-4">
-              {Array.from({ length: 36 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-1 rounded-full transition-all duration-300 ${
-                    isCalling
-                      ? 'bg-gradient-to-t from-purple-500 via-[#2B7FFF] to-emerald-400'
-                      : 'bg-white/10 h-2'
-                  }`}
-                  style={{
-                    height: isCalling ? `${Math.max(6, (Math.sin(i * 0.4 + activeStep) + 1) * 22)}px` : '4px',
-                  }}
-                />
-              ))}
+            {/* Audio Visualizer Waves with Dynamic Speech Animation */}
+            <div className="h-16 rounded-xl bg-black/40 border border-white/5 flex items-center justify-center space-x-1 px-3 overflow-hidden">
+              {Array.from({ length: 42 }).map((_, i) => {
+                const waveHeight = isSpeaking
+                  ? Math.max(6, (Math.sin(i * 0.45 + activeStep * 2 + Date.now() * 0.002) + 1.2) * 22)
+                  : isCalling
+                  ? Math.max(4, (Math.sin(i * 0.3 + activeStep) + 1) * 10)
+                  : 4;
+
+                return (
+                  <div
+                    key={i}
+                    className={`w-1 rounded-full transition-all duration-150 ${
+                      isSpeaking
+                        ? currentSpeaker === 'agent'
+                          ? 'bg-gradient-to-t from-purple-500 via-[#2B7FFF] to-emerald-400'
+                          : 'bg-gradient-to-t from-blue-500 via-indigo-400 to-teal-300'
+                        : isCalling
+                        ? 'bg-purple-600/40'
+                        : 'bg-white/10'
+                    }`}
+                    style={{
+                      height: `${waveHeight}px`,
+                    }}
+                  />
+                );
+              })}
             </div>
 
             {/* Conversation Messages */}
-            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
               {!callData ? (
-                <div className="py-12 text-center text-gray-500 font-mono text-xs space-y-2">
+                <div className="py-14 text-center text-gray-500 font-mono text-xs space-y-2">
                   <Mic className="w-6 h-6 mx-auto text-gray-600" />
-                  <p>Click "Simulate Real-Time Voice Call" to hear the Hinglish debt negotiation agent in action.</p>
+                  <p>Click "Simulate Real-Time Voice Call" to hear the Hinglish debt negotiation agent in action with audio speech synthesis.</p>
                 </div>
               ) : (
                 callData.conversation?.flow?.slice(0, activeStep).map((msg) => (
                   <div
                     key={msg.step}
-                    className={`p-3.5 rounded-2xl text-xs space-y-1.5 animate-in fade-in duration-300 ${
+                    className={`p-3.5 rounded-2xl text-xs space-y-1.5 transition-all duration-300 ${
                       msg.speaker === 'agent'
-                        ? 'bg-purple-600/15 border border-purple-500/20 ml-0 mr-12'
-                        : 'bg-white/[0.04] border border-white/10 ml-12 mr-0'
+                        ? 'bg-purple-600/15 border border-purple-500/20 ml-0 mr-10 shadow-lg shadow-purple-600/5'
+                        : 'bg-white/[0.04] border border-white/10 ml-10 mr-0'
                     }`}
                   >
                     <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className={msg.speaker === 'agent' ? 'text-purple-300 font-bold uppercase' : 'text-blue-300 font-bold uppercase'}>
-                        {msg.speaker === 'agent' ? '🤖 Razorpay AI Voice Agent' : `👤 ${debtorName}`}
+                      <span className={msg.speaker === 'agent' ? 'text-purple-300 font-bold uppercase flex items-center space-x-1' : 'text-blue-300 font-bold uppercase flex items-center space-x-1'}>
+                        <span>{msg.speaker === 'agent' ? '🤖 Razorpay AI Voice Agent' : `👤 ${debtorName}`}</span>
                       </span>
-                      <span className="text-gray-500">Step {msg.step}</span>
+                      <span className="text-gray-400">Step {msg.step}</span>
                     </div>
                     {/* Primary Hinglish Speech */}
-                    <div className="font-medium text-white text-[13px]">
+                    <div className="font-medium text-white text-[13px] leading-relaxed">
                       "{msg.text}"
                     </div>
                     {/* Secondary English Translation */}
@@ -239,14 +379,14 @@ export const VoiceStudio: React.FC = () => {
 
           {/* Promise-to-Pay Logged Card */}
           {callData?.conversation?.promise_to_pay && activeStep >= 6 && (
-            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between animate-in zoom-in-95 duration-300">
+            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between animate-in zoom-in-95 duration-300 mt-2">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
                   <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">
-                    Promise-to-Pay Logged
+                    Promise-to-Pay Logged & Verified
                   </span>
                   <div className="text-xs font-semibold text-white">
                     ₹{callData.conversation.promise_to_pay.amount.toLocaleString()} scheduled for {callData.conversation.promise_to_pay.date}

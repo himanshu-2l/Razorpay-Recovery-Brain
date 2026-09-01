@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 from typing import Optional
 import json
+import uuid
 
 from app.services.data_generator import generate_full_batch
 from app.services.recovery_pipeline import RecoveryPipeline

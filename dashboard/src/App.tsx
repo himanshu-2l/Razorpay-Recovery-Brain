@@ -6,10 +6,11 @@ import { CaseTable } from './components/CaseTable';
 import { CaseDetailModal } from './components/CaseDetailModal';
 import { VoiceStudio } from './components/VoiceStudio';
 import { ComplianceShield } from './components/ComplianceShield';
+import { WebhookPlayground } from './components/WebhookPlayground';
 import type { BatchSummary, CaseItem } from './types';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox'>('overview');
   const [summary, setSummary] = useState<BatchSummary | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null);
@@ -119,6 +120,12 @@ export const App: React.FC = () => {
         {activeTab === 'cases' && (
           <div className="animate-in fade-in duration-300">
             <CaseTable cases={cases} onSelectCase={handleSelectCase} />
+          </div>
+        )}
+
+        {activeTab === 'sandbox' && (
+          <div className="animate-in fade-in duration-300">
+            <WebhookPlayground />
           </div>
         )}
 

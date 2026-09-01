@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldCheck, PhoneCall, RefreshCw, Layers } from 'lucide-react';
+import { ShieldCheck, PhoneCall, RefreshCw, Layers, Terminal, Sparkles } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'overview' | 'cases' | 'voice' | 'compliance';
-  setActiveTab: (tab: 'overview' | 'cases' | 'voice' | 'compliance') => void;
+  activeTab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox';
+  setActiveTab: (tab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox') => void;
   onRefreshBatch: () => void;
   isProcessing: boolean;
 }
@@ -28,8 +28,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex flex-col">
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-base text-white tracking-tight">Razorpay</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-[#2B7FFF] border border-blue-500/20">
-                  Agent Studio
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-[#2B7FFF] border border-blue-500/20 flex items-center space-x-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  <span>Agent Studio</span>
                 </span>
               </div>
               <span className="text-[10px] text-gray-400 font-mono tracking-wider uppercase">
@@ -43,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <nav className="hidden md:flex items-center space-x-1 bg-white/[0.04] p-1 rounded-full border border-white/5">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
               activeTab === 'overview'
                 ? 'bg-white text-black shadow-md shadow-white/10'
                 : 'text-gray-400 hover:text-white'
@@ -53,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('cases')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
               activeTab === 'cases'
                 ? 'bg-white text-black shadow-md shadow-white/10'
                 : 'text-gray-400 hover:text-white'
@@ -63,8 +64,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>50+ Cases</span>
           </button>
           <button
+            onClick={() => setActiveTab('sandbox')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
+              activeTab === 'sandbox'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-gray-400 hover:text-blue-300'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Webhook Sandbox</span>
+          </button>
+          <button
             onClick={() => setActiveTab('voice')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
               activeTab === 'voice'
                 ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
                 : 'text-gray-400 hover:text-purple-300'
@@ -75,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('compliance')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
               activeTab === 'compliance'
                 ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
                 : 'text-gray-400 hover:text-emerald-400'
