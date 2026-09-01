@@ -358,6 +358,76 @@ def test_12_multistage_recovery_execution_pipeline():
     print("  [OK] PASS: 4-Stage execution timeline generated with sub-10ms cumulative latency.")
 
 
+def test_13_dynamic_autonomy_envelope_hysteresis():
+    print("\n[TEST 13] Dynamic Autonomy Envelope (Asymmetric Hysteresis Contraction/Expansion)")
+    from app.services.autonomy_envelope import autonomy_envelope
+
+    # 1. Verify initial expanded state (Max Amount: Rs 25,000)
+    assert autonomy_envelope.state == "EXPANDED"
+    can_exec, _ = autonomy_envelope.can_execute_autonomously(amount_inr=15000.0, confidence=0.85, action_name="retry")
+    assert can_exec is True
+
+    # 2. Trigger safeguard contraction (e.g. simulated drift or rail anomaly)
+    autonomy_envelope.contract(reason="Simulated bank rail anomaly")
+    assert autonomy_envelope.state == "CONTRACTED"
+    assert autonomy_envelope.current_max_amount == 5000.0
+    print("  -> Autonomy Envelope CONTRACTED (Cap: Rs 5,000 / Conf: 90%)")
+
+    # 3. Verify Rs 15,000 is now blocked from auto-execution and routed to operator
+    can_exec_contracted, reason = autonomy_envelope.can_execute_autonomously(amount_inr=15000.0, confidence=0.85, action_name="retry")
+    assert can_exec_contracted is False
+    print(f"  -> Guardrail Intervention: {reason}")
+
+    # 4. Simulate 5 consecutive stable evaluation cycles -> auto-expands
+    for i in range(5):
+        autonomy_envelope.record_stable_cycle()
+
+    assert autonomy_envelope.state == "EXPANDED"
+    assert autonomy_envelope.current_max_amount == 25000.0
+    print("  [OK] PASS: Autonomy envelope contracted dynamically on risk and safely expanded after 5 stable cycles.")
+
+
+def test_14_p10_p50_p90_bounds_and_ptp_lifecycle():
+    print("\n[TEST 14] P10/P50/P90 Revenue Uncertainty Bounds & Promise-to-Pay (PTP) State Machine")
+    from app.services.intervention_router import InterventionRouter
+    from app.services.ptp_tracker import ptp_tracker
+
+    # 1. Test Router P10/P50/P90 generation
+    router = InterventionRouter()
+    route_res = router.route(
+        root_cause=RootCause.BD_INSUFFICIENT_FUNDS,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"amount": 10000, "customer_ltv": 25000},
+    )
+
+    bounds = route_res["counterfactual"]["revenue_bounds_inr"]
+    print(f"  -> P10 (Pessimistic Floor): Rs {bounds['p10_pessimistic']:,.2f}")
+    print(f"  -> P50 (Expected Net Value): Rs {bounds['p50_expected']:,.2f}")
+    print(f"  -> P90 (Optimistic Ceiling): Rs {bounds['p90_optimistic']:,.2f}")
+
+    assert bounds["p10_pessimistic"] < bounds["p50_expected"] < bounds["p90_optimistic"]
+    assert bounds["p50_expected"] == route_res["counterfactual"]["expected_net_recovery_inr"]
+
+    # 2. Test Promise-to-Pay (PTP) Lifecycle
+    ptp = ptp_tracker.record_promise(
+        case_id="case_ptp_101",
+        customer_id="cust_rahul",
+        customer_name="Rahul Sharma",
+        amount_promised=10000.0,
+        promised_days_ahead=3,
+        channel="voice_call",
+    )
+    print(f"  -> PTP Recorded: {ptp.promise_id} | Status: {ptp.status} | Promised Date: {ptp.promised_date}")
+    assert ptp.status == "PENDING_DUE"
+
+    # 3. Test PTP Fulfillment
+    fulfilled_ptp = ptp_tracker.fulfill_promise(case_id="case_ptp_101", amount_paid=10000.0)
+    assert fulfilled_ptp is not None
+    assert fulfilled_ptp.status == "FULFILLED"
+    print(f"  -> PTP Fulfilled: {fulfilled_ptp.promise_id} at {fulfilled_ptp.fulfilled_at}")
+    print("  [OK] PASS: P10/P50/P90 statistical uncertainty bounds and PTP lifecycle verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -375,7 +445,9 @@ if __name__ == "__main__":
     test_10_bank_gateway_circuit_breaker()
     test_11_late_authorization_intercept_and_reconciler()
     test_12_multistage_recovery_execution_pipeline()
+    test_13_dynamic_autonomy_envelope_hysteresis()
+    test_14_p10_p50_p90_bounds_and_ptp_lifecycle()
 
     print("\n=================================================================")
-    print("  ALL 12 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 14 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
