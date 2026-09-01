@@ -925,6 +925,64 @@ async def reject_case_action(case_id: str, request: Request):
     raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
 
 
+# ─── Bank Circuit Breaker & Section 43B(h) Tax Clock Endpoints ───────────────
+
+from app.services.circuit_breaker import bank_circuit_breaker
+from app.services.tax_clock_engine import tax_clock_engine
+
+
+@app.get("/api/circuit-breaker/status")
+async def get_circuit_breaker_status():
+    """
+    Get live health metrics across all monitored Indian banking rails.
+    Shows active vs tripped rails (e.g., HDFC, SBI, ICICI, Axis, NPCI).
+    """
+    return {
+        "status": "active",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "rails": bank_circuit_breaker.get_all_status(),
+    }
+
+
+@app.post("/api/circuit-breaker/simulate-outage")
+async def simulate_circuit_breaker_outage(request: Request):
+    """
+    Simulate a technical outage on a specific banking rail to test retry suppression.
+    """
+    body = await request.json()
+    bank_code = body.get("bank_code", "HDFC")
+    tripped = body.get("tripped", True)
+    bank_circuit_breaker.simulate_rail_outage(bank_code, force_tripped=tripped)
+
+    # Log to cryptographic audit ledger
+    audit_ledger.record_event(
+        event_type="CIRCUIT_BREAKER_SIMULATION",
+        case_id="system_fleet",
+        payload={"bank_code": bank_code, "tripped": tripped}
+    )
+
+    return {
+        "message": f"Circuit breaker for rail {bank_code.upper()} set to {'TRIPPED' if tripped else 'HEALTHY'}",
+        "rail_status": bank_circuit_breaker.get_all_status(),
+    }
+
+
+@app.get("/api/tax-clock/{case_id}")
+async def get_case_tax_clock(case_id: str):
+    """
+    Evaluate Section 43B(h) Income Tax Act status and CFO negotiation leverage for a B2B invoice case.
+    """
+    if batch_results:
+        for c in batch_results.get("cases", []):
+            if c["id"] == case_id:
+                amount = c.get("amount_at_risk", 0.0)
+                days_overdue = 45  # Default or extracted
+                status = tax_clock_engine.evaluate(amount=amount, days_overdue=days_overdue)
+                return status.to_dict()
+
+    raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
