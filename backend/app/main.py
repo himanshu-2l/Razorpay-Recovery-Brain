@@ -458,92 +458,91 @@ async def demo_compliance_block(hour: int = 21):
     }
 
 
-@app.post("/api/demo/voice-call")
-async def demo_voice_call(
-    phone_number: str = "+919999999999",
-    debtor_name: str = "Rajesh Sharma",
-    amount: float = 85000,
-    invoice_number: str = "INV-20261234",
-    days_overdue: int = 67,
-):
-    """
-    Demo endpoint: trigger a Hinglish voice call.
-    In demo mode, returns the scripted conversation flow.
-    With Vapi integration, would actually place the call.
-    """
-    conversation_script = {
-        "language": "Hinglish",
-        "flow": [
+# ─── Multi-Persona Telephony & Intent Classifier ───────────────────────────
+
+@app.get("/api/voice/personas")
+async def get_voice_personas():
+    """Get all 4 debt recovery collection personas and their prompt strategies."""
+    from app.services.voice_intent_classifier import PERSONA_CONFIGS
+    return {
+        "status": "success",
+        "personas": [
             {
-                "step": 1,
-                "speaker": "agent",
-                "text": f"Namaste! Kya main {debtor_name} ji se baat kar raha hoon?",
-                "translation": f"Hello! Am I speaking with {debtor_name}?",
-            },
-            {
-                "step": 2,
-                "speaker": "debtor",
-                "text": "Haan, bol raha hoon.",
-                "translation": "Yes, speaking.",
-            },
-            {
-                "step": 3,
-                "speaker": "agent",
-                "text": f"Dhanyavaad. Main {invoice_number} ke baare mein baat karna chahta hoon. "
-                        f"Aapka ₹{amount:,.0f} ka invoice {days_overdue} din se pending hai.",
-                "translation": f"Thank you. I'd like to discuss invoice {invoice_number}. "
-                              f"Your ₹{amount:,.0f} invoice has been pending for {days_overdue} days.",
-            },
-            {
-                "step": 4,
-                "speaker": "debtor",
-                "text": "Haan, cash flow mein thodi problem hai. Next week tak kar dunga.",
-                "translation": "Yes, there's a bit of a cash flow problem. I'll do it by next week.",
-            },
-            {
-                "step": 5,
-                "speaker": "agent",
-                "text": "Samajh gaya. Toh kya hum 8 September tak ka date fix kar lein? "
-                        "Main ek reminder bhej dunga us din.",
-                "translation": "I understand. Shall we fix September 8 as the date? "
-                              "I'll send a reminder that day.",
-            },
-            {
-                "step": 6,
-                "speaker": "debtor",
-                "text": "Haan, 8 September theek hai.",
-                "translation": "Yes, September 8 is fine.",
-            },
-            {
-                "step": 7,
-                "speaker": "agent",
-                "text": f"Bahut accha. Maine ₹{amount:,.0f} ka Promise-to-Pay 8 September ke liye log kar diya hai. "
-                        f"Dhanyavaad {debtor_name} ji, aapka din shubh ho!",
-                "translation": f"Very good. I've logged a Promise-to-Pay of ₹{amount:,.0f} for September 8. "
-                              f"Thank you {debtor_name} ji, have a good day!",
-            },
-        ],
-        "promise_to_pay": {
-            "amount": amount,
-            "date": "2026-09-08",
-            "invoice": invoice_number,
-            "logged_at": datetime.now(timezone.utc).isoformat(),
-            "follow_up_date": "2026-09-08",
-        },
-        "compliance": {
-            "contact_window": "✅ Within 8 AM – 7 PM IST",
-            "language": "✅ No abusive or coercive language used",
-            "frequency": "✅ Within weekly contact limit",
-            "full_transcript_logged": True,
-        }
+                "id": persona.value,
+                "label": config["label"],
+                "strategy": config["strategy"],
+                "tone": config["tone"],
+                "description": config["description"],
+            }
+            for persona, config in PERSONA_CONFIGS.items()
+        ]
     }
+
+
+@app.post("/api/voice/classify-turn")
+async def classify_voice_turn(request: Request):
+    """Classify a debtor utterance in real-time into structured tools & intents."""
+    from app.services.voice_intent_classifier import VoiceIntentClassifier
+    body = await request.json()
+    utterance = body.get("utterance", "")
+    result = VoiceIntentClassifier.classify_utterance(utterance)
+    waterfall = VoiceIntentClassifier.compute_turn_latency_waterfall()
+    return {
+        "utterance": utterance,
+        "classification": result,
+        "latency_waterfall": waterfall,
+    }
+
+
+@app.post("/api/demo/voice-call")
+async def demo_voice_call(request: Request):
+    """
+    Trigger a Hinglish voice recovery call.
+    Accepts persona: first_time_miss / repeat_delinquent / dispute_pending / broken_ptp.
+    Dynamically binds debtor details, extracts turn intents, and tracks sub-800ms latency waterfall.
+    """
+    from app.services.voice_intent_classifier import VoiceIntentClassifier, VoicePersona
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    phone_number = body.get("phone_number", "+91 98765 43210")
+    debtor_name = body.get("debtor_name", "Rajesh Sharma")
+    amount = float(body.get("amount", 85000))
+    invoice_number = body.get("invoice_number", "INV-20268421")
+    days_overdue = int(body.get("days_overdue", 67))
+    persona_str = body.get("persona", "first_time_miss")
+
+    try:
+        persona = VoicePersona(persona_str)
+    except ValueError:
+        persona = VoicePersona.FIRST_TIME_MISS
+
+    persona_flow = VoiceIntentClassifier.generate_persona_flow(
+        persona=persona,
+        debtor_name=debtor_name,
+        invoice_number=invoice_number,
+        amount=amount,
+        days_overdue=days_overdue,
+    )
 
     return {
         "status": "demo_call_completed",
         "phone_number": phone_number,
-        "duration_seconds": 47,
-        "conversation": conversation_script,
-        "message": f"Voice call to {debtor_name} completed. Promise-to-Pay of ₹{amount:,.0f} logged for Sep 8, 2026.",
+        "persona": persona.value,
+        "strategy": persona_flow["strategy"],
+        "tone": persona_flow["tone"],
+        "duration_seconds": len(persona_flow["flow"]) * 7,
+        "conversation": {
+            "language": "Hinglish (Natural Code-Mixing)",
+            "flow": persona_flow["flow"],
+            "promise_to_pay": persona_flow["promise_to_pay"],
+            "compliance": persona_flow["compliance"],
+        },
+        "latency_waterfall": persona_flow["latency_waterfall"],
+        "message": f"Hinglish voice call to {debtor_name} completed under strategy: '{persona_flow['strategy']}'.",
     }
 
 

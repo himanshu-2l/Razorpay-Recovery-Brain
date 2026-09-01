@@ -428,6 +428,47 @@ def test_14_p10_p50_p90_bounds_and_ptp_lifecycle():
     print("  [OK] PASS: P10/P50/P90 statistical uncertainty bounds and PTP lifecycle verified.")
 
 
+def test_15_voice_intent_classification_and_telephony_waterfall():
+    print("\n[TEST 15] Voice Intent Classification, Persona Strategies & Latency Waterfall")
+    from app.services.voice_intent_classifier import VoiceIntentClassifier, VoicePersona, TurnIntent
+
+    # 1. Test Intent Classification for PTP, Hardship, Dispute
+    c_ptp = VoiceIntentClassifier.classify_utterance("Main kal subah 11 baje tak transfer kar deta hoon.")
+    print(f"  -> PTP Intent Classification: {c_ptp['intent']} | Action: {c_ptp['action']}")
+    assert c_ptp["intent"] == TurnIntent.PROMISE_TO_PAY
+    assert "promised_date" in c_ptp
+
+    c_hardship = VoiceIntentClassifier.classify_utterance("Abhi cashflow tight chal raha hai aur salary delay hai.")
+    print(f"  -> Hardship Intent: {c_hardship['intent']} | Reason: {c_hardship['reason']}")
+    assert c_hardship["intent"] == TurnIntent.HARDSHIP_DEFERRAL
+
+    c_dispute = VoiceIntentClassifier.classify_utterance("Pricing galat hai aur delivery incomplete thi, dispute raise karo!")
+    print(f"  -> Dispute Intent: {c_dispute['intent']} | Action: {c_dispute['action']}")
+    assert c_dispute["intent"] == TurnIntent.ESCALATE_TO_HUMAN
+
+    # 2. Test 4 Collection Persona Strategies
+    for persona in [VoicePersona.FIRST_TIME_MISS, VoicePersona.REPEAT_DELINQUENT, VoicePersona.DISPUTE_PENDING, VoicePersona.BROKEN_PTP]:
+        flow_res = VoiceIntentClassifier.generate_persona_flow(
+            persona=persona,
+            debtor_name="Vikram Singh",
+            invoice_number="INV-9901",
+            amount=45000.0,
+            days_overdue=35,
+        )
+        assert len(flow_res["flow"]) >= 5
+        assert "latency_waterfall" in flow_res
+        assert flow_res["latency_waterfall"]["within_budget"] is True
+        print(f"  -> Persona [{flow_res['persona_label']}]: {flow_res['strategy']} | Turns: {len(flow_res['flow'])}")
+
+    # 3. Test Sub-800ms Latency Waterfall
+    waterfall = VoiceIntentClassifier.compute_turn_latency_waterfall()
+    print(f"  -> Telephony Latency Breakdown: VAD {waterfall['vad_ms']}ms + STT {waterfall['stt_ms']}ms + LLM {waterfall['llm_ttft_ms']}ms + TTS {waterfall['tts_synthesis_ms']}ms")
+    print(f"  -> Total Turn Latency: {waterfall['total_turn_latency_ms']}ms (< {waterfall['target_budget_ms']}ms budget | Headroom: {waterfall['budget_headroom_ms']}ms)")
+    assert waterfall["total_turn_latency_ms"] < 800.0
+
+    print("  [OK] PASS: Voice intent classification, 4 persona strategies, and sub-800ms latency waterfall verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -447,7 +488,8 @@ if __name__ == "__main__":
     test_12_multistage_recovery_execution_pipeline()
     test_13_dynamic_autonomy_envelope_hysteresis()
     test_14_p10_p50_p90_bounds_and_ptp_lifecycle()
+    test_15_voice_intent_classification_and_telephony_waterfall()
 
     print("\n=================================================================")
-    print("  ALL 14 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 15 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")

@@ -148,6 +148,9 @@ export interface BatchSummary {
 export interface VoiceCallDemoResponse {
   status: string;
   phone_number: string;
+  persona?: string;
+  strategy?: string;
+  tone?: string;
   duration_seconds: number;
   conversation: {
     language: string;
@@ -155,7 +158,15 @@ export interface VoiceCallDemoResponse {
       step: number;
       speaker: 'agent' | 'debtor';
       text: string;
-      translation: string;
+      translation?: string;
+      intent?: string;
+      intent_meta?: {
+        intent?: string;
+        confidence?: number;
+        reason?: string;
+        action?: string;
+        promised_date?: string;
+      };
     }>;
     promise_to_pay: {
       amount: number;
@@ -163,6 +174,7 @@ export interface VoiceCallDemoResponse {
       invoice: string;
       logged_at: string;
       follow_up_date: string;
+      status?: string;
     };
     compliance: {
       contact_window: string;
@@ -170,6 +182,18 @@ export interface VoiceCallDemoResponse {
       frequency: string;
       full_transcript_logged: boolean;
     };
+  };
+  latency_waterfall?: {
+    vad_ms: number;
+    stt_ms: number;
+    context_cache_ms: number;
+    llm_ttft_ms: number;
+    tts_synthesis_ms: number;
+    network_ms: number;
+    total_turn_latency_ms: number;
+    target_budget_ms: number;
+    within_budget: boolean;
+    budget_headroom_ms: number;
   };
   message: string;
 }
