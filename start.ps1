@@ -8,7 +8,7 @@ Write-Host ""
 $rootPath = $PSScriptRoot
 
 Write-Host "Starting FastAPI Backend on http://localhost:8000 ..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location -Path '$rootPath\backend'; python -m uvicorn app.main:app --reload --port 8000"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location -Path '$rootPath\backend'; .\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000"
 
 Start-Sleep -Seconds 2
 

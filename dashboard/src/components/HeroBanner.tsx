@@ -1,5 +1,15 @@
-import React from 'react';
-import { Sparkles, ArrowRight, PhoneCall, ShieldAlert, Cpu } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Sparkles,
+  ArrowRight,
+  PhoneCall,
+  ShieldAlert,
+  Bot,
+  Zap,
+  CheckCircle2,
+  Lock,
+  Layers
+} from 'lucide-react';
 
 interface HeroBannerProps {
   onOpenVoice: () => void;
@@ -11,94 +21,245 @@ interface HeroBannerProps {
   recoveryRate: number;
 }
 
+const PREBUILT_AGENTS = [
+  {
+    name: 'Subscription Recovery',
+    tagline: 'Mandate & Dunning Engine',
+    desc: 'Analyzes failed subscription payments, applies smarter retry logic, and triggers targeted customer nudges.',
+    status: 'Unified in Brain',
+    icon: '🔄',
+    color: 'from-blue-600 to-indigo-600',
+    border: 'border-blue-500/30'
+  },
+  {
+    name: 'Abandoned Cart Conversion',
+    tagline: 'Checkout Drop-off Recovery',
+    desc: 'Identifies abandoned checkouts and re-engages buyers via 1-click WhatsApp intents with personalized recovery.',
+    status: 'Unified in Brain',
+    icon: '🛒',
+    color: 'from-cyan-600 to-blue-600',
+    border: 'border-cyan-500/30'
+  },
+  {
+    name: 'B2B Voice Receivables',
+    tagline: 'Hinglish Telephony Agent',
+    desc: 'Empathetic conversational AI that calls debtors in Hinglish, negotiates terms, and logs Promise-to-Pay.',
+    status: 'Unified in Brain',
+    icon: '📞',
+    color: 'from-purple-600 to-pink-600',
+    border: 'border-purple-500/30'
+  },
+  {
+    name: 'Payment Degradation Guard',
+    tagline: 'NPCI & TD Diagnostics',
+    desc: 'Distinguishes Technical Degradation (TD) from Business Declines (BD) to prevent futile customer disturbance.',
+    status: 'Unified in Brain',
+    icon: '⚡',
+    color: 'from-amber-600 to-orange-600',
+    border: 'border-amber-500/30'
+  },
+  {
+    name: 'Dispute Responder',
+    tagline: 'Chargeback Maximizer',
+    desc: 'Auto-responds to chargebacks with optimized evidence packets to maximize dispute win rates.',
+    status: 'Compatible',
+    icon: '⚖️',
+    color: 'from-emerald-600 to-teal-600',
+    border: 'border-emerald-500/30'
+  },
+  {
+    name: 'RTO Shield & Insights',
+    tagline: 'COD Address Validator',
+    desc: 'Detects high-risk COD orders before dispatch using LLM address validation and bad pincode intelligence.',
+    status: 'Compatible',
+    icon: '🛡️',
+    color: 'from-rose-600 to-red-600',
+    border: 'border-rose-500/30'
+  },
+  {
+    name: 'Cashflow Forecaster',
+    tagline: 'Liquidity Predictor',
+    desc: 'Predicts cash position 3–7 days ahead with alerts for payroll risk, shortfalls, and payout failures.',
+    status: 'Compatible',
+    icon: '📈',
+    color: 'from-violet-600 to-indigo-600',
+    border: 'border-violet-500/30'
+  }
+];
+
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   onOpenVoice,
   onOpenComplianceDemo,
 }) => {
-  return (
-    <div className="relative overflow-hidden pt-12 pb-8 px-4 sm:px-6 lg:px-8">
-      {/* Signature Razorpay Agent Studio Thermal Iridescent Aura */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-600/25 via-emerald-500/10 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-1/4 left-1/3 w-[350px] h-[250px] bg-purple-600/15 blur-[100px] pointer-events-none -z-10" />
+  const [showAgentStack, setShowAgentStack] = useState<boolean>(false);
 
-      <div className="max-w-6xl mx-auto text-center space-y-5">
-        {/* Eyebrow Pill */}
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
-          <Sparkles className="w-3.5 h-3.5 text-[#2B7FFF] animate-pulse" />
-          <span className="text-xs font-mono font-medium tracking-widest uppercase text-gray-300">
-            TRACK 03 · RAZORPAY AI BUILDATHON 2026
-          </span>
+  return (
+    <div className="relative overflow-hidden pt-10 pb-8 px-4 sm:px-6 lg:px-8 agent-studio-grid rounded-3xl border border-white/5 bg-[#050507]">
+      
+      {/* Signature Thermal Iridescent Glow Background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] thermal-aura pointer-events-none -z-0" />
+      <div className="absolute top-1/4 left-1/4 w-[400px] h-[300px] bg-purple-600/10 blur-[110px] pointer-events-none -z-0" />
+      <div className="absolute top-1/3 right-1/4 w-[350px] h-[250px] bg-cyan-500/10 blur-[100px] pointer-events-none -z-0" />
+
+      <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
+        
+        {/* Top Eyebrows / Credibility Pill */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-[#2B7FFF] animate-ping" />
+            <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-blue-300">
+              INTELLIGENCE ON DEMAND
+            </span>
+          </div>
+
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-mono">
+            <Sparkles className="w-3 h-3 text-purple-400" />
+            <span>Built on Anthropic's Claude Agent SDK & Razorpay Optimizer</span>
+          </div>
         </div>
 
-        {/* Main Headline with soft bloom */}
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white font-display">
-          Revenue Recovery{' '}
-          <span className="bg-gradient-to-r from-white via-blue-200 to-[#2B7FFF] bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(43,127,255,0.4)]">
-            Brain
-          </span>
-        </h1>
+        {/* The Famous Agent Studio Thesis Headline */}
+        <div className="space-y-3">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white font-sans max-w-4xl mx-auto leading-[1.15]">
+            Every month, businesses lose revenue not because payments fail,&nbsp;
+            <span className="font-display italic text-[#2B7FFF] font-normal drop-shadow-[0_0_35px_rgba(43,127,255,0.4)]">
+              but because no one has time to fix what happens after.
+            </span>
+          </h1>
 
-        {/* Subtitle */}
-        <p className="max-w-2xl mx-auto text-xs sm:text-sm uppercase tracking-[0.2em] font-medium text-blue-300/80 font-mono">
-          Intelligence On Demand · Unified Root-Cause Diagnosis Across All 4 Leaks
-        </p>
+          <p className="max-w-2xl mx-auto text-xs sm:text-sm text-gray-400 font-sans leading-relaxed">
+            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine for Razorpay Agent Studio. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces strict <strong className="text-emerald-400">RBI Fair Practices Code</strong> guardrails, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
+          </p>
+        </div>
 
-        <p className="max-w-3xl mx-auto text-sm sm:text-base text-gray-400 font-normal leading-relaxed">
-          Razorpay ships separate agents for dunning, carts, and disputes. We built the single brain above them that diagnoses whether a failure is an <strong className="text-white">infrastructure timeout (TD)</strong>, a <strong className="text-white">user decline (BD)</strong>, an <strong className="text-white">RBI mandate bug</strong>, or an <strong className="text-white">SME receivable oversight</strong> — then triggers the single optimal, bounded recovery.
-        </p>
-
-        {/* Hero Interactive Quick Actions */}
-        <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+        {/* Hero Interactive CTA Buttons */}
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={onOpenVoice}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-semibold shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95"
+            className="flex items-center space-x-2.5 px-6 py-3 rounded-full bg-gradient-to-r from-[#2B7FFF] via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
           >
             <PhoneCall className="w-4 h-4" />
-            <span>Launch Live Hinglish Voice Call</span>
+            <span>Simulate Hinglish Voice Recovery</span>
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </button>
 
           <button
             onClick={onOpenComplianceDemo}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white text-sm font-medium backdrop-blur-md transition-all active:scale-95"
+            className="flex items-center space-x-2 px-5 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95"
           >
             <ShieldAlert className="w-4 h-4 text-emerald-400" />
             <span>Simulate 9 PM RBI Compliance Block</span>
           </button>
+
+          <button
+            onClick={() => setShowAgentStack(!showAgentStack)}
+            className={`flex items-center space-x-2 px-4 py-3 rounded-full border text-xs font-mono transition-all ${
+              showAgentStack
+                ? 'bg-purple-600/20 text-purple-300 border-purple-500/40'
+                : 'bg-white/[0.02] text-gray-400 border-white/5 hover:text-white hover:bg-white/[0.05]'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{showAgentStack ? 'Hide Agent Stack' : 'View Agent Studio Stack (7 Agents)'}</span>
+          </button>
         </div>
 
-        {/* 4 Pillars Mini-Badges */}
-        <div className="pt-6 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto text-left">
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+        {/* Agent Studio Stack Viewer (Collapsible / Expandable) */}
+        {showAgentStack && (
+          <div className="pt-6 animate-in fade-in zoom-in-95 duration-300 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2 text-left">
+              <div>
+                <span className="text-xs font-mono uppercase tracking-wider text-blue-400 font-semibold">
+                  Razorpay Agent Studio · Autonomous AI Stack
+                </span>
+                <p className="text-[11px] text-gray-400">
+                  How the Revenue Recovery Brain unifies and orchestrates the prebuilt Razorpay agent suite:
+                </p>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                UNIFIED GRID ACTIVE
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left">
+              {PREBUILT_AGENTS.map((agent, i) => (
+                <div
+                  key={i}
+                  className={`p-3.5 rounded-2xl bg-white/[0.02] border ${agent.border} backdrop-blur-sm space-y-1.5 transition-all hover:bg-white/[0.05]`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-base">{agent.icon}</span>
+                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-semibold ${
+                      agent.status === 'Unified in Brain'
+                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        : 'bg-white/5 text-gray-400 border border-white/10'
+                    }`}>
+                      {agent.status}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-white font-sans">{agent.name}</div>
+                  <div className="text-[10px] font-mono text-gray-400">{agent.tagline}</div>
+                  <p className="text-[11px] text-gray-300 leading-snug line-clamp-2">{agent.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 4 Pillars Mini-Badges with Razorpay Design System styling */}
+        <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
             <div className="flex items-center space-x-2 text-xs font-semibold text-blue-400">
-              <Cpu className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5" />
               <span>01. Payment TD vs BD</span>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Smart retry for bank down; specific nudges for wrong PIN/balance.</p>
+            <p className="text-[11px] text-gray-400">NPCI smart retry for bank downtime; targeted nudges for PIN/balance.</p>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
             <div className="flex items-center space-x-2 text-xs font-semibold text-cyan-400">
-              <Cpu className="w-3.5 h-3.5" />
+              <Bot className="w-3.5 h-3.5" />
               <span>02. Cart Drop-off</span>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Identifies mobile UPI mismatch vs friction; skips unfixable price shocks.</p>
+            <p className="text-[11px] text-gray-400">1-click WhatsApp checkout intents; skips unfixable price shocks.</p>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
             <div className="flex items-center space-x-2 text-xs font-semibold text-amber-400">
-              <Cpu className="w-3.5 h-3.5" />
+              <Lock className="w-3.5 h-3.5" />
               <span>03. RBI Mandate Bug</span>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Detects &gt;₹15K re-auth failures — stops futile blind retries.</p>
+            <p className="text-[11px] text-gray-400">Detects &gt;₹15K re-auth failures with 24-hr pre-debit compliance.</p>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
             <div className="flex items-center space-x-2 text-xs font-semibold text-purple-400">
               <PhoneCall className="w-3.5 h-3.5" />
               <span>04. B2B Voice Chaser</span>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Hinglish AI voice agent negotiates and logs Promise-to-Pay.</p>
+            <p className="text-[11px] text-gray-400">Hinglish AI voice agent negotiates and logs Promise-to-Pay.</p>
+          </div>
+        </div>
+
+        {/* Customer / Quote Proof Banner */}
+        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center font-bold text-white text-xs">
+              IG
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-white">
+                “AI agents that address real commerce challenges — recovering revenue, resolving disputes, and predicting cash flow.”
+              </div>
+              <div className="text-[10px] font-mono text-gray-400">
+                Irina Ghose · Managing Director, Anthropic India
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 text-[10px] font-mono text-emerald-400 flex-shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>100% RBI Fair Practices Compliant</span>
           </div>
         </div>
 

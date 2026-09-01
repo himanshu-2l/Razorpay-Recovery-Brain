@@ -6,7 +6,7 @@ echo ===================================================
 echo.
 
 echo Starting FastAPI Backend on http://localhost:8000 ...
-start "Recovery Brain Backend (FastAPI)" cmd /k "cd backend && python -m uvicorn app.main:app --reload --port 8000"
+start "Recovery Brain Backend (FastAPI)" cmd /k "cd backend && .\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000"
 
 timeout /t 2 /nobreak >nul
 
