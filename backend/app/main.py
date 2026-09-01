@@ -12,11 +12,12 @@ Main application entry point. Serves the API for:
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional
 import json
 import uuid
+import asyncio
 
 from app.services.data_generator import generate_full_batch
 from app.services.recovery_pipeline import RecoveryPipeline
@@ -40,6 +41,63 @@ app.add_middleware(
 pipeline = RecoveryPipeline()
 current_batch = None
 batch_results = None
+
+# ── SSE Live Event Bus ───────────────────────────────────────────────────────
+# Broadcast real-time events to all connected dashboard clients
+_sse_clients: list[asyncio.Queue] = []
+
+async def _broadcast_event(event_type: str, payload: dict):
+    """Push an event to all connected SSE clients."""
+    message = json.dumps({
+        "type": event_type,
+        "payload": payload,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    })
+    dead = []
+    for q in _sse_clients:
+        try:
+            q.put_nowait(message)
+        except asyncio.QueueFull:
+            dead.append(q)
+    for q in dead:
+        _sse_clients.remove(q)
+
+
+@app.get("/api/stream/events")
+async def sse_event_stream(request: Request):
+    """
+    Server-Sent Events — streams live recovery events to the dashboard.
+    Connect with: EventSource('http://localhost:8000/api/stream/events')
+    """
+    queue: asyncio.Queue = asyncio.Queue(maxsize=50)
+    _sse_clients.append(queue)
+
+    async def generator():
+        try:
+            # Send a heartbeat immediately on connect
+            yield f"data: {json.dumps({'type': 'connected', 'payload': {'clients': len(_sse_clients)}, 'ts': datetime.now(timezone.utc).isoformat()})}\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=25.0)
+                    yield f"data: {msg}\n\n"
+                except asyncio.TimeoutError:
+                    # Heartbeat to keep connection alive
+                    yield f"data: {json.dumps({'type': 'heartbeat', 'ts': datetime.now(timezone.utc).isoformat()})}\n\n"
+        finally:
+            if queue in _sse_clients:
+                _sse_clients.remove(queue)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @app.get("/")
@@ -196,6 +254,11 @@ async def razorpay_webhook(request: Request):
             }
         )
         latency_ms = round((time.time() - start_time) * 1000, 2)
+        await _broadcast_event("webhook_processed", {
+            "event": event, "trace_id": trace_id, "latency_ms": latency_ms,
+            "root_cause": case.get("root_cause", ""), "intervention": case.get("chosen_intervention", ""),
+            "amount": case.get("amount_at_risk", 0), "compliance": case.get("compliance_status", ""),
+        })
         return {
             "status": "processed",
             "event": event,
@@ -225,6 +288,11 @@ async def razorpay_webhook(request: Request):
             }
         )
         latency_ms = round((time.time() - start_time) * 1000, 2)
+        await _broadcast_event("webhook_processed", {
+            "event": event, "trace_id": trace_id, "latency_ms": latency_ms,
+            "root_cause": case.get("root_cause", ""), "intervention": case.get("chosen_intervention", ""),
+            "amount": case.get("amount_at_risk", 0), "compliance": case.get("compliance_status", ""),
+        })
         return {
             "status": "processed",
             "event": event,
@@ -252,6 +320,11 @@ async def razorpay_webhook(request: Request):
             }
         )
         latency_ms = round((time.time() - start_time) * 1000, 2)
+        await _broadcast_event("webhook_processed", {
+            "event": event, "trace_id": trace_id, "latency_ms": latency_ms,
+            "root_cause": case.get("root_cause", ""), "intervention": case.get("chosen_intervention", ""),
+            "amount": case.get("amount_at_risk", 0), "compliance": case.get("compliance_status", ""),
+        })
         return {
             "status": "processed",
             "event": event,
