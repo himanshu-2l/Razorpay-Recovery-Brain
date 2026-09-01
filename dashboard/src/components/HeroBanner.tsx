@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   ArrowRight,
+  PhoneCall,
   ShieldAlert,
+  Bot,
   Zap,
   CheckCircle2,
-  Layers,
-  Mic,
-  IndianRupee,
+  Lock,
+  Layers
 } from 'lucide-react';
 
 interface HeroBannerProps {
@@ -93,170 +94,89 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   const [showAgentStack, setShowAgentStack] = useState<boolean>(false);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#07132B] shadow-2xl">
+    <div className="relative overflow-hidden pt-10 pb-8 px-4 sm:px-6 lg:px-8 agent-studio-grid rounded-3xl border border-white/5 bg-[#050507]">
       
-      {/* ── Signature Atmospheric Radiant Blue Lighting & Ray Gradients ───────── */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0c2f82] via-[#0b2460] to-[#040e22] pointer-events-none" />
-      <div className="absolute -top-32 -left-32 w-[600px] h-[600px] bg-blue-500/25 blur-[140px] pointer-events-none rounded-full" />
-      <div className="absolute top-1/3 -right-20 w-[550px] h-[550px] bg-cyan-400/20 blur-[130px] pointer-events-none rounded-full" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:36px_36px] pointer-events-none opacity-40" />
+      {/* Signature Thermal Iridescent Glow Background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] thermal-aura pointer-events-none -z-0" />
+      <div className="absolute top-1/4 left-1/4 w-[400px] h-[300px] bg-purple-600/10 blur-[110px] pointer-events-none -z-0" />
+      <div className="absolute top-1/3 right-1/4 w-[350px] h-[250px] bg-cyan-500/10 blur-[100px] pointer-events-none -z-0" />
 
-      {/* ── Hero Main Content Grid ───────────────────────────────────────────── */}
-      <div className="relative z-10 px-6 sm:px-10 lg:px-12 pt-10 pb-8 space-y-8">
+      <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
         
-        {/* Top Floating Mini-Badges */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#2B7FFF] animate-ping" />
-            <span className="text-[11px] font-mono font-bold tracking-[0.22em] uppercase text-blue-300">
-              INTRODUCING · RAZORPAY AGENT STUDIO
+        {/* Top Eyebrows / Credibility Pill */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-[#2B7FFF] animate-ping" />
+            <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-blue-300">
+              INTELLIGENCE ON DEMAND
             </span>
           </div>
 
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-white/90 text-[11px] font-mono backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
-            <span>Anthropic Claude Agent SDK · Sub-150ms Telephony & Recovery</span>
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-mono">
+            <Sparkles className="w-3 h-3 text-purple-400" />
+            <span>Built on Anthropic's Claude Agent SDK & Razorpay Optimizer</span>
           </div>
         </div>
 
-        {/* 2-Column Showcase (Left: Copy & CTAs | Right: Centerpiece Spectral Artwork) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
-          {/* Left Column: Stacked Headline & Controls */}
-          <div className="lg:col-span-6 space-y-6 text-left">
-            <div className="space-y-3">
-              <span className="text-xs sm:text-sm font-mono font-bold tracking-[0.25em] text-cyan-300 uppercase block">
-                INTRODUCING
-              </span>
+        {/* The Famous Agent Studio Thesis Headline */}
+        <div className="space-y-3">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white font-sans max-w-4xl mx-auto leading-[1.15]">
+            Every month, businesses lose revenue not because payments fail,&nbsp;
+            <span className="font-serif-display italic text-[#2B7FFF] font-normal text-4xl sm:text-6xl lg:text-7xl block mt-2 drop-shadow-[0_0_35px_rgba(43,127,255,0.4)]">
+              but because no one has time to fix what happens after.
+            </span>
+          </h1>
 
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.02] font-sans">
-                Razorpay<br />
-                Agentic<br />
-                Payments
-              </h1>
-
-              <p className="text-base sm:text-lg text-blue-100/90 font-sans font-medium pt-1 leading-relaxed">
-                AI-Powered Conversational Payment Experience & Revenue Recovery Engine
-              </p>
-            </div>
-
-            {/* CTA Buttons Matching Razorpay Official Cut-Corner Style */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              {/* Primary Black Cut-Corner Capsule Button */}
-              <button
-                onClick={onOpenVoice}
-                className="group relative px-7 py-3.5 bg-black text-white text-xs sm:text-sm font-bold tracking-wide transition-all hover:bg-neutral-900 border border-white/20 shadow-xl flex items-center space-x-2.5 active:scale-95"
-                style={{
-                  clipPath: 'polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px)',
-                }}
-              >
-                <span>Sign Up / Launch Voice AI</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={onOpenComplianceDemo}
-                className="flex items-center space-x-2 px-5 py-3.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white text-xs font-mono backdrop-blur-md transition-all active:scale-95"
-              >
-                <ShieldAlert className="w-4 h-4 text-emerald-400" />
-                <span>Simulate 9 PM RBI Shield</span>
-              </button>
-
-              <button
-                onClick={() => setShowAgentStack(!showAgentStack)}
-                className={`flex items-center space-x-2 px-4 py-3.5 rounded-full border text-xs font-mono transition-all ${
-                  showAgentStack
-                    ? 'bg-purple-600/30 text-purple-300 border-purple-400'
-                    : 'bg-white/[0.04] text-gray-300 border-white/10 hover:text-white hover:bg-white/[0.08]'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>{showAgentStack ? 'Hide Agent Stack' : 'Agent Stack (7)'}</span>
-              </button>
-            </div>
-
-            {/* Mini Trust Pillars */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1 backdrop-blur-sm">
-                <div className="flex items-center space-x-1.5 text-xs font-bold text-emerald-400 font-mono">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>100% RBI Compliant</span>
-                </div>
-                <p className="text-[11px] text-gray-300">8 AM–7 PM window auto-enforced.</p>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1 backdrop-blur-sm">
-                <div className="flex items-center space-x-1.5 text-xs font-bold text-cyan-400 font-mono">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>&lt;150ms Triage</span>
-                </div>
-                <p className="text-[11px] text-gray-300">TD vs BD root-cause classification.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Visual Centerpiece (Spectral Woman with Floating Tech Nodes) */}
-          <div className="lg:col-span-6 relative flex items-center justify-center">
-            
-            {/* Glowing Backdrop Aura */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/30 via-cyan-500/20 to-purple-600/30 rounded-3xl filter blur-2xl pointer-events-none" />
-
-            {/* Main Showcase Frame */}
-            <div className="relative w-full rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-black/40 group">
-              
-              {/* Spectral AI Heat-Map Centerpiece Image */}
-              <img
-                src="/hero-agentic-centerpiece.jpg"
-                alt="Razorpay Agentic Payments - AI Conversational Experience"
-                className="w-full h-auto object-cover rounded-3xl transition-transform duration-700 group-hover:scale-105"
-              />
-
-              {/* Floating Node 1: Frosted Microphone Glassmorphic Tile */}
-              <div className="absolute left-4 top-1/3 -translate-y-1/2 p-3.5 rounded-2xl bg-white/[0.12] backdrop-blur-xl border border-white/30 shadow-2xl flex items-center justify-center text-white animate-pulse">
-                <Mic className="w-6 h-6 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-              </div>
-
-              {/* Floating Node 2: Frosted Rupee Glassmorphic Blueprint Tile */}
-              <div className="absolute right-4 top-6 p-3.5 rounded-2xl bg-white/[0.12] backdrop-blur-xl border border-white/30 shadow-2xl flex items-center justify-center text-white">
-                <IndianRupee className="w-6 h-6 text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
-              </div>
-
-              {/* Floating Node 3: Bottom Interactive '+ Ask Anything' Capsule */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[90%] sm:w-[80%] px-5 py-3 rounded-full bg-white/[0.15] backdrop-blur-2xl border border-white/30 shadow-2xl flex items-center justify-between text-white cursor-pointer hover:bg-white/[0.22] transition-all"
-                   onClick={onOpenVoice}>
-                <div className="flex items-center space-x-2 text-xs sm:text-sm font-sans font-semibold">
-                  <span className="text-cyan-300 text-base font-bold">+</span>
-                  <span>Ask Anything (Hinglish Voice Agent)</span>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                  <div className="flex items-center space-x-0.5">
-                    <span className="w-0.5 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-0.5 h-3.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-0.5 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
+          <p className="max-w-2xl mx-auto text-xs sm:text-sm text-gray-400 font-sans leading-relaxed">
+            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine for Razorpay Agent Studio. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces strict <strong className="text-emerald-400">RBI Fair Practices Code</strong> guardrails, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
+          </p>
         </div>
 
-        {/* ── Collapsible Prebuilt Agent Studio Stack ───────────────────────── */}
+        {/* Hero Interactive CTA Buttons */}
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={onOpenVoice}
+            className="flex items-center space-x-2.5 px-6 py-3 rounded-full bg-gradient-to-r from-[#2B7FFF] via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95"
+          >
+            <PhoneCall className="w-4 h-4" />
+            <span>Simulate Hinglish Voice Recovery</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </button>
+
+          <button
+            onClick={onOpenComplianceDemo}
+            className="flex items-center space-x-2 px-5 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95"
+          >
+            <ShieldAlert className="w-4 h-4 text-emerald-400" />
+            <span>Simulate 9 PM RBI Compliance Block</span>
+          </button>
+
+          <button
+            onClick={() => setShowAgentStack(!showAgentStack)}
+            className={`flex items-center space-x-2 px-4 py-3 rounded-full border text-xs font-mono transition-all ${
+              showAgentStack
+                ? 'bg-purple-600/20 text-purple-300 border-purple-500/40'
+                : 'bg-white/[0.02] text-gray-400 border-white/5 hover:text-white hover:bg-white/[0.05]'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{showAgentStack ? 'Hide Agent Stack' : 'View Agent Studio Stack (7 Agents)'}</span>
+          </button>
+        </div>
+
+        {/* Agent Studio Stack Viewer (Collapsible / Expandable) */}
         {showAgentStack && (
-          <div className="pt-4 animate-in fade-in zoom-in-95 duration-300 space-y-4">
+          <div className="pt-6 animate-in fade-in zoom-in-95 duration-300 space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-2 text-left">
               <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">
-                  Razorpay Agent Studio · Autonomous AI Fleet (7 Engines)
+                <span className="text-xs font-mono uppercase tracking-wider text-blue-400 font-semibold">
+                  Razorpay Agent Studio · Autonomous AI Stack
                 </span>
-                <p className="text-[11px] text-gray-300">
+                <p className="text-[11px] text-gray-400">
                   How the Revenue Recovery Brain unifies and orchestrates the prebuilt Razorpay agent suite:
                 </p>
               </div>
-              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 UNIFIED GRID ACTIVE
               </span>
             </div>
@@ -265,7 +185,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               {PREBUILT_AGENTS.map((agent, i) => (
                 <div
                   key={i}
-                  className={`p-3.5 rounded-2xl bg-white/[0.04] border ${agent.border} backdrop-blur-md space-y-1.5 transition-all hover:bg-white/[0.08]`}
+                  className={`p-3.5 rounded-2xl bg-white/[0.02] border ${agent.border} backdrop-blur-sm space-y-1.5 transition-all hover:bg-white/[0.05]`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-base">{agent.icon}</span>
@@ -278,7 +198,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                     </span>
                   </div>
                   <div className="text-xs font-bold text-white font-sans">{agent.name}</div>
-                  <div className="text-[10px] font-mono text-gray-300">{agent.tagline}</div>
+                  <div className="text-[10px] font-mono text-gray-400">{agent.tagline}</div>
                   <p className="text-[11px] text-gray-300 leading-snug line-clamp-2">{agent.desc}</p>
                 </div>
               ))}
@@ -286,24 +206,64 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
         )}
 
-      </div>
+        {/* 4 Pillars Mini-Badges with Razorpay Design System styling */}
+        <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-blue-400">
+              <Zap className="w-3.5 h-3.5" />
+              <span>01. Payment TD vs BD</span>
+            </div>
+            <p className="text-[11px] text-gray-400">NPCI smart retry for bank downtime; targeted nudges for PIN/balance.</p>
+          </div>
 
-      {/* ── Official Full-Width White Partner Ecosystem Marquee Ticker ───────── */}
-      <div className="w-full bg-white py-4 px-6 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-6 text-gray-900 font-sans font-bold text-sm tracking-wider opacity-80 hover:opacity-100 transition-opacity">
-          <span className="font-extrabold tracking-tighter text-base">boAt</span>
-          <span className="tracking-wide">super <span className="bg-black text-white px-1 py-0.5 rounded text-xs">U</span></span>
-          <span className="text-xs tracking-tight uppercase font-mono">NUGGET <span className="text-[9px] text-gray-500">BY ZOMATO</span></span>
-          <span className="text-xs tracking-wider uppercase font-mono">gnani.ai</span>
-          <span className="italic font-serif text-base tracking-normal">zomato</span>
-          <span className="text-xs tracking-widest uppercase font-semibold">BLUESTONE</span>
-          <span className="text-base font-extrabold tracking-tighter text-red-600">Vi</span>
-          <span className="text-xs font-mono font-bold tracking-widest uppercase">PVR INOX</span>
-          <span className="text-xs tracking-tight">the <span className="font-bold">dērma</span> co</span>
-          <span className="text-xs font-mono font-bold uppercase text-blue-600">SARVAM.AI</span>
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-cyan-400">
+              <Bot className="w-3.5 h-3.5" />
+              <span>02. Cart Drop-off</span>
+            </div>
+            <p className="text-[11px] text-gray-400">1-click WhatsApp checkout intents; skips unfixable price shocks.</p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-amber-400">
+              <Lock className="w-3.5 h-3.5" />
+              <span>03. RBI Mandate Bug</span>
+            </div>
+            <p className="text-[11px] text-gray-400">Detects &gt;₹15K re-auth failures with 24-hr pre-debit compliance.</p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-1">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-purple-400">
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>04. B2B Voice Chaser</span>
+            </div>
+            <p className="text-[11px] text-gray-400">Hinglish AI voice agent negotiates and logs Promise-to-Pay.</p>
+          </div>
         </div>
-      </div>
 
+        {/* Customer / Quote Proof Banner */}
+        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center font-bold text-white text-xs">
+              IG
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-white">
+                “AI agents that address real commerce challenges — recovering revenue, resolving disputes, and predicting cash flow.”
+              </div>
+              <div className="text-[10px] font-mono text-gray-400">
+                Irina Ghose · Managing Director, Anthropic India
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 text-[10px] font-mono text-emerald-400 flex-shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>100% RBI Fair Practices Compliant</span>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };
