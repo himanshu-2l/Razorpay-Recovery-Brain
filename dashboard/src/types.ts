@@ -46,6 +46,42 @@ export interface CaseItem {
     email_subject?: string;
     email_body?: string;
   } | null;
+  counterfactual?: {
+    p_natural_recovery: number;
+    p_intervention_recovery: number;
+    incremental_lift_pct: number;
+    intervention_cost_inr: number;
+    expected_net_recovery_inr: number;
+    requires_human_approval: boolean;
+  };
+  requires_human_approval?: boolean;
+  operator_approval?: {
+    status: 'approved' | 'rejected';
+    approved_at?: string;
+    rejected_at?: string;
+    note?: string;
+    reason?: string;
+  };
+  receipt?: {
+    receipt_id: string;
+    timestamp: string;
+    sha256_seal: string;
+    financials: {
+      amount_at_risk_inr: number;
+      amount_recovered_inr: number;
+      expected_net_recovery_inr: number;
+      intervention_cost_inr: number;
+    };
+    counterfactual_analysis: {
+      p_natural_recovery: number;
+      p_intervention_recovery: number;
+      incremental_lift_pct: number;
+    };
+    compliance_citations: {
+      status: string;
+      rule_cited: string;
+    };
+  };
   created_at: string;
   audit_logs?: AuditLogEntry[];
   audit_log_count?: number;
