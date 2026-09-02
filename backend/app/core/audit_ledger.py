@@ -26,7 +26,8 @@ class AuditRecord:
         timestamp: str,
         prev_hash: str,
         payload: Dict[str, Any],
-        content_hash: str
+        content_hash: str,
+        merchant_id: str = "mid_default"
     ):
         self.sequence = sequence
         self.event_type = event_type
@@ -35,10 +36,12 @@ class AuditRecord:
         self.prev_hash = prev_hash
         self.payload = payload
         self.content_hash = content_hash
+        self.merchant_id = merchant_id
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "sequence": self.sequence,
+            "merchant_id": self.merchant_id,
             "event_type": self.event_type,
             "case_id": self.case_id,
             "timestamp": self.timestamp,
@@ -65,9 +68,19 @@ class CryptographicAuditLedger:
         # Seed Genesis Block
         self._append_genesis()
 
-    def _canonical_string(self, sequence: int, event_type: str, case_id: str, timestamp: str, prev_hash: str, payload: Dict[str, Any]) -> str:
+    def _canonical_string(
+        self,
+        sequence: int,
+        event_type: str,
+        case_id: str,
+        timestamp: str,
+        prev_hash: str,
+        payload: Dict[str, Any],
+        merchant_id: str = "mid_default"
+    ) -> str:
         data = {
             "seq": sequence,
+            "mid": merchant_id,
             "event": event_type,
             "case_id": case_id,
             "ts": timestamp,
@@ -80,7 +93,7 @@ class CryptographicAuditLedger:
         now = datetime.now(timezone.utc).isoformat()
         genesis_prev = "0" * 64
         genesis_payload = {"system": "Razorpay Revenue Recovery Brain", "genesis_at": now}
-        canonical = self._canonical_string(1, "GENESIS_BLOCK", "system_root", now, genesis_prev, genesis_payload)
+        canonical = self._canonical_string(1, "GENESIS_BLOCK", "system_root", now, genesis_prev, genesis_payload, "mid_system")
         genesis_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
         self._records.append(
             AuditRecord(
@@ -90,11 +103,18 @@ class CryptographicAuditLedger:
                 timestamp=now,
                 prev_hash=genesis_prev,
                 payload=genesis_payload,
-                content_hash=genesis_hash
+                content_hash=genesis_hash,
+                merchant_id="mid_system"
             )
         )
 
-    def record_event(self, event_type: str, case_id: str, payload: Dict[str, Any]) -> AuditRecord:
+    def record_event(
+        self,
+        event_type: str,
+        case_id: str,
+        payload: Dict[str, Any],
+        merchant_id: str = "mid_default"
+    ) -> AuditRecord:
         """
         Append a new tamper-evident record to the cryptographic ledger.
         """
@@ -102,7 +122,7 @@ class CryptographicAuditLedger:
             now = datetime.now(timezone.utc).isoformat()
             sequence = len(self._records) + 1
             prev_hash = self._records[-1].content_hash
-            canonical = self._canonical_string(sequence, event_type, case_id, now, prev_hash, payload)
+            canonical = self._canonical_string(sequence, event_type, case_id, now, prev_hash, payload, merchant_id)
             content_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
             record = AuditRecord(
@@ -112,14 +132,15 @@ class CryptographicAuditLedger:
                 timestamp=now,
                 prev_hash=prev_hash,
                 payload=payload,
-                content_hash=content_hash
+                content_hash=content_hash,
+                merchant_id=merchant_id
             )
             self._records.append(record)
             return record
 
     def verify_integrity(self) -> Tuple[bool, int, Optional[str]]:
         """
-        Walk the hash chain from block 1 to head.
+        Walk the internal hash chain from block 1 to head.
         Returns: (is_valid: bool, total_verified: int, error_reason: Optional[str])
         """
         with self._mutex:
@@ -140,7 +161,8 @@ class CryptographicAuditLedger:
                     record.case_id,
                     record.timestamp,
                     record.prev_hash,
-                    record.payload
+                    record.payload,
+                    record.merchant_id
                 )
                 recomputed_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
                 if record.content_hash != recomputed_hash:
@@ -148,13 +170,21 @@ class CryptographicAuditLedger:
 
             return True, len(self._records), None
 
-    def get_records(self, case_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
-        """Retrieve recent ledger records with optional case_id filtering."""
+    def export_chain(self, merchant_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Export full cryptographic chain for third-party independent verification."""
         with self._mutex:
+            if merchant_id:
+                return [r.to_dict() for r in self._records if r.merchant_id in (merchant_id, "mid_system")]
+            return [r.to_dict() for r in self._records]
+
+    def get_records(self, case_id: Optional[str] = None, merchant_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieve recent ledger records with optional filtering."""
+        with self._mutex:
+            filtered = self._records
+            if merchant_id:
+                filtered = [r for r in filtered if r.merchant_id == merchant_id]
             if case_id:
-                filtered = [r for r in self._records if r.case_id == case_id]
-            else:
-                filtered = self._records
+                filtered = [r for r in filtered if r.case_id == case_id]
             return [r.to_dict() for r in filtered[-limit:]]
 
 

@@ -1152,10 +1152,115 @@ async def record_promise_to_pay(request: Request):
     return {"message": "Promise-to-Pay recorded successfully", "promise": ptp.to_dict()}
 
 
-@app.get("/api/ptp/promises")
-async def get_all_promises():
-    """List all registered customer Promises-to-Pay and their current fulfillment status."""
-    return {"promises": ptp_tracker.get_all()}
+# ─── Enterprise Governance, DPDP Act 2023 & Cryptographic Audit Proofs ─────────
+
+from app.services.spend_governor import spend_governor
+from app.services.dpdp_governance import dpdp_governance
+from app.services.staleness_monitor import staleness_monitor
+
+
+@app.get("/api/audit-ledger/export")
+async def export_audit_ledger(merchant_id: Optional[str] = None):
+    """
+    Export full raw cryptographic SHA-256 block chain for independent third-party audit verification.
+    """
+    records = audit_ledger.export_chain(merchant_id=merchant_id)
+    return {
+        "system": "Razorpay Revenue Recovery Brain",
+        "merchant_id": merchant_id or "all_merchants",
+        "block_count": len(records),
+        "genesis_hash": records[0]["content_hash"] if records else None,
+        "head_hash": records[-1]["content_hash"] if records else None,
+        "records": records,
+    }
+
+
+@app.get("/api/audit-ledger/verify")
+async def verify_audit_ledger():
+    """
+    Perform mathematical SHA-256 verification of the complete ledger chain from Genesis to Head.
+    """
+    is_valid, count, err = audit_ledger.verify_integrity()
+    records = audit_ledger.export_chain()
+    return {
+        "is_valid": is_valid,
+        "total_blocks_verified": count,
+        "genesis_hash": records[0]["content_hash"] if records else None,
+        "head_hash": records[-1]["content_hash"] if records else None,
+        "status": "TAMPER_FREE_VERIFIED" if is_valid else "CORRUPTED",
+        "error": err,
+    }
+
+
+@app.get("/api/governance/spend-governor")
+async def get_spend_governor_status(merchant_id: str = "mid_default"):
+    """Get real-time spend governor daily budget limits, current consumption, and kill switch state."""
+    return spend_governor.get_status(merchant_id=merchant_id)
+
+
+@app.post("/api/governance/spend-governor/kill-switch")
+async def toggle_emergency_kill_switch(request: Request):
+    """Emergency Circuit Breaker: Instantly halt all autonomous actions across the platform."""
+    body = await request.json()
+    enabled = body.get("enabled", True)
+    reason = body.get("reason", "Manual operator kill switch triggered")
+    if enabled:
+        spend_governor.trigger_emergency_kill_switch(reason=reason)
+    else:
+        spend_governor.reset_emergency_kill_switch()
+    return {
+        "message": "Emergency kill switch updated",
+        "governor_status": spend_governor.get_status(),
+    }
+
+
+@app.post("/api/governance/spend-governor/limits")
+async def update_spend_limits(request: Request):
+    """Update daily budget and action limits for a merchant."""
+    body = await request.json()
+    merchant_id = body.get("merchant_id", "mid_default")
+    budget_inr = float(body.get("daily_budget_inr", 500.0))
+    action_limit = int(body.get("daily_action_limit", 100))
+    spend_governor.set_merchant_limits(merchant_id, budget_inr, action_limit)
+    return {
+        "message": f"Updated limits for merchant {merchant_id}",
+        "governor_status": spend_governor.get_status(merchant_id),
+    }
+
+
+@app.get("/api/governance/dpdp/status")
+async def get_dpdp_compliance_status():
+    """Get DPDP Act 2023 compliance status, retention schedules, and statutory principal rights."""
+    return dpdp_governance.get_compliance_policy_summary()
+
+
+@app.post("/api/governance/dpdp/erase-customer")
+async def erase_customer_data(request: Request):
+    """
+    Statutory Right-to-Erasure (Section 12 DPDP Act 2023):
+    Purges customer PII from active storage and writes a cryptographic erasure tombstone to the ledger.
+    """
+    body = await request.json()
+    customer_id = body.get("customer_id")
+    reason = body.get("reason", "Customer Right-to-Erasure request under Section 12 DPDP Act 2023")
+    if not customer_id:
+        return {"error": "customer_id is required"}
+
+    res = dpdp_governance.erase_customer_data(customer_id=customer_id, reason=reason)
+    return res
+
+
+@app.get("/api/cases/stale-check")
+async def scan_stale_cases():
+    """
+    Observability: Detect cases stuck in AWAITING_RESPONSE or INTERVENING past SLA thresholds.
+    """
+    cases_list = batch_results.get("cases", []) if batch_results else []
+    stale_cases = staleness_monitor.process_stale_cases(cases_list, auto_escalate=True)
+    return {
+        "total_stale_cases_detected": len(stale_cases),
+        "stale_cases": stale_cases,
+    }
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────
