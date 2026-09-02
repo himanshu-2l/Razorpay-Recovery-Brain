@@ -857,6 +857,51 @@ def test_23_dpdp_consent_retention_and_access_rights():
     print("  [OK] PASS: DPDP Act 2023 consent management, retention schedules, and data principal access rights verified.")
 
 
+def test_24_webhook_idempotency_rate_limits_and_circuit_breaker():
+    print("\n[TEST 24] Webhook Idempotency (7-day TTL), Rate Limit Defense & Circuit Breaker")
+    from app.core.idempotency_mutex import webhook_idempotency_store, rate_limit_tracker
+    from app.services.razorpay_service import razorpay_service
+    from app.core.circuit_breaker import CircuitBreaker, CircuitState
+
+    # 1. Temporal Webhook Idempotency
+    ev_id = f"evt_razorpay_test_{int(time.time())}"
+    t1 = "1725321600"
+    t2 = "1725325200"
+
+    assert webhook_idempotency_store.is_processed(ev_id, t1) is False
+    webhook_idempotency_store.mark_processed(ev_id, t1, "hash_payload_a")
+    print(f"  -> Ingested initial webhook: {ev_id} at ts={t1}")
+
+    # Immediate delivery retry with same timestamp: MUST be duplicate
+    assert webhook_idempotency_store.is_processed(ev_id, t1) is True
+    print(f"  -> Duplicate delivery at same timestamp suppressed: is_processed=True")
+
+    # Delivery retry with new timestamp (e.g. updated gateway event): MUST be permitted
+    assert webhook_idempotency_store.is_processed(ev_id, t2) is False
+    webhook_idempotency_store.mark_processed(ev_id, t2, "hash_payload_b")
+    print(f"  -> Updated delivery with new timestamp processed: is_processed=False")
+
+    # 2. Rate Limit Tracker Sliding Window
+    api = f"razorpay_eval_{int(time.time())}"
+    rate_limit_tracker.DEFAULT_LIMITS[api] = 5
+    for _ in range(5):
+        assert rate_limit_tracker.record_call(api) is True
+    # 6th call must exceed limit
+    assert rate_limit_tracker.check_limit(api) is False
+    status = rate_limit_tracker.get_rate_limit_status(api)
+    print(f"  -> Rate limit tracker verified: {status['current_usage']}/{status['limit_per_min']} calls (Remaining: {status['remaining']})")
+
+    # 3. Circuit Breaker Fast-Fail Trip
+    breaker = CircuitBreaker("TwilioRail", failure_threshold=5, window_seconds=60.0, cooldown_seconds=10.0)
+    for _ in range(5):
+        breaker.record_failure("Upstream timeout")
+    assert breaker.state == CircuitState.OPEN
+    assert breaker.allow_request() is False
+    print(f"  -> Circuit breaker state: {breaker.state.value} (Fast-fail active)")
+
+    print("  [OK] PASS: Webhook idempotency store, rate limit defense, and circuit breaker verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -885,8 +930,10 @@ if __name__ == "__main__":
     test_21_cross_leak_unification_and_voice_gateway()
     test_22_voice_safety_filter_and_rbi_credential_prohibition()
     test_23_dpdp_consent_retention_and_access_rights()
+    test_24_webhook_idempotency_rate_limits_and_circuit_breaker()
 
     print("\n=================================================================")
-    print("  ALL 23 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 24 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
+
 

@@ -866,6 +866,12 @@ async def get_idempotency_stats():
     }
 
 
+# ─── Razorpay Webhook Ingestion Router (Temporal Idempotency) ───────────────
+from app.api.v1.webhooks import router as webhooks_router, handle_razorpay_webhook
+app.include_router(webhooks_router)
+app.add_api_route("/api/webhooks/razorpay", handle_razorpay_webhook, methods=["POST"])
+
+
 # ─── Cryptographic Audit Ledger & HITL Endpoints ────────────────────────────
 
 from app.core.audit_ledger import audit_ledger
