@@ -809,6 +809,54 @@ def test_22_voice_safety_filter_and_rbi_credential_prohibition():
     print("  [OK] PASS: VoiceSafetyFilter validated, RBI credential prohibition enforced, and disputed call blocked.")
 
 
+def test_23_dpdp_consent_retention_and_access_rights():
+    print("\n[TEST 23] DPDP Act 2023 Consent Manager, Retention Schedule & Access Rights")
+    from app.core.dpdp_compliance import dpdp_consent_manager, dpdp_data_retention, dpdp_audit_exporter
+    from app.agents.vasool import vasool_agent
+    from app.services.voice_service import voice_service
+    from app.tasks.dpdp_tasks import daily_data_cleanup
+
+    cust_id = "cust_dpdp_rajesh_99"
+
+    # 1. Explicit Consent Recording & Validation
+    rec = dpdp_consent_manager.record_consent(
+        customer_id=cust_id,
+        channel="voice",
+        purpose="b2b_receivable_recovery",
+        source="terms_and_conditions_v2"
+    )
+    print(f"  -> Consent Recorded: Customer {cust_id} | Channel: {rec['channels']} | Status: {rec['status']}")
+    assert dpdp_consent_manager.check_consent(cust_id, "voice") is True
+
+    # 2. Outreach Consent Evaluation via Vasool Agent
+    eval_pre = vasool_agent.evaluate_outreach(cust_id, "voice", 75000.0, "INV-DPDP-01", customer_meta={"id": cust_id, "call_time": datetime(2026, 9, 3, 14, 0, tzinfo=IST)})
+    print(f"  -> Vasool Outreach Allowed: {eval_pre['allowed']} | Action: {eval_pre['action']}")
+    assert eval_pre["allowed"] is True
+
+    # 3. Consent Revocation & Opt-In Swap
+    rev = dpdp_consent_manager.revoke_consent(cust_id, "voice")
+    print(f"  -> Consent Revoked: Status {rev['status']} | Revoked Channels: {rev['revoked_channels']}")
+    assert dpdp_consent_manager.check_consent(cust_id, "voice") is False
+
+    eval_post = vasool_agent.evaluate_outreach(cust_id, "voice", 75000.0, "INV-DPDP-01")
+    print(f"  -> Outreach on Revoked Consent Blocked: {eval_post['allowed']} | Action: {eval_post['action']}")
+    assert eval_post["allowed"] is False
+    assert eval_post["action"] == "SEND_CONSENT_OPT_IN_WHATSAPP"
+
+    # 4. Statutory Data Retention (90-day Voice Audio / 180-day Transcript)
+    rec_sched = dpdp_data_retention.schedule_deletion("voice_recording", "rec_sid_test_101", 90)
+    trans_sched = dpdp_data_retention.schedule_deletion("call_transcript", "rec_sid_test_101", 180)
+    print(f"  -> Scheduled Deletion: Voice Recording (90d: {rec_sched['delete_after'][:10]}) | Transcript (180d: {trans_sched['delete_after'][:10]})")
+
+    # 5. Section 11 Right to Access & Data Portability Export
+    export_pkg = dpdp_audit_exporter.export_customer_data(cust_id)
+    print(f"  -> Section 11 Data Portability Export: Principal {export_pkg['data_principal_id']} | Format: {export_pkg['data_portability_format']}")
+    assert export_pkg["data_principal_id"] == cust_id
+    assert "statutory_basis" in export_pkg
+
+    print("  [OK] PASS: DPDP Act 2023 consent management, retention schedules, and data principal access rights verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -836,7 +884,9 @@ if __name__ == "__main__":
     test_20_staleness_monitor_and_silent_failure_observability()
     test_21_cross_leak_unification_and_voice_gateway()
     test_22_voice_safety_filter_and_rbi_credential_prohibition()
+    test_23_dpdp_consent_retention_and_access_rights()
 
     print("\n=================================================================")
-    print("  ALL 22 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 23 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
+

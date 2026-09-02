@@ -119,6 +119,14 @@ class Customer(Base):
     risk_score = Column(Float, default=0.0)  # 0-1, higher = riskier
     created_at = Column(DateTime, default=utcnow)
 
+    # DPDP Act 2023 Statutory Consent & Governance
+    consent_voice = Column(Boolean, default=True)
+    consent_email = Column(Boolean, default=True)
+    consent_whatsapp = Column(Boolean, default=True)
+    consent_recorded_at = Column(DateTime, default=utcnow)
+    consent_source = Column(String, default="merchant_checkout_opt_in")
+    data_deletion_scheduled_at = Column(DateTime, nullable=True)
+
     # Relationships
     transactions = relationship("Transaction", back_populates="customer")
     invoices = relationship("Invoice", back_populates="customer")

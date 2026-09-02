@@ -1250,6 +1250,48 @@ async def erase_customer_data(request: Request):
     return res
 
 
+# ─── DPDP Act 2023 Statutory Endpoints ─────────────────────────────────────
+from app.core.dpdp_compliance import dpdp_consent_manager, dpdp_data_retention, dpdp_audit_exporter
+
+@app.post("/api/v1/dpdp/consent")
+@app.post("/api/governance/dpdp/consent")
+async def record_dpdp_consent(request: Request):
+    """Section 6 DPDP Act 2023: Record explicit channel consent."""
+    body = await request.json()
+    customer_id = body.get("customer_id")
+    channel = body.get("channel", "all")
+    purpose = body.get("purpose", "invoice_recovery_and_settlement")
+    source = body.get("source", "checkout_opt_in")
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id is required")
+    return dpdp_consent_manager.record_consent(customer_id, channel, purpose, source)
+
+
+@app.post("/api/v1/dpdp/revoke")
+@app.post("/api/governance/dpdp/revoke")
+async def revoke_dpdp_consent(request: Request):
+    """Section 6 DPDP Act 2023: Revoke customer consent across channels."""
+    body = await request.json()
+    customer_id = body.get("customer_id")
+    channel = body.get("channel")
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id is required")
+    return dpdp_consent_manager.revoke_consent(customer_id, channel)
+
+
+@app.get("/api/v1/dpdp/export/{customer_id}")
+@app.get("/api/governance/dpdp/export/{customer_id}")
+async def export_dpdp_customer_data(customer_id: str):
+    """Section 11 DPDP Act 2023: Right to Access & Data Portability."""
+    return dpdp_audit_exporter.export_customer_data(customer_id)
+
+
+@app.delete("/api/v1/dpdp/delete/{customer_id}")
+async def delete_dpdp_customer_data(customer_id: str):
+    """Section 12 DPDP Act 2023: Statutory Right to Erasure."""
+    return dpdp_audit_exporter.delete_customer_data(customer_id)
+
+
 @app.get("/api/cases/stale-check")
 async def scan_stale_cases():
     """

@@ -125,7 +125,8 @@ class VoiceSafetyFilter:
             }
 
         # 2. RBI Fair Practices Code contact window check (8 AM - 7 PM IST)
-        now_ist = (call_time or datetime.now(pytz.utc)).astimezone(IST)
+        effective_time = call_time or customer.get("call_time") or datetime.now(pytz.utc)
+        now_ist = effective_time.astimezone(IST)
         hour = now_ist.hour
         minute = now_ist.minute
         time_minutes = hour * 60 + minute
