@@ -40,7 +40,7 @@ PERSONA_CONFIGS = {
             {"step": 4, "speaker": "debtor", "text": "Arrey haan, main travel kar raha tha toh miss ho gaya. Main kal subah tak online kar deta hoon.", "intent": TurnIntent.HARDSHIP_DEFERRAL},
             {"step": 5, "speaker": "agent", "text": "Bilkul samajh gaya ji. Toh kya hum kal ka date fix kar lein? Main direct UPI link SMS pe bhej deta hoon.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 6, "speaker": "debtor", "text": "Haan, link bhej dijiye, kal 11 baje tak clear ho jayega.", "intent": TurnIntent.PROMISE_TO_PAY},
-            {"step": 7, "speaker": "agent", "text": "Dhanyavaad! Maine ₹{amount:,.0f} ka payment kal subah 11 AM ke liye note kar liya hai. Aapka din shubh ho!", "intent": TurnIntent.PROMISE_TO_PAY},
+            {"step": 7, "speaker": "agent", "text": "Dhanyavaad! Maine ₹{amount:,.0f} ka payment kal subah 11 AM ke liye note kar liya hai. Aapko ek secure Razorpay link SMS kiya gaya hai — kripya usi se pay karein, koi PIN ya OTP phone par share na karein. Aapka din shubh ho!", "intent": TurnIntent.PROMISE_TO_PAY},
         ]
     },
     VoicePersona.REPEAT_DELINQUENT: {
@@ -55,7 +55,7 @@ PERSONA_CONFIGS = {
             {"step": 4, "speaker": "debtor", "text": "Pura amount ek sath abhi mushkil hai. Cashflow tight chal raha hai.", "intent": TurnIntent.HARDSHIP_DEFERRAL},
             {"step": 5, "speaker": "agent", "text": "Samajh sakta hoon. Kya hum 50% abhi aur baki 50% agle hafte ka split structure kar lein?", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 6, "speaker": "debtor", "text": "Theek hai, main 50% parso tak pay kar dunga aur baki 15 tareekh ko.", "intent": TurnIntent.PROMISE_TO_PAY},
-            {"step": 7, "speaker": "agent", "text": "Great. Maine ₹{amount:,.0f} ka structured Promise-to-Pay system mein lock kar diya hai. Link send kar di gayi hai.", "intent": TurnIntent.PROMISE_TO_PAY},
+            {"step": 7, "speaker": "agent", "text": "Great. Maine ₹{amount:,.0f} ka structured Promise-to-Pay system mein lock kar diya hai. Secure link send kar di gayi hai — kripya usi se pay karein, koi PIN ya OTP phone par share na karein.", "intent": TurnIntent.PROMISE_TO_PAY},
         ]
     },
     VoicePersona.DISPUTE_PENDING: {
@@ -81,7 +81,7 @@ PERSONA_CONFIGS = {
             {"step": 2, "speaker": "debtor", "text": "Haan, kuch emergency aa gayi thi isliye payment nahi ho paya.", "intent": TurnIntent.HARDSHIP_DEFERRAL},
             {"step": 3, "speaker": "agent", "text": "Samajh gaya ji, par commercial terms ke mutaabik yeh invoice significantly overdue ho chuka hai aur time-sensitive business settlement reasons ke kaaran isko aaj close karna zaroori hai.", "intent": TurnIntent.GENERAL_ENGAGEMENT},
             {"step": 4, "speaker": "debtor", "text": "Accha, theek hai, main net banking se aaj shaam 6 baje tak poora ₹{amount:,.0f} transfer kar deta hoon.", "intent": TurnIntent.PROMISE_TO_PAY},
-            {"step": 5, "speaker": "agent", "text": "Dhanyavaad {debtor_name} ji! Maine aaj shaam 6 PM ke liye final settlement PTP log kar diya hai. Confirmation bhej di hai.", "intent": TurnIntent.PROMISE_TO_PAY},
+            {"step": 5, "speaker": "agent", "text": "Dhanyavaad {debtor_name} ji! Maine aaj shaam 6 PM ke liye final settlement PTP log kar diya hai. Secure link SMS kar di hai — kripya usi se pay karein, koi PIN ya OTP phone par share na karein.", "intent": TurnIntent.PROMISE_TO_PAY},
         ]
     }
 }

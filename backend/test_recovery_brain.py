@@ -724,12 +724,14 @@ def test_21_cross_leak_unification_and_voice_gateway():
     from app.services.intervention_router import InterventionRouter
     from app.models.database import RootCause, LeakType
 
-    # 1. Voice Gateway Call Test
+    # 1. Voice Gateway Call Test (evaluated during statutory 2 PM IST business window)
+    compliant_business_hour = datetime(2026, 9, 3, 14, 0, tzinfo=IST)
     call_res = trigger_real_call(
         to_number="+919876543210",
         customer_name="Rohit Mehta",
         amount_inr=85000.0,
         invoice_number="INV-2026-TEST",
+        customer_meta={"call_time": compliant_business_hour, "id": "cust_rohit_01"},
     )
     print(f"  -> Outbound Voice Gateway Mode: {call_res['mode']} | Status: {call_res['status']}")
     assert call_res["mode"] in ("live_twilio", "simulated_fallback")
@@ -758,6 +760,55 @@ def test_21_cross_leak_unification_and_voice_gateway():
     print("  [OK] PASS: 4-funnel cross-leak routing, voice gateway invocation, and WACC time-value discounting verified.")
 
 
+def test_22_voice_safety_filter_and_rbi_credential_prohibition():
+    print("\n[TEST 22] Voice Safety Filter, RBI Credential Prohibition & Pre-Call Gate")
+    from app.services.voice_safety import VoiceSafetyFilter, MANDATORY_CLOSING_DISCLAIMER
+    from app.services.twilio_caller import trigger_real_call
+
+    # 1. Script Credential Validation
+    dirty_script_1 = "Namaste, verification ke liye apna UPI PIN bataiye."
+    dirty_script_2 = "Aapke phone par ek OTP aaya hoga, enter code karein."
+    clean_script = "Namaste Sharma ji, aapka ₹85,000 ka invoice pending hai. Kya aaj payment schedule ho sakta hai?"
+
+    assert VoiceSafetyFilter.validate_script(dirty_script_1) is False
+    assert VoiceSafetyFilter.validate_script(dirty_script_2) is False
+    assert VoiceSafetyFilter.validate_script(clean_script) is True
+    print("  -> Credential Solicitations (PIN / OTP) Accurately Blocked: True")
+
+    # 2. Script Sanitization
+    sanitized = VoiceSafetyFilter.sanitize_script(dirty_script_1)
+    assert "apna UPI PIN bataiye" not in sanitized
+    assert MANDATORY_CLOSING_DISCLAIMER in sanitized
+    print(f"  -> Sanitized Compliant Output: {sanitized[:65]}...")
+
+    # 3. Pre-call Check on Disputed Customer
+    disputed_customer = {
+        "id": "cust_dispute_99",
+        "name": "Amit Patel",
+        "status": "disputed_charge",
+        "has_active_dispute": True,
+    }
+    check = VoiceSafetyFilter.pre_call_check(disputed_customer)
+    print(f"  -> Disputed Customer Call Allowed: {check['allowed']} | Reason: {check['reason']}")
+    assert check["allowed"] is False
+    assert check["action"] == "HALT_CALL_ASSIGN_DISPUTE_DESK"
+
+    # 4. End-to-End Call Gate Blocking on Dispute
+    call_blocked = trigger_real_call(
+        to_number="+919876543210",
+        customer_name="Amit Patel",
+        amount_inr=230000.0,
+        invoice_number="INV-DISPUTE-01",
+        customer_meta=disputed_customer,
+    )
+    print(f"  -> Telephony Call Blocked & Logged: {call_blocked['status']} | Fallback: {call_blocked['fallback_channel']}")
+    assert call_blocked["mode"] == "blocked_compliance"
+    assert call_blocked["status"] == "blocked"
+    assert call_blocked["fallback_channel"] == "whatsapp_payment_link"
+
+    print("  [OK] PASS: VoiceSafetyFilter validated, RBI credential prohibition enforced, and disputed call blocked.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -784,7 +835,8 @@ if __name__ == "__main__":
     test_19_standalone_audit_ledger_cli_verification()
     test_20_staleness_monitor_and_silent_failure_observability()
     test_21_cross_leak_unification_and_voice_gateway()
+    test_22_voice_safety_filter_and_rbi_credential_prohibition()
 
     print("\n=================================================================")
-    print("  ALL 21 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 22 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
