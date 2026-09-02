@@ -10,11 +10,12 @@ import { WebhookPlayground } from './components/WebhookPlayground';
 import { ImpactCounter } from './components/ImpactCounter';
 import { LiveEventTicker } from './components/LiveEventTicker';
 import { StickyAgentShowcase } from './components/StickyAgentShowcase';
+import { ABTestResults } from './components/ABTestResults';
 import type { BatchSummary, CaseItem } from './types';
 import { API_BASE } from './api';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook' | 'abtest'>('overview');
   const [summary, setSummary] = useState<BatchSummary | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null);
@@ -149,6 +150,12 @@ export const App: React.FC = () => {
         {activeTab === 'compliance' && (
           <div className="animate-in fade-in duration-300">
             <ComplianceShield summary={summary} />
+          </div>
+        )}
+
+        {activeTab === 'abtest' && (
+          <div className="animate-in fade-in duration-300">
+            <ABTestResults />
           </div>
         )}
 

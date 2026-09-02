@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldCheck, PhoneCall, RefreshCw, Layers, Terminal, Sparkles } from 'lucide-react';
+import { ShieldCheck, PhoneCall, RefreshCw, Layers, Terminal, Sparkles, FlaskConical } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook';
-  setActiveTab: (tab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook') => void;
+  activeTab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook' | 'abtest';
+  setActiveTab: (tab: 'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook' | 'abtest') => void;
   onRefreshBatch: () => void;
   isProcessing: boolean;
 }
@@ -95,6 +95,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>RBI Compliance</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('abtest')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center space-x-1.5 ${
+              activeTab === 'abtest'
+                ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+                : 'text-gray-400 hover:text-violet-300'
+            }`}
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            <span>A/B Results</span>
           </button>
         </nav>
 
