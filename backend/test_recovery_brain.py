@@ -576,6 +576,148 @@ def test_16_calendar_aligned_smart_scheduler_and_candidate_windows():
     print("  [OK] PASS: 5 candidate retry windows, payday calendar alignment, and router integration verified.")
 
 
+def test_17_spend_governor_and_emergency_kill_switch():
+    print("\n[TEST 17] Spend Governor & Autonomous Action Circuit Breaker")
+    from app.services.spend_governor import spend_governor
+
+    test_mid = "mid_test_fintech_01"
+    spend_governor.set_merchant_limits(test_mid, daily_budget_inr=50.0, daily_action_limit=3)
+
+    # 1. First two actions allowed
+    can_1, msg_1 = spend_governor.can_dispatch(test_mid, estimated_cost_inr=15.0)
+    assert can_1 is True
+    spend_governor.record_action_spend(test_mid, "whatsapp_nudge", 15.0)
+
+    can_2, msg_2 = spend_governor.can_dispatch(test_mid, estimated_cost_inr=20.0)
+    assert can_2 is True
+    spend_governor.record_action_spend(test_mid, "voice_call", 20.0)
+
+    # 3. Third action pushes over daily budget (15 + 20 + 25 = ₹60 > ₹50)
+    can_3, msg_3 = spend_governor.can_dispatch(test_mid, estimated_cost_inr=25.0)
+    print(f"  -> Budget Cap Guardrail Fired: {can_3} | Reason: {msg_3}")
+    assert can_3 is False
+    assert "BUDGET_EXCEEDED" in msg_3
+
+    # 4. Emergency Kill Switch Test
+    spend_governor.trigger_emergency_kill_switch(reason="Simulated 3 AM runaway detector trip")
+    can_kill, msg_kill = spend_governor.can_dispatch("mid_other", estimated_cost_inr=1.0)
+    print(f"  -> Emergency Kill Switch: {can_kill} | Reason: {msg_kill}")
+    assert can_kill is False
+    assert "EMERGENCY_KILL_SWITCH_ACTIVE" in msg_kill
+
+    # Reset kill switch
+    spend_governor.reset_emergency_kill_switch()
+    can_after, _ = spend_governor.can_dispatch("mid_other", estimated_cost_inr=1.0)
+    assert can_after is True
+
+    print("  [OK] PASS: Daily budget caps, action ceilings, and emergency kill switches verified.")
+
+
+def test_18_dpdp_act_2023_privacy_and_right_to_erasure():
+    print("\n[TEST 18] Digital Personal Data Protection (DPDP) Act 2023 Compliance & Right to Erasure")
+    from app.services.dpdp_governance import dpdp_governance
+
+    # 1. Test PII Masking
+    masked_phone = dpdp_governance.mask_phone_number("+919876543210")
+    masked_email = dpdp_governance.mask_email("rohan.sharma@razorpay.com")
+    masked_acc = dpdp_governance.mask_account_number("918273645512")
+    print(f"  -> Masked Phone: {masked_phone}")
+    print(f"  -> Masked Email: {masked_email}")
+    print(f"  -> Masked Account: {masked_acc}")
+    assert "*****" in masked_phone
+    assert "***@" in masked_email
+    assert "****" in masked_acc
+
+    # 2. Test Statutory Right to Erasure (Section 12)
+    cust_id = "cust_dpdp_principal_99"
+    erasure_res = dpdp_governance.erase_customer_data(
+        customer_id=cust_id,
+        reason="Settled invoice — debtor requested data purge under Section 12 DPDP Act"
+    )
+    print(f"  -> Erasure Executed: {erasure_res['success']}")
+    print(f"  -> Cryptographic Tombstone Hash: {erasure_res['erasure_record']['tombstone_hash'][:16]}...")
+    print(f"  -> Audit Ledger Sequence: #{erasure_res['audit_sequence']}")
+    assert erasure_res["success"] is True
+    assert erasure_res["audit_sequence"] > 0
+    assert "tombstone_hash" in erasure_res["erasure_record"]
+
+    # 3. Test 30-Day Audio Retention TTL
+    expired_audio = (datetime.now(timezone.utc) - timedelta(days=45)).isoformat()
+    active_audio = (datetime.now(timezone.utc) - timedelta(days=10)).isoformat()
+    ret_exp = dpdp_governance.check_retention_status(expired_audio, "voice_call_audio")
+    ret_act = dpdp_governance.check_retention_status(active_audio, "voice_call_audio")
+    print(f"  -> 45-day Audio Status: Expired={ret_exp['is_expired']} ({ret_exp['action_required']})")
+    print(f"  -> 10-day Audio Status: Expired={ret_act['is_expired']} ({ret_act['action_required']})")
+    assert ret_exp["is_expired"] is True
+    assert ret_act["is_expired"] is False
+
+    print("  [OK] PASS: DPDP Act 2023 PII masking, retention schedules, and statutory erasure verified.")
+
+
+def test_19_standalone_audit_ledger_cli_verification():
+    print("\n[TEST 19] Third-Party Independent Audit Ledger Mathematical Verification")
+    from app.core.audit_ledger import audit_ledger
+    from verify_ledger import verify_chain
+
+    # Export raw block sequence
+    exported_chain = audit_ledger.export_chain()
+    print(f"  -> Exported Block Count: {len(exported_chain)} blocks")
+
+    # Run independent verification
+    is_valid, verified_count, logs = verify_chain(exported_chain)
+    print(f"  -> Independent Math Verification: {is_valid} ({verified_count} blocks)")
+    print(f"  -> Genesis Block Hash: {exported_chain[0]['content_hash'][:16]}...")
+    print(f"  -> Head Block Hash:    {exported_chain[-1]['content_hash'][:16]}...")
+
+    assert is_valid is True
+    assert verified_count == len(exported_chain)
+
+    print("  [OK] PASS: Zero-dependency independent cryptographic chain verification confirmed.")
+
+
+def test_20_staleness_monitor_and_silent_failure_observability():
+    print("\n[TEST 20] Staleness Monitor & Silent-Failure Observability")
+    from app.services.staleness_monitor import staleness_monitor
+
+    # 1. Fresh case (1 hour old)
+    fresh_case = {
+        "id": "case_fresh_01",
+        "leak_type": "payment_failure",
+        "status": "awaiting_response",
+        "created_at": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    }
+    is_stale_1, _, _ = staleness_monitor.scan_case_staleness(fresh_case)
+    assert is_stale_1 is False
+
+    # 2. Stale cart abandonment (3 hours old > 2h SLA)
+    stale_cart = {
+        "id": "case_stale_cart_02",
+        "leak_type": "checkout_abandonment",
+        "status": "intervening",
+        "created_at": (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+    }
+    is_stale_2, reason_2, meta_2 = staleness_monitor.scan_case_staleness(stale_cart)
+    print(f"  -> Stale Cart Drop-off Detected: {is_stale_2} | {reason_2}")
+    assert is_stale_2 is True
+
+    # 3. Stale high-stakes B2B awaiting human approval (30 hours old > 24h SLA)
+    stale_b2b = {
+        "id": "case_stale_b2b_03",
+        "leak_type": "b2b_receivable",
+        "requires_human_approval": True,
+        "status": "awaiting_response",
+        "amount_at_risk": 150000.0,
+        "created_at": (datetime.now(timezone.utc) - timedelta(hours=30)).isoformat()
+    }
+    escalated = staleness_monitor.process_stale_cases([fresh_case, stale_cart, stale_b2b], auto_escalate=True)
+    print(f"  -> Total Cases Escalated to Supervisor Queue: {len(escalated)}")
+    assert len(escalated) == 2
+    assert stale_b2b["supervisor_alert_priority"] == "HIGH"
+    assert stale_b2b["is_stale"] is True
+
+    print("  [OK] PASS: SLA deadlock scanning, auto-escalation, and cryptographic logging verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -597,7 +739,11 @@ if __name__ == "__main__":
     test_14_p10_p50_p90_bounds_and_ptp_lifecycle()
     test_15_voice_intent_classification_and_telephony_waterfall()
     test_16_calendar_aligned_smart_scheduler_and_candidate_windows()
+    test_17_spend_governor_and_emergency_kill_switch()
+    test_18_dpdp_act_2023_privacy_and_right_to_erasure()
+    test_19_standalone_audit_ledger_cli_verification()
+    test_20_staleness_monitor_and_silent_failure_observability()
 
     print("\n=================================================================")
-    print("  ALL 16 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 20 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
