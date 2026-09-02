@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Clock, AlertTriangle } from 'lucide-react';
 import type { BatchSummary } from '../types';
+import { API_BASE } from '../api';
 
 interface ComplianceShieldProps {
   summary: BatchSummary | null;
@@ -14,7 +15,7 @@ export const ComplianceShield: React.FC<ComplianceShieldProps> = ({ summary }) =
   const testComplianceBlock = async () => {
     setTestingBlock(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/demo/compliance-block?hour=${testHour}`, {
+      const res = await fetch(`${API_BASE}/api/demo/compliance-block?hour=${testHour}`, {
         method: 'POST',
       });
       const data = await res.json();

@@ -17,6 +17,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import type { CaseItem } from '../types';
+import { API_BASE } from '../api';
 
 interface CaseDetailModalProps {
   caseItem: CaseItem | null;
@@ -58,7 +59,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
   const handleApprove = async () => {
     setApproving(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/cases/${caseItem.id}/approve`, {
+      const res = await fetch(`${API_BASE}/api/cases/${caseItem.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note: '1-Click Approved by Merchant Finance Lead' }),
@@ -79,7 +80,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
   const handleReject = async () => {
     setApproving(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/cases/${caseItem.id}/reject`, {
+      const res = await fetch(`${API_BASE}/api/cases/${caseItem.id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'Manual override: preserved customer relationship' }),

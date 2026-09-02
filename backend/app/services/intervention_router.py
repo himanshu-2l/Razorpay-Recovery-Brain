@@ -216,15 +216,29 @@ class InterventionRouter:
         p_action = self.INTERVENTION_SUCCESS_RATES.get(intervention, 0.50)
         cost_inr = self.INTERVENTION_COSTS.get(intervention, 0.0)
 
-        # Churn penalty modeling (protecting high-LTV customer relationships)
-        # Rationale: 10% of churn-adjacent customer LTV is a conservative enterprise baseline
-        # to account for relationship fatigue and customer replacement cost.
-        customer_ltv = data.get("customer_ltv", 12000.0)
-        p_churn = 0.015 if intervention in (InterventionType.RETRY, InterventionType.EMAIL_NUDGE) else 0.035
-        churn_penalty_inr = p_churn * customer_ltv * 0.10  # 10% penalty weight
+        # Churn penalty modeling (protecting customer relationships):
+        # B2B: Uses Contract Value, Relationship Tenure Discount, and Relationship Score.
+        # B2C: Uses Customer LTV * 10% replacement baseline.
+        if leak_type == LeakType.B2B_RECEIVABLE:
+            tenure_months = float(data.get("tenure_months", 24))
+            tenure_discount = max(0.40, 1.0 - (tenure_months / 120.0))  # Established clients have higher tolerance
+            relationship_score = float(data.get("relationship_score", 0.85))
+            p_churn = 0.025 if intervention == InterventionType.VOICE_CALL else 0.010
+            churn_penalty_inr = p_churn * effective_amount * relationship_score * tenure_discount
+        else:
+            customer_ltv = data.get("customer_ltv", 12000.0)
+            p_churn = 0.015 if intervention in (InterventionType.RETRY, InterventionType.EMAIL_NUDGE) else 0.035
+            churn_penalty_inr = p_churn * customer_ltv * 0.10  # 10% penalty weight
+
+        # Time-Value of Money Discounting (WACC r = 18% p.a. benchmark Indian SME cost of capital)
+        # ENRV_adjusted = ENRV * (1 / (1+r)^(t/365))
+        wacc_r = 0.18
+        days_to_recovery = float(data.get("days_overdue", 1) if leak_type == LeakType.B2B_RECEIVABLE else 1.0)
+        time_discount_factor = 1.0 / ((1.0 + wacc_r) ** (days_to_recovery / 365.0))
 
         incremental_prob = max(0.0, p_action - p_natural)
-        enrv_inr = max(0.0, (incremental_prob * effective_amount) - cost_inr - churn_penalty_inr)
+        raw_enrv = (incremental_prob * effective_amount) - cost_inr - churn_penalty_inr
+        enrv_inr = max(0.0, raw_enrv * time_discount_factor)
 
         # Assumed Uncertainty Band (P10 Pessimistic Floor, P50 Expected Net, P90 Optimistic Ceiling)
         revenue_bounds_inr = {
@@ -271,6 +285,8 @@ class InterventionRouter:
                 "incremental_lift_pct": round((p_action - p_natural) * 100, 1),
                 "intervention_cost_inr": cost_inr,
                 "churn_penalty_inr": round(churn_penalty_inr, 2),
+                "wacc_annual_rate": wacc_r,
+                "time_value_discount_factor": round(time_discount_factor, 4),
                 "expected_net_recovery_inr": round(enrv_inr, 2),
                 "revenue_bounds_inr": revenue_bounds_inr,
                 "autonomy_envelope_state": autonomy_envelope.state,

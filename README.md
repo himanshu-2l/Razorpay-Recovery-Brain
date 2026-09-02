@@ -121,7 +121,7 @@ To prevent cases from silently falling through the cracks when waiting for human
 
 ## 🎮 Quick Start & Verification
 
-### Run Complete 20-Test Architectural Verification Suite
+### Run Complete 21-Test Architectural Verification Suite
 ```bash
 cd backend
 .\venv\Scripts\python test_recovery_brain.py
@@ -133,26 +133,31 @@ cd backend
 .\venv\Scripts\python verify_ledger.py
 ```
 
-### Run Full Verification & Benchmark Report Suite
+### Run 4-Funnel Cross-Leak Unification Demo
 ```bash
-cd backend
-.\venv\Scripts\python run_verification_suite.py
+curl http://localhost:8000/api/demo/unified-recovery-scenario
 ```
 
 ---
 
 ## 📜 Regulatory Standards Enforced
 
-1. **Responsible Collections Policy (Inspired by RBI Fair Practices Code Principles)**:
+1. **Strict RBI Voice Credential Prohibition (Master Direction on Digital Payment Security Controls)**:
+   - Voice recovery is **strictly consultative** (negotiating Promise-to-Pay dates and restructuring milestones).
+   - In accordance with RBI regulations, asking for OTPs, UPI MPINs, card numbers, or payment credentials over voice/IVR is **architecturally prohibited**.
+   - Payments are completed **exclusively by customer self-service** via official Razorpay Payment Links dispatched by SMS/WhatsApp.
+2. **Responsible Collections Policy (Inspired by RBI Fair Practices Code Principles)**:
    - Strictly bounded contact window: **8:00 AM – 7:00 PM IST**.
    - Maximum **2 voice calls** / **3 digital nudges** per week per customer.
    - Mandatory **48-hour cool-off period** following a customer dispute or financial hardship.
-2. **RBI Circular on Processing of e-Mandates (DPSS.CO.PD.No.447/02.14.003/2021-22)**:
-   - Mandatory 24-hour pre-debit notifications and explicit Additional Factor Authentication (AFA) push flows for recurring charges exceeding ₹15,000.
+   - Economic floor stopping rule: interventions below ₹100 are automatically aborted to prevent cost > recovery.
 3. **Digital Personal Data Protection Act, 2023 (DPDP Act 2023)**:
-   - Purpose limitation, 30-day voice audio retention TTL, PII masking, and statutory Right to Erasure (Section 12).
-4. **Income Tax Act Section 43B(h) MSME Clock**:
+   - Purpose limitation, 30-day voice audio retention TTL, real-time PII masking (phone, email, bank account), and statutory Right to Erasure (Section 12) with cryptographic ledger tombstones.
+4. **Income Tax Act Section 43B(h) MSME Clock & WACC Time-Value Discounting**:
    - 45-day statutory tax deferral countdown engine for B2B receivable settlements.
+   - Counterfactual ENRV incorporates working capital cost of debt ($r = 18\%$ p.a. WACC benchmark for Indian SMEs) and relationship tenure churn discounting.
+5. **RBI Circular on Processing of e-Mandates (DPSS.CO.PD.No.447/02.14.003/2021-22)**:
+   - Mandatory 24-hour pre-debit notifications and explicit Additional Factor Authentication (AFA) push flows for recurring charges exceeding ₹15,000.
 
 ---
 

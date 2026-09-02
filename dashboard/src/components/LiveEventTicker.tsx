@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Radio, Zap, TrendingUp, ShieldX, ShieldCheck } from 'lucide-react';
+import { API_BASE } from '../api';
 
 interface LiveEvent {
   id: string;
@@ -46,7 +47,7 @@ export const LiveEventTicker: React.FC = () => {
 
   useEffect(() => {
     const connect = () => {
-      const es = new EventSource('http://localhost:8000/api/stream/events');
+      const es = new EventSource(`${API_BASE}/api/stream/events`);
       esRef.current = es;
 
       es.onopen = () => setConnected(true);

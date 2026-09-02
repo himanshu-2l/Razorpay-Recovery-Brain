@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import type { VoiceCallDemoResponse } from '../types';
+import { API_BASE } from '../api';
 
 const PERSONAS = [
   {
@@ -73,6 +74,8 @@ export const VoiceStudio: React.FC = () => {
   const [currentSpeaker, setCurrentSpeaker] = useState<'agent' | 'debtor' | null>(null);
   const [gpuMode, setGpuMode] = useState<boolean>(false);
   const [gpuStatus, setGpuStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [twilioCallStatus, setTwilioCallStatus] = useState<null | { mode: string; message: string; call_sid?: string }>(null);
+  const [isTwilioCalling, setIsTwilioCalling] = useState(false);
 
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -96,7 +99,7 @@ export const VoiceStudio: React.FC = () => {
 
     const checkGpu = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/llm/health', { method: 'GET' });
+        const res = await fetch(`${API_BASE}/api/llm/health`, { method: 'GET' });
         const data = await res.json();
         setGpuStatus(data.status === 'online' ? 'online' : 'offline');
       } catch {
@@ -173,8 +176,8 @@ export const VoiceStudio: React.FC = () => {
 
     try {
       const endpoint = gpuMode && gpuStatus === 'online'
-        ? 'http://localhost:8000/api/llm/voice-call-dynamic'
-        : 'http://localhost:8000/api/demo/voice-call';
+        ? `${API_BASE}/api/llm/voice-call-dynamic`
+        : `${API_BASE}/api/demo/voice-call`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -192,7 +195,7 @@ export const VoiceStudio: React.FC = () => {
       const data = await response.json();
 
       const finalData: VoiceCallDemoResponse = data.mode === 'scripted'
-        ? await (await fetch('http://localhost:8000/api/demo/voice-call', {
+        ? await (await fetch(`${API_BASE}/api/demo/voice-call`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -233,6 +236,36 @@ export const VoiceStudio: React.FC = () => {
     } catch (err) {
       console.error('Error triggering voice call:', err);
       setIsCalling(false);
+    }
+  };
+
+  const handleTriggerRealCall = async () => {
+    setIsTwilioCalling(true);
+    setTwilioCallStatus(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/demo/trigger-real-call`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_number: phoneNumber,
+          customer_name: debtorName,
+          amount_inr: invoiceAmount,
+          invoice_number: invoiceNumber,
+        }),
+      });
+      const data = await res.json();
+      setTwilioCallStatus({
+        mode: data.mode || 'unknown',
+        message: data.message || 'Call initiated',
+        call_sid: data.call_sid,
+      });
+    } catch (err) {
+      setTwilioCallStatus({
+        mode: 'error',
+        message: 'Failed to contact backend call gateway.',
+      });
+    } finally {
+      setIsTwilioCalling(false);
     }
   };
 
@@ -300,6 +333,16 @@ export const VoiceStudio: React.FC = () => {
             </button>
 
             <button
+              onClick={handleTriggerRealCall}
+              disabled={isTwilioCalling}
+              className="px-5 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/30 disabled:opacity-50"
+              title="Dial real phone number using Twilio Programmable Voice"
+            >
+              <Radio className={`w-4 h-4 ${isTwilioCalling ? 'animate-pulse' : ''}`} />
+              <span>{isTwilioCalling ? 'Dialing Phone...' : 'Dial Real Phone (Twilio)'}</span>
+            </button>
+
+            <button
               onClick={isCalling ? stopCall : triggerCall}
               className={`px-6 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 ${
                 isCalling
@@ -321,6 +364,22 @@ export const VoiceStudio: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {twilioCallStatus && (
+          <div className={`mt-4 p-3 rounded-xl border text-xs flex items-center justify-between relative z-10 ${
+            twilioCallStatus.mode === 'live_twilio'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          }`}>
+            <div className="flex items-center space-x-2">
+              <Zap className="w-4 h-4" />
+              <span><strong>{twilioCallStatus.mode.toUpperCase()}:</strong> {twilioCallStatus.message}</span>
+            </div>
+            {twilioCallStatus.call_sid && (
+              <span className="font-mono text-[11px] opacity-75">SID: {twilioCallStatus.call_sid}</span>
+            )}
+          </div>
+        )}
 
         <div className="absolute top-0 right-0 w-[400px] h-[250px] bg-purple-600/10 blur-[90px] pointer-events-none -z-0" />
       </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Zap, Code2, Send, CheckCircle2, XCircle, Loader2, Terminal } from 'lucide-react';
+import { API_BASE } from '../api';
 
 type WebhookEvent = 'payment.failed.bank_timeout' | 'payment.failed.insufficient_funds' | 'subscription.halted' | 'invoice.overdue' | 'order.abandoned';
 
@@ -222,7 +223,7 @@ export const WebhookPlayground: React.FC = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:8000/api/webhook/razorpay', {
+      const res = await fetch(`${API_BASE}/api/webhook/razorpay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsedPayload),

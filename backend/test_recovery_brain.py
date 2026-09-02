@@ -718,6 +718,46 @@ def test_20_staleness_monitor_and_silent_failure_observability():
     print("  [OK] PASS: SLA deadlock scanning, auto-escalation, and cryptographic logging verified.")
 
 
+def test_21_cross_leak_unification_and_voice_gateway():
+    print("\n[TEST 21] 4-Funnel Cross-Leak Unification, Voice Gateway & WACC Discounting")
+    from app.services.twilio_caller import trigger_real_call
+    from app.services.intervention_router import InterventionRouter
+    from app.models.database import RootCause, LeakType
+
+    # 1. Voice Gateway Call Test
+    call_res = trigger_real_call(
+        to_number="+919876543210",
+        customer_name="Rohit Mehta",
+        amount_inr=85000.0,
+        invoice_number="INV-2026-TEST",
+    )
+    print(f"  -> Outbound Voice Gateway Mode: {call_res['mode']} | Status: {call_res['status']}")
+    assert call_res["mode"] in ("live_twilio", "simulated_fallback")
+    assert call_res["call_sid"] is not None
+
+    # 2. Router WACC Time-Value Discounting Test
+    router = InterventionRouter()
+    route_pf = router.route(RootCause.TD_BANK_DOWN, LeakType.PAYMENT_FAILURE, {}, amount_inr=5000.0)
+    route_b2b = router.route(
+        RootCause.RECV_CASH_FLOW,
+        LeakType.B2B_RECEIVABLE,
+        {"amount": 85000.0, "days_overdue": 45, "tenure_months": 36},
+        amount_inr=85000.0
+    )
+    cf_pf = route_pf["counterfactual"]
+    cf_b2b = route_b2b["counterfactual"]
+
+    print(f"  -> B2C Short-term Recovery Discount Factor: {cf_pf['time_value_discount_factor']} (WACC: {cf_pf['wacc_annual_rate']*100:.0f}%)")
+    print(f"  -> B2B 45-day Overdue Discount Factor:      {cf_b2b['time_value_discount_factor']} (WACC: {cf_b2b['wacc_annual_rate']*100:.0f}%)")
+    print(f"  -> B2B Discounted ENRV: Rs {cf_b2b['expected_net_recovery_inr']:.2f}")
+
+    assert cf_pf["time_value_discount_factor"] > cf_b2b["time_value_discount_factor"]
+    assert cf_b2b["wacc_annual_rate"] == 0.18
+    assert cf_b2b["expected_net_recovery_inr"] > 0
+
+    print("  [OK] PASS: 4-funnel cross-leak routing, voice gateway invocation, and WACC time-value discounting verified.")
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -743,7 +783,8 @@ if __name__ == "__main__":
     test_18_dpdp_act_2023_privacy_and_right_to_erasure()
     test_19_standalone_audit_ledger_cli_verification()
     test_20_staleness_monitor_and_silent_failure_observability()
+    test_21_cross_leak_unification_and_voice_gateway()
 
     print("\n=================================================================")
-    print("  ALL 20 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 21 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")

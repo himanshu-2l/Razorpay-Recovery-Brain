@@ -11,6 +11,7 @@ import { ImpactCounter } from './components/ImpactCounter';
 import { LiveEventTicker } from './components/LiveEventTicker';
 import { StickyAgentShowcase } from './components/StickyAgentShowcase';
 import type { BatchSummary, CaseItem } from './types';
+import { API_BASE } from './api';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook'>('overview');
@@ -25,7 +26,7 @@ export const App: React.FC = () => {
     try {
       setLoading(true);
       // Fetch summary
-      const summaryRes = await fetch('http://localhost:8000/api/batch/summary');
+      const summaryRes = await fetch(`${API_BASE}/api/batch/summary`);
       if (summaryRes.ok) {
         const summaryData = await summaryRes.json();
         setSummary(summaryData);
@@ -36,7 +37,7 @@ export const App: React.FC = () => {
       }
 
       // Fetch cases
-      const casesRes = await fetch('http://localhost:8000/api/cases?limit=100');
+      const casesRes = await fetch(`${API_BASE}/api/cases?limit=100`);
       if (casesRes.ok) {
         const casesData = await casesRes.json();
         setCases(casesData.cases || []);
@@ -52,13 +53,13 @@ export const App: React.FC = () => {
   const handleGenerateBatch = async () => {
     try {
       setIsProcessing(true);
-      const res = await fetch('http://localhost:8000/api/batch/generate', { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/batch/generate`, { method: 'POST' });
       if (res.ok) {
-        const summaryRes = await fetch('http://localhost:8000/api/batch/summary');
+        const summaryRes = await fetch(`${API_BASE}/api/batch/summary`);
         const summaryData = await summaryRes.json();
         setSummary(summaryData);
 
-        const casesRes = await fetch('http://localhost:8000/api/cases?limit=100');
+        const casesRes = await fetch(`${API_BASE}/api/cases?limit=100`);
         const casesData = await casesRes.json();
         setCases(casesData.cases || []);
       }
@@ -71,7 +72,7 @@ export const App: React.FC = () => {
 
   const handleSelectCase = async (c: CaseItem) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/cases/${c.id}`);
+      const res = await fetch(`${API_BASE}/api/cases/${c.id}`);
       if (res.ok) {
         const detailedCase = await res.json();
         setSelectedCase(detailedCase);

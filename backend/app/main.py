@@ -1263,6 +1263,59 @@ async def scan_stale_cases():
     }
 
 
+# ─── Real Twilio Call (Demo Climax) ───────────────────────────────────────
+
+@app.post("/api/demo/trigger-real-call")
+async def trigger_real_call(request: Request):
+    """
+    Initiate a real outbound Twilio call to a provided phone number.
+    This is the 'unfakeable' demo moment — a real Indian phone rings on camera
+    with a Hinglish recovery script.
+
+    Body: {
+      "to_number": "+919876543210",
+      "customer_name": "Rohit Mehta",
+      "amount_inr": 85000,
+      "invoice_number": "INV-2026-08-001"
+    }
+
+    Works in two modes:
+    - LIVE: If TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER env vars are set → real call
+    - DEMO: If not configured → returns simulated response with clear label
+    """
+    from app.services.twilio_caller import trigger_real_call as _call
+
+    body = await request.json()
+    to_number = body.get("to_number", "")
+    customer_name = body.get("customer_name", "Valued Customer")
+    amount_inr = float(body.get("amount_inr", 85000))
+    invoice_number = body.get("invoice_number", "INV-DEMO-001")
+
+    if not to_number:
+        raise HTTPException(status_code=400, detail="to_number is required (e.g. +919876543210)")
+
+    # Log to cryptographic ledger
+    audit_ledger.record_event(
+        event_type="REAL_CALL_TRIGGERED",
+        case_id=f"call_{uuid.uuid4().hex[:8]}",
+        payload={
+            "to_number": f"+91****{to_number[-4:]}",  # mask for DPDP compliance
+            "customer_name": customer_name,
+            "amount_inr": amount_inr,
+            "invoice_number": invoice_number,
+        }
+    )
+
+    result = _call(
+        to_number=to_number,
+        customer_name=customer_name,
+        amount_inr=amount_inr,
+        invoice_number=invoice_number,
+    )
+
+    return result
+
+
 # ─── Unified Cross-Leak Demo ───────────────────────────────────────────────
 
 @app.get("/api/demo/unified-recovery-scenario")
