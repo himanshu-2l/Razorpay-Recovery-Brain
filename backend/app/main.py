@@ -1263,6 +1263,183 @@ async def scan_stale_cases():
     }
 
 
+# ─── Unified Cross-Leak Demo ───────────────────────────────────────────────
+
+@app.get("/api/demo/unified-recovery-scenario")
+async def unified_recovery_scenario():
+    """
+    Demonstration of 4-Funnel Unification:
+    The same customer's position across all four revenue leak types is diagnosed
+    and routed coherently — not as four independent pipelines, but as one unified view.
+
+    This is the concrete proof of the core architectural differentiator.
+    """
+    from app.models.database import LeakType
+    from app.services.tax_clock_engine import TaxClockEngine
+    from datetime import timedelta
+
+    now = datetime.now(timezone.utc)
+    customer = {
+        "id": "cust_unified_rohit_001",
+        "name": "Rohit Mehta",
+        "company": "Mehta Textiles Pvt. Ltd.",
+        "email": "rohit.mehta@mehtaTextiles.in",
+        "phone": "+919876543210"
+    }
+
+    # ── Process all 4 leak types for the same customer ──────────────────────
+    demo_pipeline = RecoveryPipeline()
+
+    # Leak 1: Payment Failure (HDFC bank down this morning)
+    txn = {
+        "id": f"pay_unified_001_{uuid.uuid4().hex[:8]}",
+        "customer_id": customer["id"],
+        "amount": 18500,
+        "error_code": "BANK_OFFLINE",
+        "error_source": "bank",
+        "error_description": "HDFC issuer bank temporarily unavailable",
+        "is_recurring": False,
+        "attempt_count": 1,
+        "created_at": (now - timedelta(hours=3)).isoformat()
+    }
+    case_pf = demo_pipeline.process_payment_failure(txn, customer, current_time=now)
+
+    # Leak 2: Checkout Abandonment (SaaS plan 3 days ago)
+    checkout = {
+        "id": f"order_unified_002_{uuid.uuid4().hex[:8]}",
+        "customer_id": customer["id"],
+        "amount": 12000,
+        "checkout_step": "payment_method_selection",
+        "time_on_page_seconds": 45,
+        "error_description": "Payment page loaded slowly on mobile, user dropped off",
+        "created_at": (now - timedelta(days=3)).isoformat()
+    }
+    case_ca = demo_pipeline.process_checkout_abandonment(checkout, customer, current_time=now)
+
+    # Leak 3: Subscription Failure (mandate re-auth required)
+    sub = {
+        "id": f"sub_unified_003_{uuid.uuid4().hex[:8]}",
+        "customer_id": customer["id"],
+        "amount": 4999,
+        "error_code": "EMANDATE_LIMIT",
+        "error_source": "npci",
+        "error_description": "Recurring charge exceeds ₹15,000 threshold — AFA required",
+        "is_recurring": True,
+        "attempt_count": 2,
+        "created_at": (now - timedelta(days=1)).isoformat()
+    }
+    case_sub = demo_pipeline.process_subscription_failure(sub, customer, current_time=now)
+
+    # Leak 4: B2B Invoice (38 days overdue, approaching Section 43B(h) cliff)
+    invoice = {
+        "id": f"inv_unified_004_{uuid.uuid4().hex[:8]}",
+        "customer_id": customer["id"],
+        "amount": 240000,
+        "invoice_number": "INV-2026-08-MEHTA-001",
+        "days_overdue": 38,
+        "is_msme_buyer": True,
+        "error_description": "Invoice 38 days overdue — cash flow cycle delay",
+        "created_at": (now - timedelta(days=38)).isoformat()
+    }
+    case_b2b = demo_pipeline.process_overdue_invoice(invoice, customer, current_time=now)
+
+    # ── Cross-leak analysis: unified intelligence ────────────────────────────
+    all_cases = [case_pf, case_ca, case_sub, case_b2b]
+    total_exposure = sum(c["amount_at_risk"] for c in all_cases)
+
+    # Prioritize by urgency (tax cliff > mandate > payment failure > abandonment)
+    urgency_order = [
+        LeakType.B2B_RECEIVABLE.value,
+        LeakType.SUBSCRIPTION_FAILURE.value,
+        LeakType.PAYMENT_FAILURE.value,
+        LeakType.CHECKOUT_ABANDONMENT.value,
+    ]
+    ordered_cases = sorted(all_cases, key=lambda c: urgency_order.index(c["leak_type"]) if c["leak_type"] in urgency_order else 99)
+
+    # Deduplication: suppress duplicate WhatsApp outreach across leaks
+    whatsapp_fired = False
+    deduplication_log = []
+    for case in ordered_cases:
+        if case["chosen_intervention"] == "whatsapp_nudge":
+            if whatsapp_fired:
+                deduplication_log.append({
+                    "case_id": case["id"],
+                    "leak_type": case["leak_type"],
+                    "suppressed_intervention": "whatsapp_nudge",
+                    "reason": "WhatsApp outreach already dispatched for this customer today. Preventing contact fatigue."
+                })
+                case["chosen_intervention"] = "deferred_to_next_contact_window"
+            else:
+                whatsapp_fired = True
+
+    # Section 43B(h) deadline urgency for the B2B invoice
+    tax_status = TaxClockEngine.evaluate(
+        amount=240000.0,
+        days_overdue=38,
+        is_msme_supplier=True,
+    )
+    tax_clock = {
+        "days_remaining": getattr(tax_status, "days_remaining", 45 - 38),
+        "urgency": getattr(tax_status, "urgency", "ELEVATED"),
+        "cfo_lever_message": getattr(tax_status, "cfo_lever_message", "7 days remain before 45-day MSME window closes. Settling now avoids Section 43B(h) tax deferral."),
+    }
+
+    # Log the unified scenario to the cryptographic ledger
+    audit_ledger.record_event(
+        event_type="UNIFIED_CROSS_LEAK_SCENARIO_DEMO",
+        case_id="unified_rohit_mehta_demo",
+        payload={
+            "customer_id": customer["id"],
+            "customer_name": customer["name"],
+            "total_exposure_inr": total_exposure,
+            "leak_types": [c["leak_type"] for c in all_cases],
+            "deduplication_suppressions": len(deduplication_log),
+        }
+    )
+
+    return {
+        "scenario": "Cross-Leak Unified Recovery Intelligence",
+        "description": (
+            "Same customer Rohit Mehta has 4 simultaneous revenue leak events. "
+            "The unified brain diagnoses all 4, prioritizes by urgency, and suppresses "
+            "duplicate outreach — one coherent view, not 4 independent pipelines."
+        ),
+        "customer": {
+            "id": customer["id"],
+            "name": customer["name"],
+            "company": customer["company"],
+        },
+        "total_exposure_inr": total_exposure,
+        "priority_order_rationale": "B2B (Section 43B(h) tax cliff) > Mandate (service disruption) > Payment Failure > Cart Abandonment",
+        "cases_by_priority": [
+            {
+                "rank": i + 1,
+                "leak_type": c["leak_type"],
+                "amount_at_risk": c["amount_at_risk"],
+                "root_cause": c["root_cause"],
+                "chosen_intervention": c["chosen_intervention"],
+                "compliance_status": c["compliance_status"],
+                "status": c["status"],
+                "intervention_reason": c["intervention_reason"],
+            }
+            for i, c in enumerate(ordered_cases)
+        ],
+        "cross_leak_intelligence": {
+            "whatsapp_deduplication_triggered": len(deduplication_log) > 0,
+            "suppressed_duplicate_contacts": deduplication_log,
+            "section_43bh_urgency": {
+                "days_remaining_to_tax_cliff": tax_clock.get("days_remaining", "N/A"),
+                "urgency": tax_clock.get("urgency", "N/A"),
+                "cfo_lever": tax_clock.get("cfo_lever_message", ""),
+            },
+            "total_cases": len(all_cases),
+            "autonomous_cases": sum(1 for c in all_cases if c["status"] not in ("awaiting_response", "stopped", "failed")),
+            "hitl_required": any(c["requires_human_approval"] for c in all_cases),
+        },
+        "audit_ledger_event": "UNIFIED_CROSS_LEAK_SCENARIO_DEMO logged to SHA-256 chain",
+    }
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
