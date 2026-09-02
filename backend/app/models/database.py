@@ -13,7 +13,7 @@ import enum
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Integer, Float, Boolean, DateTime, Text,
-    Enum, ForeignKey, JSON, create_engine
+    Enum, ForeignKey, JSON, Index, create_engine
 )
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -124,6 +124,11 @@ class Customer(Base):
     invoices = relationship("Invoice", back_populates="customer")
     cases = relationship("Case", back_populates="customer")
 
+    __table_args__ = (
+        Index("idx_customer_phone", "phone"),
+        Index("idx_customer_email", "email"),
+    )
+
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -148,6 +153,12 @@ class Transaction(Base):
     # Relationships
     customer = relationship("Customer", back_populates="transactions")
 
+    __table_args__ = (
+        Index("idx_txn_payment_id", "razorpay_payment_id"),
+        Index("idx_txn_customer", "customer_id"),
+        Index("idx_txn_created", "created_at"),
+    )
+
 
 class Invoice(Base):
     __tablename__ = "invoices"
@@ -171,6 +182,11 @@ class Invoice(Base):
 
     # Relationships
     customer = relationship("Customer", back_populates="invoices")
+
+    __table_args__ = (
+        Index("idx_invoice_status_due_date", "status", "due_date"),
+        Index("idx_invoice_customer", "customer_id"),
+    )
 
 
 class Case(Base):
@@ -218,6 +234,12 @@ class Case(Base):
     invoice = relationship("Invoice")
     audit_logs = relationship("AuditLog", back_populates="case")
 
+    __table_args__ = (
+        Index("idx_case_leak_status", "leak_type", "status"),
+        Index("idx_case_customer", "customer_id"),
+        Index("idx_case_created", "created_at"),
+    )
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -235,6 +257,11 @@ class AuditLog(Base):
     # {"step": "voice_call", "transcript": "...", "promise_to_pay": "2026-09-15", "amount": 85000}
 
     case = relationship("Case", back_populates="audit_logs")
+
+    __table_args__ = (
+        Index("idx_audit_case_time", "case_id", "timestamp"),
+        Index("idx_audit_action", "action"),
+    )
 
 
 # ─── Database Setup ──────────────────────────────────────────────────────
