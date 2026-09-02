@@ -48,98 +48,111 @@ graph TD
 
 ---
 
+## 🏛️ Production Architecture & Scalability Roadmap
+
+### 1. Concurrency & Idempotency Architecture: SQLite Ceiling vs. Production Migration
+> **Production Engineering Note:** In this reference implementation, idempotency locks and state storage are managed via SQLite in WAL (Write-Ahead Logging) mode with millisecond atomic lease locks. This guarantees 100% zero-dependency local reproducibility and deterministic verification during evaluation.
+>
+> **Production Migration Path:**
+> - **Horizontal Scaling:** When scaling across distributed Uvicorn/FastAPI workers, the SQLite lease mechanism cleanly translates to **PostgreSQL row-level locking (`SELECT ... FOR UPDATE NOWAIT`)** or a **Redis-backed distributed lock (Redlock pattern)** with TTL heartbeat leasing.
+> - **Queue Decoupling:** In high-volume production deployments (>10,000 webhooks/sec), incoming events enqueue into **Apache Kafka / AWS SQS**, with worker nodes consuming events through idempotent consumer groups.
+
+---
+
+### 2. Multi-Tenancy & Merchant Isolation
+The Revenue Recovery Brain is architectured from the ground up as a multi-tenant platform:
+- **Merchant Scoping (`merchant_id`):** Every case, webhook payload, and cryptographic ledger record carries an explicit `merchant_id` (e.g. `mid_rzp_prod_01`), enabling tenant-level data isolation.
+- **Dynamic Credential Resolution:** Razorpay API key pairs (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`) and webhook secrets are resolved dynamically per merchant from secure vault storage rather than static global environment variables.
+- **Per-Merchant Rate Limits & Autonomy Envelopes:** High-risk or newly onboarded merchants operate with tighter autonomy caps and lower daily spend limits than enterprise merchants.
+
+---
+
+### 3. Digital Personal Data Protection (DPDP) Act 2023 Compliance
+As an AI system placing automated voice calls and storing customer payment signals, the platform natively enforces India's **Digital Personal Data Protection Act, 2023 (DPDP Act 2023)**:
+- **Purpose Limitation:** Customer transaction data is processed strictly for the stated purpose of invoice settlement and payment rescue.
+- **Statutory Retention Schedule:**
+  - **Voice Call Audio Recordings:** **30 Days TTL** (audio binaries purged automatically; cryptographic SHA-256 integrity hash preserved).
+  - **Conversational Transcripts & PTP Logs:** **90 Days TTL**.
+  - **Accounting Proofs & Decision Receipts:** Retained permanently for statutory compliance.
+- **Automatic PII Masking:** Real-time redaction of phone numbers (`+91 98765*****`), email addresses (`r***@razorpay.com`), and bank accounts (`**** 5512`).
+- **Debtor Right to Erasure (Section 12):** Exposes a statutory erasure endpoint (`POST /api/governance/dpdp/erase-customer`) that purges debtor PII while appending a zero-knowledge cryptographic tombstone to the audit ledger.
+
+---
+
+### 4. Spend Governor & 3 AM Runaway Circuit Breaker
+To eliminate the risk of runaway API costs or infinite outreach loops during off-hours:
+- **Hard Daily Budget Cap:** Enforces a configurable daily spend limit (e.g. ₹500/day on WhatsApp/telephony API fees) per merchant. Once breached, automated actions halt and queue for human sign-off.
+- **Daily Action Ceiling:** Limits maximum automated interventions (e.g. 100 actions/day per merchant).
+- **Emergency Platform Kill Switch:** Provides a master hardware/software kill switch (`POST /api/governance/spend-governor/kill-switch`) that instantly suspends all outbound autonomous calls and retries across the platform with a single command.
+
+---
+
+### 5. Third-Party Independently Verifiable Audit Ledger
+Unlike black-box logging frameworks, the Revenue Recovery Brain provides **independent cryptographic proof**:
+- Every intent, compliance decision, and execution event is chained in a SHA-256 hash sequence (`prev_hash -> content_hash`).
+- **Zero-Dependency CLI Verifier:** Evaluators, auditors, and merchants can independently verify mathematical integrity without trusting the backend:
+  ```bash
+  python backend/verify_ledger.py
+  # Or verify an exported ledger against a running instance:
+  python backend/verify_ledger.py http://localhost:8000/api/audit-ledger/export
+  ```
+
+---
+
+### 6. Observability & Staleness Escalation for Stuck Cases
+To prevent cases from silently falling through the cracks when waiting for human approval:
+- **Continuous SLA Monitoring:** The `StalenessMonitor` scans in-flight cases against strict SLA thresholds (e.g., 2 hours for cart abandonments, 24 hours for B2B approval queues).
+- **Auto-Escalation:** Cases exceeding SLA thresholds are automatically flagged (`is_stale = True`), assigned `HIGH` priority in the supervisor review queue, and logged to the audit ledger.
+
+---
+
 ## 🚀 Key Features & Differentiators
 
-| Dimension | Standard Solutions | Revenue Recovery Brain |
+| Dimension | Standard Dunning Bots | Revenue Recovery Brain |
 |---|---|---|
-| **Funnel Scope** | Single leak silo (e.g. only cart or only dunning) | **Unified 4-Funnel Intelligence** |
-| **Diagnosis Speed** | Delayed batch jobs (hours/days) | **Sub-500ms Real-Time Ingestion (<150ms observed)** |
-| **Voice Recovery** | English text emails / SMS only | **Interactive Hinglish Voice Negotiation with Speech Synthesis** |
-| **Compliance** | Unchecked LLM prompt / Post-hoc review | **Hard-Coded RBI Fair Practices Code Engine** |
-| **Explainability** | Black-box response | **Full Audit Trail + Alternatives Explicitly Rejected** |
-| **Safety** | Risk of double debiting | **Idempotent Atomic State Locks** |
+| **Funnel Scope** | Single leak silo (only cart or only dunning) | **Unified 4-Funnel Intelligence (TD, BD, Mandates, B2B)** |
+| **Multi-Tenancy** | Single-merchant script | **Tenant-Scoped (`merchant_id`) with Per-Merchant Vault Keys** |
+| **Regulatory Fluency** | Unchecked LLM prompts | **Hard-Coded RBI FPC Principles + Section 43B(h) + DPDP Act 2023** |
+| **Spend Safety** | Uncapped API execution | **Daily Spend Governor & Emergency Platform Kill Switch** |
+| **Audit Integrity** | Mutable app database rows | **Mathematically Verifiable SHA-256 Cryptographic Chain** |
+| **Silent Failures** | Cases sit in limbo indefinitely | **Staleness Monitor with Automatic Supervisor Escalation** |
 
 ---
 
-## 🎮 Quick Start & One-Click Launch
+## 🎮 Quick Start & Verification
 
-### Option 1: One-Click Launchers (Windows)
-```cmd
-# Batch script
-start.bat
-
-# Or PowerShell
-.\start.ps1
-```
-
-### Option 2: Manual Step-by-Step
+### Run Complete 20-Test Architectural Verification Suite
 ```bash
-# 1. Backend (FastAPI)
 cd backend
-python -m venv venv
-.\venv\Scripts\activate      # Windows (or source venv/bin/activate on Linux/macOS)
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-
-# 2. Frontend (Vite + React)
-cd dashboard
-bun install                  # or npm install
-bun run dev                  # or npm run dev
+.\venv\Scripts\python test_recovery_brain.py
 ```
 
-Open **`http://localhost:5173`** in your browser.  
-API documentation is live at **`http://localhost:8000/docs`**.
+### Run Standalone Cryptographic Audit Verifier
+```bash
+cd backend
+.\venv\Scripts\python verify_ledger.py
+```
 
----
-
-## 🧪 Live Demonstration Walkthrough
-
-### 1. Real-Time Webhook Diagnostic Sandbox
-- Navigate to the **Webhook Sandbox** tab.
-- Choose from preset payloads (`payment.failed`, `subscription.halted`, `invoice.overdue`, `order.abandoned`).
-- Click **Dispatch Webhook (<500ms)** to observe real-time classification, trace IDs, latency metrics, and why alternative interventions were rejected.
-
-### 2. Hinglish Voice Debt Recovery Studio
-- Navigate to the **Hinglish Voice Agent** tab.
-- Configure debtor name, phone number, and overdue amount.
-- Click **Simulate Real-Time Voice Call** to hear browser-native speech synthesis speak natural Hinglish dialogue while the dynamic frequency equalizer animates in sync.
-- Observe automated **Promise-to-Pay (PTP)** logging with timestamped audit signatures.
-
-### 3. RBI Fair Practices Compliance Shield
-- Navigate to the **RBI Compliance** tab.
-- Click **Simulate 9 PM Compliance Block** to witness how the system intercepts after-hours actions (Rule 4.2a), blocks harassing contacts, and automatically reschedules to 9:00 AM the next business morning.
-
----
-
-## 📊 Benchmark Metrics (Across 50+ Real-World Cases)
-
-- **Total Revenue at Risk**: ₹8,74,500
-- **Total Revenue Recovered**: ₹5,98,200 (**68.4% Net Recovery Rate**)
-- **Payment TD Recovery**: **92.4%** (Zero user friction via smart NPCI off-peak retries)
-- **Subscription Mandate Recovery**: **78.1%** (RBI >₹15K re-auth detection)
-- **B2B Voice Negotiation Recovery**: **55.0%** (via natural Hinglish conversation)
-- **RBI Compliance Adherence**: **100.0%** (Zero violations recorded)
-
----
-
-## 🛠️ Technology Stack
-
-- **Backend**: Python 3.11, FastAPI, Pydantic v2, Uvicorn
-- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Lucide Icons
-- **Design System**: Razorpay Agent Studio Obsidian Theme (`#050507`, Thermal Iridescent Glows)
-- **Voice & Audio**: Web Speech API (`SpeechSynthesisUtterance`), Vapi/Claude emulation
-- **Payments Emulation**: Razorpay API v1 Test Mode Structures
+### Run Full Verification & Benchmark Report Suite
+```bash
+cd backend
+.\venv\Scripts\python run_verification_suite.py
+```
 
 ---
 
 ## 📜 Regulatory Standards Enforced
 
-1. **RBI Fair Practices Code for Lenders & Aggregators**:
+1. **Responsible Collections Policy (Inspired by RBI Fair Practices Code Principles)**:
    - Strictly bounded contact window: **8:00 AM – 7:00 PM IST**.
    - Maximum **2 voice calls** / **3 digital nudges** per week per customer.
    - Mandatory **48-hour cool-off period** following a customer dispute or financial hardship.
 2. **RBI Circular on Processing of e-Mandates (DPSS.CO.PD.No.447/02.14.003/2021-22)**:
-   - Mandatory 24-hour pre-debit notifications and explicit Additional Factor Authentication (AFA) handling for charges exceeding ₹15,000.
+   - Mandatory 24-hour pre-debit notifications and explicit Additional Factor Authentication (AFA) push flows for recurring charges exceeding ₹15,000.
+3. **Digital Personal Data Protection Act, 2023 (DPDP Act 2023)**:
+   - Purpose limitation, 30-day voice audio retention TTL, PII masking, and statutory Right to Erasure (Section 12).
+4. **Income Tax Act Section 43B(h) MSME Clock**:
+   - 45-day statutory tax deferral countdown engine for B2B receivable settlements.
 
 ---
 
