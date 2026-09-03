@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
-import { HeroBanner } from './components/HeroBanner';
+import type { ViewMode, ConsoleTab } from './components/Navbar';
+import { ShowcaseHero } from './components/showcase/ShowcaseHero';
+import { ProofRibbon } from './components/showcase/ProofRibbon';
+import { StickyStoryTour } from './components/showcase/StickyStoryTour';
+import { ThreePillarsSection } from './components/showcase/ThreePillarsSection';
+import { LiveSimulatorSandbox } from './components/showcase/LiveSimulatorSandbox';
+import { ComplianceTrustSeal } from './components/showcase/ComplianceTrustSeal';
 import { StatsGrid } from './components/StatsGrid';
 import { CaseTable } from './components/CaseTable';
 import { CaseDetailModal } from './components/CaseDetailModal';
@@ -9,13 +15,13 @@ import { ComplianceShield } from './components/ComplianceShield';
 import { WebhookPlayground } from './components/WebhookPlayground';
 import { ImpactCounter } from './components/ImpactCounter';
 import { LiveEventTicker } from './components/LiveEventTicker';
-import { StickyAgentShowcase } from './components/StickyAgentShowcase';
 import { ABTestResults } from './components/ABTestResults';
 import type { BatchSummary, CaseItem } from './types';
 import { API_BASE } from './api';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'cases' | 'voice' | 'compliance' | 'sandbox' | 'webhook' | 'abtest'>('overview');
+  const [viewMode, setViewMode] = useState<ViewMode>('showcase');
+  const [consoleTab, setConsoleTab] = useState<ConsoleTab>('overview');
   const [summary, setSummary] = useState<BatchSummary | null>(null);
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null);
@@ -26,18 +32,15 @@ export const App: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch summary
       const summaryRes = await fetch(`${API_BASE}/api/batch/summary`);
       if (summaryRes.ok) {
         const summaryData = await summaryRes.json();
         setSummary(summaryData);
       } else {
-        // Generate new batch if none exists yet
         await handleGenerateBatch();
         return;
       }
 
-      // Fetch cases
       const casesRes = await fetch(`${API_BASE}/api/cases?limit=100`);
       if (casesRes.ok) {
         const casesData = await casesRes.json();
@@ -85,96 +88,149 @@ export const App: React.FC = () => {
     }
   };
 
+  const scrollToSimulator = () => {
+    const el = document.getElementById('simulator');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050507] text-[#f3f4f6] font-sans selection:bg-blue-500/30 selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-[#030712] text-[#f3f4f6] font-sans selection:bg-blue-500/30 selection:text-white flex flex-col justify-between razorpay-grid">
       
-      {/* Navbar */}
+      {/* Universal Dual-Mode Navbar */}
       <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        consoleTab={consoleTab}
+        setConsoleTab={setConsoleTab}
         onRefreshBatch={handleGenerateBatch}
         isProcessing={isProcessing}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-10">
+      {/* Main View Mode Switcher */}
+      <main className="flex-1 w-full">
         
-        {/* Hero Section */}
-        <HeroBanner
-          onOpenVoice={() => setActiveTab('voice')}
-          onOpenComplianceDemo={() => setActiveTab('compliance')}
-          onRefreshBatch={handleGenerateBatch}
-          isProcessing={isProcessing}
-          totalAtRisk={summary?.total_at_risk || 0}
-          totalRecovered={summary?.total_recovered || 0}
-          recoveryRate={summary?.recovery_rate || 0}
-        />
-
-        {/* View Switcher Content */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8 animate-in fade-in duration-300">
-            <StatsGrid summary={summary} loading={loading} />
-            <LiveEventTicker />
-            <StickyAgentShowcase
-              onOpenVoice={() => setActiveTab('voice')}
-              onOpenCompliance={() => setActiveTab('compliance')}
-              onOpenWebhook={() => setActiveTab('sandbox')}
+        {/* ========================================================================= */}
+        {/* MODE 1: PRODUCT SHOWCASE (Razorpay Magic Checkout & Agent Studio style)    */}
+        {/* ========================================================================= */}
+        {viewMode === 'showcase' && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Hero Section */}
+            <ShowcaseHero
+              onLaunchConsole={() => setViewMode('console')}
+              onOpenSimulator={scrollToSimulator}
+              totalAtRisk={summary?.total_at_risk || 9579541}
+              totalRecovered={summary?.total_recovered || 253723}
+              recoveryRate={summary?.recovery_rate || 2.6}
             />
-            <ImpactCounter />
-            <CaseTable cases={cases} onSelectCase={handleSelectCase} />
+
+            {/* Proof Metrics Ribbon */}
+            <ProofRibbon summary={summary} />
+
+            {/* 4-Chapter Sticky Story Tour (Magic Checkout Pinned Style) */}
+            <StickyStoryTour />
+
+            {/* Core Innovations / Three Pillars */}
+            <ThreePillarsSection
+              onOpenCompliance={() => {
+                setViewMode('console');
+                setConsoleTab('compliance');
+              }}
+              onOpenVoice={() => {
+                setViewMode('console');
+                setConsoleTab('voice');
+              }}
+              onOpenWebhook={() => {
+                setViewMode('console');
+                setConsoleTab('webhook');
+              }}
+            />
+
+            {/* Interactive Failure Scenario Simulator */}
+            <LiveSimulatorSandbox />
+
+            {/* Compliance & Trust Seal */}
+            <ComplianceTrustSeal onLaunchConsole={() => setViewMode('console')} />
           </div>
         )}
 
-        {activeTab === 'cases' && (
-          <div className="animate-in fade-in duration-300">
-            <CaseTable cases={cases} onSelectCase={handleSelectCase} />
-          </div>
-        )}
+        {/* ========================================================================= */}
+        {/* MODE 2: OPERATIONS CONSOLE (Uncluttered SaaS Dashboard Workspace)          */}
+        {/* ========================================================================= */}
+        {viewMode === 'console' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+            
+            {/* Console Sub-View Routing */}
+            {consoleTab === 'overview' && (
+              <div className="space-y-8">
+                {/* 4 KPI Cards */}
+                <StatsGrid summary={summary} loading={loading} />
 
-        {(activeTab === 'sandbox' || activeTab === 'webhook') && (
-          <div className="animate-in fade-in duration-300">
-            <WebhookPlayground />
-          </div>
-        )}
+                {/* Real-Time Live Ticker */}
+                <LiveEventTicker />
 
-        {activeTab === 'voice' && (
-          <div className="animate-in fade-in duration-300">
-            <VoiceStudio />
-          </div>
-        )}
+                {/* Economic Yield & Impact Summary */}
+                <ImpactCounter />
 
-        {activeTab === 'compliance' && (
-          <div className="animate-in fade-in duration-300">
-            <ComplianceShield summary={summary} />
-          </div>
-        )}
+                {/* Clean Case Ledger */}
+                <CaseTable cases={cases} onSelectCase={handleSelectCase} />
+              </div>
+            )}
 
-        {activeTab === 'abtest' && (
-          <div className="animate-in fade-in duration-300">
-            <ABTestResults />
+            {consoleTab === 'cases' && (
+              <div className="space-y-4">
+                <CaseTable cases={cases} onSelectCase={handleSelectCase} />
+              </div>
+            )}
+
+            {consoleTab === 'voice' && (
+              <div className="space-y-4">
+                <VoiceStudio />
+              </div>
+            )}
+
+            {consoleTab === 'compliance' && (
+              <div className="space-y-4">
+                <ComplianceShield summary={summary} />
+              </div>
+            )}
+
+            {consoleTab === 'abtest' && (
+              <div className="space-y-4">
+                <ABTestResults />
+              </div>
+            )}
+
+            {consoleTab === 'webhook' && (
+              <div className="space-y-4">
+                <WebhookPlayground />
+              </div>
+            )}
+
           </div>
         )}
 
       </main>
 
-      {/* Case Detail Modal */}
+      {/* Case Detail Modal / Drawer */}
       <CaseDetailModal
         caseItem={selectedCase}
         onClose={() => setSelectedCase(null)}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 py-8 text-center text-xs text-gray-400 font-mono space-y-2">
+      {/* Authentic Razorpay Footer */}
+      <footer className="border-t border-white/5 py-8 text-center text-xs text-gray-500 font-mono space-y-2 bg-[#02050c]">
         <div className="flex items-center justify-center space-x-2">
           <span className="w-2 h-2 rounded-full bg-blue-500" />
           <span className="text-gray-300 font-medium">Razorpay AI Buildathon 2026 · Track 03: AI Revenue Recovery</span>
         </div>
         <p className="text-[11px] text-gray-400">
-          Engineered with FastAPI, Razorpay Test Mode APIs, and React · Unified Architecture & Hinglish Telephony Agent
+          Engineered with FastAPI, Razorpay Test Mode APIs, and React · Dual-Mode Architecture (Showcase + Operations Console)
         </p>
       </footer>
 

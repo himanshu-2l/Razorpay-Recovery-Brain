@@ -4,7 +4,7 @@
   body {
     margin: 0;
     padding: 0;
-    background-color: #050507;
+    background-color: #030712;
     color: #f3f4f6;
     font-family: 'Geist', 'Inter Tight', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
@@ -18,8 +18,13 @@
   font-weight: 700;
 }
 
-.font-serif-display {
-  font-family: 'Instrument Serif', Georgia, serif;
+.font-serif {
+  font-family: 'DM Serif Display', Georgia, serif;
+}
+
+.font-serif-italic {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-style: italic;
 }
 
 .font-sans {
@@ -30,21 +35,25 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Authentic Agent Studio Thermal Iridescent Mesh Glows */
-.agent-studio-grid {
+/* Authentic Razorpay Dark Mesh & Glows */
+.razorpay-grid {
   background-image: 
     linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-size: 48px 48px;
 }
 
-.thermal-aura {
-  background: radial-gradient(circle at 50% 0%, rgba(43, 127, 255, 0.25) 0%, rgba(0, 242, 254, 0.08) 35%, rgba(99, 102, 241, 0.04) 60%, transparent 80%);
+.razorpay-glow-hero {
+  background: radial-gradient(circle at 50% -20%, rgba(0, 82, 204, 0.28) 0%, rgba(43, 130, 251, 0.12) 35%, rgba(16, 185, 129, 0.04) 65%, transparent 85%);
+}
+
+.razorpay-radial-blue {
+  background: radial-gradient(circle at center, rgba(0, 82, 204, 0.18) 0%, transparent 70%);
 }
 
 /* Glassmorphic Cards */
 .glass-panel {
-  background: rgba(14, 14, 22, 0.7);
+  background: rgba(8, 13, 26, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -52,27 +61,23 @@
 }
 
 .glass-panel-hover {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-panel-hover:hover {
-  background: rgba(20, 20, 32, 0.88);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(13, 20, 38, 0.9);
+  border-color: rgba(43, 130, 251, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.55);
+  box-shadow: 0 12px 40px 0 rgba(0, 82, 204, 0.2);
 }
 
 /* Glow effects */
 .glow-blue {
-  box-shadow: 0 0 35px rgba(43, 127, 255, 0.25);
+  box-shadow: 0 0 35px rgba(0, 82, 204, 0.3);
 }
 
 .glow-emerald {
   box-shadow: 0 0 35px rgba(16, 185, 129, 0.25);
-}
-
-.glow-purple {
-  box-shadow: 0 0 35px rgba(139, 92, 246, 0.25);
 }
 
 /* Custom Scrollbar */
@@ -82,7 +87,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #08080c;
+  background: #030712;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -91,5 +96,5 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(43, 130, 251, 0.4);
 }
