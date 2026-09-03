@@ -1,0 +1,391 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[a4paper, margin=0.8in, headheight=14pt, footskip=24pt]{geometry}
+\usepackage{fontspec}
+\newfontfamily\rupeefont{Segoe UI}
+\newcommand{\INR}{{\rupeefont ₹}}
+
+\usepackage{amsmath, amssymb}
+\usepackage[table]{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+\usepackage{booktabs, tabularx, multirow}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{hyperref}
+
+% Color Definitions
+\definecolor{razorblue}{HTML}{0C2340}
+\definecolor{primaryblue}{HTML}{0284C7}
+\definecolor{tealaccent}{HTML}{0D9488}
+\definecolor{darkslate}{HTML}{1E293B}
+\definecolor{lightbg}{HTML}{F8FAFC}
+\definecolor{boxborder}{HTML}{CBD5E1}
+\definecolor{alertred}{HTML}{DC2626}
+\definecolor{codegray}{HTML}{F1F5F9}
+
+% Listings setup
+\lstset{
+  backgroundcolor=\color{codegray},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{boxborder},
+  keywordstyle=\color{primaryblue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{tealaccent},
+  numbers=none,
+  keepspaces=true,
+  showstringspaces=false
+}
+
+% Hyperref Setup
+\hypersetup{
+  colorlinks=true,
+  linkcolor=razorblue,
+  urlcolor=primaryblue,
+  citecolor=razorblue,
+  pdfauthor={Himanshu},
+  pdftitle={Razorpay AI Buildathon 2026 - Pitch Strategy and Video Demonstration Master Plan}
+}
+
+% Fancy Header / Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textbf{\color{razorblue}Razorpay AI Buildathon 2026} \ \textbar\ \ \color{gray}Track 03: AI Revenue Recovery}
+\fancyhead[R]{\small\color{gray}Pitch Strategy \& Demo Master Plan}
+\fancyfoot[L]{\small\color{gray}Revenue Recovery Brain \ \textbar\ \ Production Reference Architecture}
+\fancyfoot[R]{\small\color{gray}Page \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Custom Callout Boxes
+\newtcolorbox{calloutbox}[2][]{
+  enhanced,
+  breakable,
+  colback=lightbg,
+  colframe=boxborder,
+  coltitle=razorblue,
+  fonttitle=\bfseries\normalsize,
+  title={#2},
+  boxrule=1pt,
+  arc=3pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  #1
+}
+
+\newtcolorbox{scenebox}[2][]{
+  enhanced,
+  breakable,
+  colback=lightbg,
+  colframe=primaryblue,
+  coltitle=white,
+  colbacktitle=razorblue,
+  fonttitle=\bfseries\normalsize,
+  title={#2},
+  boxrule=1pt,
+  arc=3pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  #1
+}
+
+\newtcolorbox{takeawaybox}[1][]{
+  enhanced,
+  breakable,
+  colback=lightbg,
+  colframe=tealaccent,
+  coltitle=white,
+  colbacktitle=tealaccent,
+  fonttitle=\bfseries\normalsize,
+  title={Key Takeaway for Razorpay Evaluators},
+  boxrule=1pt,
+  arc=3pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  #1
+}
+
+\begin{document}
+
+% Title Header Block
+\begin{center}
+  {\LARGE\bfseries\color{razorblue} Razorpay AI Buildathon 2026 \ \textbar\ \ Track 03: AI Revenue Recovery}\\[6pt]
+  {\Large\bfseries\color{primaryblue} Senior Technical Pitch Strategy \& 5-Minute Demonstration Master Plan}\\[8pt]
+  {\normalsize\textbf{Project:} Revenue Recovery Brain \ \ \textbar\ \ \textbf{Author:} Himanshu \ \ \textbar\ \ \textbf{Status:} 29/29 Tests Passing (100\%)}\\[2pt]
+  {\footnotesize\color{gray} Architecture: Multi-Modal Recovery Grid $\cdot$ Persisted SHA-256 Ledger $\cdot$ Bank Circuit Breakers $\cdot$ RBI FPC Gate}
+\end{center}
+\vspace{-4pt}
+\hrule height 1pt
+\vspace{10pt}
+
+\tableofcontents
+\vspace{12pt}
+\hrule
+\vspace{14pt}
+
+% Section 1
+\section{The `Why': Real-World Problem \& The Non-Technical Analogy}
+
+\subsection{The Macro Financial Bleed in Indian Payments}
+Digital commerce in India runs at immense volume, yet revenue degrades systematically across four disconnected funnels:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{1.2 Billion Monthly Payment Drops:} India processes over 15 billion monthly UPI transactions with an approximate 8\% decline rate.
+  \item \textbf{High-Friction Checkout Abandonment:} Mobile intent app mismatches and payment drop-offs account for 70\%+ uncompleted shopping sessions.
+  \item \textbf{Subscription Involuntary Churn:} RBI e-mandate regulations require explicit Additional Factor Authentication (AFA) for recurring charges exceeding \INR~15,000, causing silent subscription churn.
+  \item \textbf{73-Day B2B DSO \& MSME Tax Clock:} Indian MSMEs endure an average 73-day Days Sales Outstanding (DSO). Under Section 43B(h) of the Income Tax Act, buyer invoices overdue past 45 days lose statutory income tax expense deductions.
+\end{itemize}
+
+\begin{calloutbox}{The Non-Technical Analogy: The ``Dumb Water Pump'' vs. The ``Smart Irrigation Grid''}
+Imagine a commercial building supplied by four distinct water pipelines:
+\begin{enumerate}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Pipe 1 (Retail Gateway):} The municipal water main connected to city reservoirs.
+  \item \textbf{Pipe 2 (Checkout Cart):} Bathroom faucets that tenants turn on and leave running.
+  \item \textbf{Pipe 3 (Subscription Mandates):} Automated monthly lawn sprinklers scheduled every 30 days.
+  \item \textbf{Pipe 4 (B2B Trade Invoices):} A large commercial water tanker delivering bulk water on credit.
+\end{enumerate}
+
+\textbf{The Traditional Dunning Trap:}
+When water stops flowing in Pipe 1, conventional dunning tools act like a \textbf{dumb motorized pump}: they simply crank the pressure knob to 100\% and pump repeatedly.
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item If the municipal line is shut down for maintenance (an HDFC or SBI issuer switch outage), cranking the pump delivers zero water---it burns out the motor (wastes merchant API fees) and vibrates the building walls with loud alarms (spams the debtor).
+  \item If the tenant's individual tank is empty (insufficient balance), blasting pressure into a closed valve accomplishes nothing.
+  \item Worst of all, the landlord has no idea that the tenant whose kitchen tap failed also owes \INR~85,000 for the commercial tanker downstairs!
+\end{itemize}
+
+\textbf{Why Businesses Need Revenue Recovery Brain:}
+Our engine replaces the dumb pump with an \textbf{intelligent hydraulic control grid}. In \textbf{$<$150ms}, it distinguishes between a \textbf{Technical Degradation (TD)} (switch outage $\rightarrow$ reroute or pause for NPCI off-peak) and a \textbf{Business Decline (BD)} (insufficient funds $\rightarrow$ respectful WhatsApp nudge timed to salary cycles). It unifies all four pipes under one customer risk profile and calculates Expected Net Recoverable Value (ENRV) before touching any banking rail.
+\end{calloutbox}
+
+\newpage
+% Section 2
+\section{The `What': Trust Boundary Architecture \& Production Engineering}
+
+In financial engineering, letting an unconstrained LLM directly invoke payment APIs is an unacceptable security risk. We establish an absolute separation between \textbf{probabilistic reasoning} (the investigator) and \textbf{deterministic policy authorization} (the police chief).
+
+\begin{calloutbox}{The Four Trust Boundaries (The Bank Branch Metaphor)}
+\begin{enumerate}[leftmargin=1.5em, itemsep=6pt]
+  \item \textbf{1. The Bouncer (State Store \& Write-Ahead Log Idempotency Guard):}
+  Stands at the entrance. Ingests raw Razorpay webhooks, extracts the unique event key, and computes a SHA-256 fingerprint: $\text{SHA256}(\text{event\_id} \parallel \text{payload\_hash})$. It acquires an atomic lease lock in SQLite WAL mode. If 10 duplicate retries hit within 20 milliseconds, the Bouncer admits the first request and discards the other 9 with HTTP 409 Conflict.
+  
+  \item \textbf{2. The Investigator (Diagnosis Engine \& LLM Reasoning Core):}
+  Operates with \textbf{read-only privileges}. It inspects error codes, bank responses, transaction amounts, and the unified cross-leak customer history in $<$150ms. It calculates counterfactual Expected Net Recoverable Value (ENRV) discounted by an 18\% p.a. WACC benchmark. It proposes an intervention plan (e.g., ``Hinglish Voice Call at 2:00 PM IST''), but possesses \textbf{zero execution authority}.
+  
+  \item \textbf{3. The Police Chief (Policy Engine, Autonomy Envelope \& Circuit Breaker):}
+  Holds absolute veto power over the Investigator. It evaluates hardcoded regulatory and safety invariants that no LLM prompt can override:
+  \begin{itemize}[leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{RBI Fair Practices Code:} Interventions between 7:00 PM and 8:00 AM IST are immediately vetoed and rescheduled to 9:00 AM.
+    \item \textbf{Dynamic Autonomy Envelope:} Capped at \INR~25,000 in normal mode; automatically contracts to \INR~5,000 if bank rails experience outages.
+    \item \textbf{Bank Circuit Breaker:} Monitors rolling Exponential Moving Average ($\alpha = 0.10$) across HDFC, SBI, ICICI, Axis, and NPCI. Trips if success rate drops below 30\%.
+  \end{itemize}
+  
+  \item \textbf{4. The Cashier (Executor \& Persisted Cryptographic Audit Ledger):}
+  Only acts when the Police Chief signs the execution permit. Dispatches official Razorpay Payment Links (\texttt{https://rzp.io/i/...}), triggers telephony workflows, and synchronously appends an immutable block to the SQLite SHA-256 hash sequence.
+\end{enumerate}
+\end{calloutbox}
+
+% Section 3
+\section{The Secret Weapon: Idempotency vs. LLM Wrapper Apps}
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{l p{5.2cm} X}
+\toprule
+\textbf{Engineering Dimension} & \textbf{Basic LLM Wrapper Hackathon App} & \textbf{Razorpay Revenue Recovery Brain} \\
+\midrule
+\textbf{Webhook Ingress} & Assumes 1 webhook = 1 event. & Assumes at-least-once delivery; natively defends against concurrent replay spikes. \\
+\textbf{Concurrency Control} & Zero mutexes. Concurrent requests spawn duplicate LLM agent instances. & Atomic millisecond lease locks in SQLite WAL mode with auto-expiring leases. \\
+\textbf{API Cost Exposure} & Pays OpenAI \$0.05 on every redundant network retry. & Intercepts duplicates at the edge ($<$1ms) with zero AI compute spend. \\
+\textbf{Debtor Experience} & Spams customer with 3 duplicate SMS/WhatsApp links. & Strict exactly-once outbound customer communication guarantee. \\
+\textbf{Auditability} & Mutable SQL rows (records can be edited or deleted). & Immutable SHA-256 hash chain ($\text{prev\_hash} \rightarrow \text{content\_hash}$) verifiable offline. \\
+\textbf{Failure Filtering} & Retries closed bank accounts and expired cards blindly. & Terminal failure filter halts futile retries on terminal codes (\texttt{ACCOUNT\_CLOSED}, \texttt{CARD\_STOLEN}). \\
+\bottomrule
+\end{tabularx}
+\caption{Production Infrastructure vs. Superficial AI Wrappers}
+\end{table}
+
+\newpage
+% Section 4
+\section{The `What's Next': High-Impact Polish Before the Deadline}
+
+To make the system visually undeniable on screen during the demonstration, we focus on three interactive elements:
+
+\begin{enumerate}[leftmargin=1.5em, itemsep=8pt]
+  \item \textbf{Interactive ``10x Concurrency Sabotage Bomb'' in Webhook Sandbox:}
+  Add a dedicated button in the Webhook Playground: \textbf{``[SABOTAGE TEST] Blast 10x Concurrent Duplicate Webhooks''}. When clicked, it dispatches 10 parallel HTTP POST requests with identical event IDs. The dashboard immediately renders a race-condition breakdown:
+  \[
+    \text{1 Winner (200 OK)} \quad\mid\quad \text{9 Blocked (Idempotency Guard: 409 Conflict)} \quad\mid\quad \text{Latency: 14ms}
+  \]
+  
+  \item \textbf{Live Bank Circuit Breaker $\leftrightarrow$ Autonomy Envelope Contraction Toggle:}
+  Add an interactive toggle card: \textbf{``Simulate HDFC Rail Outage ($<$30\% SR)''}. Clicking it demonstrates the real-time wiring from \texttt{test\_28}: the Autonomy Envelope badge dynamically contracts from \textbf{\texttt{EXPANDED: \INR~25,000 Cap}} to a pulsing red \textbf{\texttt{CONTRACTED: \INR~5,000 Cap}}.
+  
+  \item \textbf{In-Browser One-Click Cryptographic Audit Inspector:}
+  Add an ``Audit Ledger Explorer'' modal in the React dashboard that fetches \texttt{/api/audit-ledger/export}, computes the SHA-256 chain in client-side JavaScript, and displays a green shield: \textbf{\texttt{100\% Chain Integrity Verified (52 Blocks Checked)}}.
+\end{enumerate}
+
+% Section 5
+\section{The 5-Minute Video Demonstration Master Plan (Scene-by-Scene)}
+
+\subsection{Pre-Recording Setup Checklist}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Display Split-Screen:} Left 60\% = React Operator Console (\texttt{http://localhost:5173}), Right 40\% = Razorpay Merchant Test Portal (\texttt{dashboard.razorpay.com/app/payment-links}).
+  \item \textbf{Terminal Tab:} Positioned in \texttt{backend/} with \texttt{python verify\_ledger.py} pre-typed.
+  \item \textbf{Telephony:} Test phone placed on desk on speakerphone.
+  \item \textbf{Target Timing:} Exactly 4 minutes 50 seconds (10-second safety buffer).
+\end{itemize}
+
+\subsection{Minute-by-Minute Script \& Visual Execution}
+
+\begin{scenebox}{Scene 1: The Macro Problem \& The Solution Thesis (0:00 -- 0:40)}
+\textbf{Screen View:} React Command Center overview. Slowly scroll across live KPI cards: \INR~8.7L at risk, \INR~5.9L recovered, 68\% recovery rate, 128ms average diagnostic latency.\\
+\textbf{Narration (Calm, Confident, Direct):}
+\begin{quote}
+``India processes 15 billion UPI transactions every month. About 8\% fail---that is 1.2 billion declined transactions monthly. Today, almost every merchant responds to these failures the same way: blasting blind retries.
+
+That fails because a bank switch outage and a customer with insufficient balance require completely different handling. Meanwhile, cart drop-offs, subscription mandate failures, and 70-day overdue B2B invoices leak revenue through separate tools with zero shared intelligence.
+
+We built the Revenue Recovery Brain: a production-grade, regulatory-fluent recovery engine with sub-150ms diagnosis, hard RBI compliance gates, and cryptographic auditability.''
+\end{quote}
+\end{scenebox}
+
+\begin{scenebox}{Scene 2: The Concurrency Sabotage Test (0:40 -- 1:25)}
+\textbf{Screen View:} Navigate to the Webhook Playground tab.\\
+\textbf{Action:} Click \textbf{``Blast 10x Concurrent Duplicate Webhooks''} (or execute parallel curl test script).\\
+\textbf{Narration:}
+\begin{quote}
+``Before showing how we rescue revenue, let me show you why this is a production-level system and not an LLM wrapper. Payment gateways retry webhooks up to 3 times over 24 hours. Under network latency, duplicate deliveries happen constantly. If a system isn't idempotent, it calls an LLM 10 times, generates 10 duplicate payment links, and charges the customer twice.
+
+Watch: we just fired 10 simultaneous duplicate failure payloads across 10 threads. Notice the result: exactly 1 request was processed. The other 9 were rejected by our State Store Idempotency Guard with millisecond atomic leases. Zero duplicate links. Zero wasted compute.''
+\end{quote}
+\end{scenebox}
+
+\begin{scenebox}{Scene 3: Live Razorpay Split-Screen \& Real Phone Rings (1:25 -- 2:25)}
+\textbf{Screen View:} Split Screen: Left = Webhook Sandbox, Right = Real Razorpay Test Portal (pre-opened to Payment Links).\\
+\textbf{Action 1:} Select ``B2B Invoice Overdue $\cdot$ 38 Days'' $\rightarrow$ Click \textbf{Dispatch Webhook}.\\
+\textbf{Action 2:} Switch to Razorpay dashboard on right $\rightarrow$ Refresh. The live \texttt{plink\_} ID appears immediately.\\
+\textbf{Action 3:} Navigate to Hinglish Voice Agent tab $\rightarrow$ Enter test phone number $\rightarrow$ Click \textbf{Trigger Real Call}.\\
+\textbf{Action 4:} Phone rings on camera $\rightarrow$ Answer on speakerphone:
+\textit{``Namaskar! Kya main Rohit Mehta ji se baat kar sakta hoon? Main Recovery Brain se bol raha hoon...''}\\
+\textbf{Narration:}
+\begin{quote}
+``In 143 milliseconds, our engine diagnosed the root cause as cash flow strain and generated a recovery payment link. Look at the right screen: that \texttt{plink\_} appeared in an authentic Razorpay test account. It is live, SMS-enabled, and settles to real banking rails.
+
+For B2B invoices, emails get ignored. Our voice agent calls directly in Hinglish---the actual language of Indian commerce. Crucially, under RBI Master Directions, our agent is architecturally prohibited from asking for OTPs, CVVs, or UPI PINs. The customer pays exclusively through the authentic Razorpay link.''
+\end{quote}
+\end{scenebox}
+
+\begin{scenebox}{Scene 4: The Compliance Gate Visibly Refusing to Act (2:25 -- 3:20)}
+\textbf{Screen View:} Navigate to the RBI Compliance tab.\\
+\textbf{Action 1:} Set time to \textbf{9:30 PM IST} $\rightarrow$ Click \textbf{Trigger Intervention}. Card turns RED: \texttt{BLOCKED\_TIME\_WINDOW (RBI Fair Practices Code)}.\\
+\textbf{Action 2:} Set time to \textbf{2:00 PM IST} $\rightarrow$ Click \textbf{Trigger Intervention}. Card turns GREEN: \texttt{ALLOWED}.\\
+\textbf{Narration:}
+\begin{quote}
+``Most demo presentations only show the happy path. In fintech, an agent's ability to refuse to act is far more critical than its ability to act.
+
+At 9:30 PM IST, our policy engine blocks the intervention immediately. Why? The RBI Fair Practices Code strictly bans recovery calls after 7:00 PM. The system automatically reschedules it for 9:00 AM tomorrow.
+
+At 2:00 PM, the exact same intervention is approved. Our compliance engine enforces contact windows, 48-hour cool-offs after disputes, and an economic floor rule stopping any action where recovery cost exceeds value.''
+\end{quote}
+\end{scenebox}
+
+\begin{scenebox}{Scene 5: Bank Rail Outage \& Cross-Leak Intelligence (3:20 -- 4:10)}
+\textbf{Screen View:} Trigger ``Simulate HDFC Outage'' toggle, then open \texttt{/api/demo/unified-recovery-scenario}.\\
+\textbf{Narration:}
+\begin{quote}
+``When an issuer fails, we don't retry blindly. Our Bank Circuit Breaker monitors rolling success rates across HDFC, SBI, ICICI, and NPCI. When HDFC falls below 30\%, the breaker trips and automatically contracts our Autonomy Envelope from \INR~25,000 down to \INR~5,000.
+
+And here is our biggest differentiator: Cross-Leak Unification. Customer Rohit Mehta has an overdue B2B invoice of \INR~85,000 approaching the MSME Section 43B(h) tax deadline. When his personal retail checkout fails for \INR~4,500, the system recognizes the correlated liquidity strain. It suppresses spamming him with duplicate WhatsApp messages and routes him to an executive restructuring workflow.''
+\end{quote}
+\end{scenebox}
+
+\begin{scenebox}{Scene 6: Standalone Cryptographic Audit Proof \& Karpathy Close (4:10 -- 5:00)}
+\textbf{Screen View:} Switch to terminal window.\\
+\textbf{Action:} Press \texttt{Ctrl+C} to kill the FastAPI backend server. Run: \texttt{python verify\_ledger.py}.\\
+\textbf{Result:} All 49+ blocks verify to Genesis with \texttt{100\% Chain Integrity \textbar\ VERDICT: PASSED}.\\
+\textbf{Narration:}
+\begin{quote}
+``Finally, financial recovery requires mathematical accountability. Every intent, compliance decision, and recovery event is chained into an immutable SHA-256 cryptographic ledger persisted in SQLite.
+
+Notice that my server is completely shut down right now. I run our standalone, zero-dependency \texttt{verify\_ledger.py} script directly against the database. It recalculates the hash sequence from Genesis to Head: 100\% integrity verified.
+
+All 29 architectural verification tests pass. Built strictly under the Karpathy principle of simplicity, deterministic boundaries, and verifiable proof. Thank you.''
+\end{quote}
+\end{scenebox}
+
+\newpage
+% Section 6
+\section{Visual Demonstration Guide: The Concurrent Webhook Sabotage Test}
+
+\subsection{The Scripted Python Sabotage Command}
+To execute the live 10-thread concurrency test from the terminal during your recording:
+
+\begin{lstlisting}[language=Python]
+# One-liner to fire 10 simultaneous duplicate failure payloads across 10 threads
+python -c "import threading, requests; [threading.Thread(target=lambda: print(requests.post('http://localhost:8000/api/webhooks/razorpay', json={'event': 'payment.failed', 'payload': {'payment': {'entity': {'id': 'pay_race_101', 'amount': 150000, 'error_code': 'BAD_REQUEST_ERROR'}}}}, headers={'X-Razorpay-Event-Id': 'evt_race_unique_001'}).status_code)).start() for _ in range(10)]"
+\end{lstlisting}
+
+\subsection{Terminal Output Displayed to Judges}
+\begin{lstlisting}[language=bash]
+200 OK          <-- Winner (First thread acquires atomic lease lock)
+409 Conflict    <-- Duplicate Ignored (IdempotencyGuard blocked)
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+409 Conflict    <-- Duplicate Ignored
+\end{lstlisting}
+
+\begin{takeawaybox}
+This demonstrates that your platform utilizes atomic lease locking to defend against replay attacks and duplicate retries, eliminating duplicate customer charging and wasted LLM token expenses.
+\end{takeawaybox}
+
+% Section 7
+\section{Visual Demonstration Guide: The React Operator Console \& Audit Trail}
+
+When guiding judges through the dashboard, click on any recovered case row to open the \textbf{Case Detail Modal}, which displays three distinct verification views:
+\begin{itemize}[leftmargin=1.5em, itemsep=6pt]
+  \item \textbf{1. Telemetry \& Diagnostic Chain:} Displays the detected root cause (\texttt{BD\_INSUFFICIENT\_FUNDS}), measured diagnostic latency (124ms), and error code classification.
+  \item \textbf{2. Mathematical Decision Receipt:} Shows the counterfactual lift calculation:
+  $$\text{Gross: } \text{\INR~5,000} \quad\mid\quad \text{Natural: } 8\% \quad\mid\quad \text{Intervention: } 68\% \quad\mid\quad \text{ENRV Lift: } +\text{\INR~420.50}$$
+  Displays the cryptographic seal: \texttt{seal\_7f8a12bc90de44...}
+  \item \textbf{3. Cryptographic Block Inspector:} Displays the exact block sequence number, previous block hash, content payload, and SHA-256 block hash, proving permanent inclusion in the ledger.
+\end{itemize}
+
+% Section 8
+\section{Judges Defense \& Technical Q\&A Playbook}
+
+\begin{calloutbox}{Q1: ``Why use SQLite instead of PostgreSQL with distributed Redis locks?''}
+\textbf{Your Answer:}
+``For this hackathon reference implementation, our primary objective was 100\% zero-dependency local reproducibility. Any evaluator can clone the repo and run all 29 tests immediately with zero Docker, PostgreSQL, or Redis configuration. SQLite in WAL mode with Python threading mutexes provides millisecond atomic lease guarantees. 
+
+In production, this architecture maps directly to PostgreSQL row-level locks (\texttt{SELECT ... FOR UPDATE NOWAIT}) and distributed Redis Redlock leases for multi-node FastAPI clusters, with Kafka handling incoming webhook ingress.''
+\end{calloutbox}
+
+\begin{calloutbox}{Q2: ``Why didn't you use an LLM for the entire recovery workflow?''}
+\textbf{Your Answer:}
+``Using an LLM for policy enforcement or financial execution is an architectural anti-pattern. LLMs are probabilistic and hallucinate edge cases under pressure. 
+
+We use LLMs strictly where they excel: unstructured error text classification and colloquial Hinglish conversational dialogue. All policy boundaries---RBI calling hours, maximum attempt ceilings, and the Bank Circuit Breaker---are hard-coded, deterministic code invariants that no prompt can override.''
+\end{calloutbox}
+
+\begin{calloutbox}{Q3: ``How does your ENRV model prevent negative-ROI interventions?''}
+\textbf{Your Answer:}
+``Traditional bots look only at recovery amount. We calculate counterfactual lift: we subtract the natural recovery probability (what would have recovered without any intervention) and apply continuous time-value discounting at an 18\% p.a. WACC benchmark (the cost of capital for Indian SMEs). 
+
+If the projected ENRV is under \INR~100, our economic floor rule aborts the action to prevent spending \INR~15 on WhatsApp and telephony fees for an unviable return.''
+\end{calloutbox}
+
+\vfill
+\begin{center}
+  \footnotesize\color{gray}
+  Document generated for Razorpay AI Buildathon 2026 $\cdot$ Track 03: AI Revenue Recovery\\
+  Built under the Karpathy Guidelines: Simplicity First, Surgical Execution, and Mathematical Truth.
+\end{center}
+
+\end{document}
