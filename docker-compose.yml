@@ -37,11 +37,11 @@ services:
     volumes:
       - mutex_data:/app/data
 
-  dashboard:
+  frontend:
     build:
-      context: ./dashboard
+      context: ./frontend
       dockerfile: Dockerfile
-    container_name: revenue_recovery_dashboard
+    container_name: revenue_recovery_frontend
     restart: always
     depends_on:
       - backend

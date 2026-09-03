@@ -19,10 +19,12 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_TWnp4ewYt2QzQX")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "lBqXbMLDSpK7qFzkA3UWHhfV")
-RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "mock_webhook_secret")
-RAZORPAY_API_BASE = "https://api.razorpay.com/v1"
+from app.core.config import (
+    RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET,
+    RAZORPAY_WEBHOOK_SECRET,
+    RAZORPAY_API_BASE,
+)
 
 
 class RazorpayClientWrapper:
@@ -32,8 +34,8 @@ class RazorpayClientWrapper:
     """
 
     def __init__(self):
-        self.key_id = os.getenv("RAZORPAY_KEY_ID", "rzp_test_TWnp4ewYt2QzQX")
-        self.key_secret = os.getenv("RAZORPAY_KEY_SECRET", "lBqXbMLDSpK7qFzkA3UWHhfV")
+        self.key_id = RAZORPAY_KEY_ID
+        self.key_secret = RAZORPAY_KEY_SECRET
         self._active_links_by_invoice: Dict[str, Dict[str, Any]] = {}
 
     def verify_webhook_signature(self, raw_body: bytes, signature: str) -> bool:

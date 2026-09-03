@@ -2,7 +2,8 @@
 # Razorpay AI Buildathon 2026 — Track 03
 $Host.UI.RawUI.WindowTitle = "Revenue Recovery Brain — Dev Launcher"
 
-$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
+$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ROOT = Split-Path -Parent $SCRIPT_DIR
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
@@ -33,13 +34,13 @@ try {
     Write-Host "  Backend: Starting (may take a moment)..." -ForegroundColor Yellow
 }
 
-# Start Vite dashboard
+# Start Vite frontend
 Write-Host ""
-Write-Host "[2/2] Starting Vite Dashboard on port 5173..." -ForegroundColor Yellow
+Write-Host "[2/2] Starting Vite Frontend on port 5173..." -ForegroundColor Yellow
 $frontendJob = Start-Process -FilePath "powershell" -ArgumentList @(
     "-NoExit",
     "-Command",
-    "Set-Location '$ROOT\dashboard'; Write-Host 'Dashboard starting...' -ForegroundColor Yellow; bun run dev"
+    "Set-Location '$ROOT\frontend'; Write-Host 'Frontend starting...' -ForegroundColor Yellow; bun run dev"
 ) -PassThru
 
 Write-Host "  Dashboard PID: $($frontendJob.Id)" -ForegroundColor Gray

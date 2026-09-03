@@ -27,17 +27,16 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# ── Configuration ──────────────────────────────────────────────────────────────
-LLM_SERVER_URL = os.getenv("LLM_SERVER_URL", "http://localhost:11434")
+from app.core.config import (
+    LLM_SERVER_URL,
+    LLM_DIAGNOSIS_MODEL as DIAGNOSIS_MODEL,
+    LLM_DIALOGUE_MODEL as DIALOGUE_MODEL,
+    LLM_TIMEOUT_SECONDS as TIMEOUT_SECONDS,
+)
+
 OLLAMA_API_URL = f"{LLM_SERVER_URL}/api/generate"
 OLLAMA_CHAT_URL = f"{LLM_SERVER_URL}/api/chat"
 OLLAMA_TAGS_URL = f"{LLM_SERVER_URL}/api/tags"
-
-# Models — both fit in 4-bit quantization on a single 2080 Ti (11GB)
-DIAGNOSIS_MODEL = os.getenv("LLM_DIAGNOSIS_MODEL", "mistral:7b-instruct-q4_K_M")
-DIALOGUE_MODEL = os.getenv("LLM_DIALOGUE_MODEL", "llama3:8b-instruct-q4_K_M")
-
-TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "8.0"))
 
 _client: Optional[httpx.AsyncClient] = None
 

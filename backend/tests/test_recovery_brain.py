@@ -10,7 +10,7 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 # Add backend directory to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.core.idempotency import IdempotencyGuard
 from app.models.database import LeakType, RootCause, InterventionType, ComplianceAction
@@ -1116,7 +1116,7 @@ def test_29_audit_ledger_persists_across_restart():
     # live singleton's DB and from test_6 which tests in-memory integrity.
     from app.core import audit_ledger as ledger_module
     original_db_path = ledger_module._DB_PATH
-    temp_db = Path(__file__).parent / "app" / "core" / "_test_29_temp_ledger.db"
+    temp_db = Path(__file__).resolve().parent.parent / "app" / "core" / "_test_29_temp_ledger.db"
 
     # Patch the module-level constant for this test
     ledger_module._DB_PATH = temp_db
@@ -1159,9 +1159,8 @@ def test_29_audit_ledger_persists_across_restart():
         "Head hash mismatch after reload — data corrupted"
     )
 
-    # ── VERIFY VIA standalone verify_chain() ─────────────────────────────────
     # Import verify_ledger's verify_chain to simulate out-of-process verification
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from verify_ledger import verify_chain
 
     # Read directly from SQLite (as verify_ledger.py does)
