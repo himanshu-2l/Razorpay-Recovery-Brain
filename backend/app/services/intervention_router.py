@@ -114,8 +114,9 @@ class InterventionRouter:
     }
 
     # Baseline natural recovery probabilities (Do-Nothing Counterfactual)
-    # Source: Razorpay 2023 payment analytics, RBI Annual Report 2022-23,
-    # and DSO industry benchmarks for Indian MSME receivables.
+    # ASSUMPTIONS — modeled from NPCI operational incident reports, general
+    # B2B/B2C collections literature, and engineering judgment. These are not
+    # derived from a verified Razorpay-published dataset or named external report.
     NATURAL_RECOVERY_BASELINES = {
         RootCause.TD_BANK_DOWN: 0.22,       # RBI: 22% of technical declines self-resolve within 24h
         RootCause.TD_NPCI_TIMEOUT: 0.25,    # NPCI ops report: 25% NPCI timeouts auto-recover
@@ -138,9 +139,11 @@ class InterventionRouter:
         RootCause.UNKNOWN: 0.05,
     }
 
-    # Expected success probabilities under targeted intervention
-    # Source: Razorpay Recovery Brain internal A/B evaluation (synthetic batch, n=66),
-    # NASSCOM collections benchmarks, and Vonage/Twilio B2B voice uplift studies.
+    # Expected success probabilities under targeted intervention.
+    # ASSUMPTIONS — derived from engineering judgment, Vonage/Twilio B2B voice
+    # uplift studies (publicly cited in their respective product documentation),
+    # and the internal methodology validation scenario. Not verified Razorpay
+    # production A/B data.
     INTERVENTION_SUCCESS_RATES = {
         InterventionType.RETRY: 0.82,           # Auto-retry at right window: 82% success
         InterventionType.REAUTH: 0.74,          # Re-auth mandate: 74% complete on first link
@@ -155,13 +158,16 @@ class InterventionRouter:
     # ENRV uncertainty bands by segment.
     # B2B collections have historically wider downside due to counterparty risk,
     # legal delays, and multi-stakeholder approval chains.
-    # Source: EY India B2B Collections Report 2023, DSO variance analysis.
+    # ASSUMPTION — band widths are engineering estimates based on general B2B
+    # collections variance patterns; not derived from a verified named report.
     ENRV_BANDS_B2B = {"p10_factor": 0.55, "p90_factor": 1.30}   # Asymmetric: -45% / +30%
     ENRV_BANDS_B2C = {"p10_factor": 0.65, "p90_factor": 1.25}   # Narrower: -35% / +25%
 
     # B2B churn base rate by intervention aggressiveness.
     # Conservative voice: 2.5% churn risk per intervention. WhatsApp: 1.0%.
-    # Source: Harvard Business Review "The Cost of Dunning" (2019), India MSME survey.
+    # ASSUMPTION — churn rates are engineering estimates based on general
+    # B2B customer relationship sensitivity literature. Not from a verified
+    # named report.
     B2B_CHURN_RATE_VOICE = 0.025
     B2B_CHURN_RATE_NUDGE = 0.010
 
@@ -171,7 +177,8 @@ class InterventionRouter:
     B2B_ARR_FALLBACK_MULTIPLIER = 3.0
 
     # Default B2C LTV for Indian digital commerce (mid-market SaaS/fintech).
-    # Source: Razorpay 2023 merchant analytics, NASSCOM India SaaS Report 2023.
+    # ASSUMPTION — approximate figure based on general Indian D2C and fintech
+    # merchant benchmarks. Not a verified Razorpay-published statistic.
     B2C_DEFAULT_LTV_INR = 12000.0
 
     def route(
@@ -248,7 +255,7 @@ class InterventionRouter:
         # the relationship at risk spans the full contract year.
         # If customer_arr is not provided, we use 3x the invoice as a conservative proxy
         # (i.e., approximately 1 quarter of expected annual billings).
-        # Source: EY India B2B Collections Report 2023; Harvard Business Review (2019).
+        # Source: general B2B collections literature and engineering judgment.
         #
         # B2C: Churn risk is applied against Customer LTV with a 10% penalty weight,
         # reflecting the probabilistic cost of losing the customer's future business.
@@ -273,7 +280,9 @@ class InterventionRouter:
 
         # ── TIME-VALUE OF MONEY DISCOUNTING ────────────────────────────────────
         # ENRV_adjusted = ENRV × 1/(1+r)^(t/365)
-        # r = 18% p.a. (Indian SME WACC benchmark, RBI Monetary Policy 2023-24)
+        # r = 18% p.a. (ASSUMPTION — approximate cost of working capital for Indian SMEs,
+        # commonly cited in Indian fintech/MSME finance literature; not tied to a specific
+        # RBI Monetary Policy publication or named report)
         # For B2C payment failures, recovery is typically same-day (t=1),
         # making the discount factor negligible (~0.9995) — correctly applied.
         wacc_r = 0.18
@@ -289,7 +298,7 @@ class InterventionRouter:
         # and multi-stakeholder approval chains in corporate collections.
         # B2C: Narrower distribution (P10 = 0.65x) — retail consumer behavior is
         # more predictable and mean-reverting.
-        # Source: EY India B2B Collections Report 2023, DSO variance analysis.
+        # ASSUMPTION — band widths are engineering estimates based on general B2B
         bands = (
             self.ENRV_BANDS_B2B if leak_type == LeakType.B2B_RECEIVABLE
             else self.ENRV_BANDS_B2C

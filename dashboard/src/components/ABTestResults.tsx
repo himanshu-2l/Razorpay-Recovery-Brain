@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart2, FlaskConical, TrendingUp, AlertCircle, CheckCircle2, RefreshCw, Info } from 'lucide-react';
+import { BarChart2, FlaskConical, TrendingUp, AlertCircle, CheckCircle2, RefreshCw, Info, AlertTriangle } from 'lucide-react';
 import { API_BASE } from '../api';
 
 interface StratificationBalance {
@@ -243,7 +243,7 @@ export const ABTestResults: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-48 text-gray-400 gap-3">
         <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
-        <span className="font-mono text-sm">Loading A/B experiment results…</span>
+        <span className="font-mono text-sm">Loading methodology validation results…</span>
       </div>
     );
   }
@@ -270,6 +270,25 @@ export const ABTestResults: React.FC = () => {
   return (
     <div className="space-y-6">
 
+      {/* ⚠️ Unmissable Methodology Disclaimer — MUST appear before any results */}
+      <div className="flex gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-amber-300 uppercase tracking-wide">
+            Methodology Validation — Synthetic Scenario, Not Live-Measured Lift
+          </p>
+          <p className="text-[11px] text-amber-200/70 leading-relaxed">
+            This view demonstrates that the statistical engine (two-proportion z-test, Wilson
+            95% CI, sample size formula) is <strong>correctly implemented</strong> against a
+            known synthetic scenario. Recovery rates are <strong>assumed</strong> from general
+            MSME collections literature (28% control baseline; intervention-specific treatment
+            rates) — <strong>not verified Razorpay-published figures</strong> and not
+            experimentally observed from a live holdback group. Real A/B measurement requires
+            a genuine production holdback group with tracked payment outcomes over weeks/months.
+          </p>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -277,9 +296,9 @@ export const ABTestResults: React.FC = () => {
             <FlaskConical className="w-4.5 h-4.5 text-blue-400" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white">A/B Test Results</h2>
+            <h2 className="text-base font-bold text-white">Methodology Validation: Simulated Scenario</h2>
             <p className="text-xs text-gray-500">
-              Vasool Agent vs. Razorpay Default 3 Reminders · {exp.sample_size_control + exp.sample_size_treatment} cases · Two-proportion z-test
+              Statistical engine proof · {exp.sample_size_control + exp.sample_size_treatment} synthetic cases · Two-proportion z-test
             </p>
           </div>
         </div>
@@ -405,13 +424,15 @@ export const ABTestResults: React.FC = () => {
         <StratificationTable balance={exp.stratification_balance} />
       </div>
 
-      {/* Statistical Disclaimer */}
-      <div className="flex gap-2.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-        <Info className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-gray-500 leading-relaxed">
-          {exp.statistical_note}
-        </p>
-      </div>
+      {/* Static statistical note from engine */}
+      {exp.statistical_note && (
+        <div className="flex gap-2.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+          <Info className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            {exp.statistical_note}
+          </p>
+        </div>
+      )}
 
     </div>
   );

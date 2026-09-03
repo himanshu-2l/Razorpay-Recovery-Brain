@@ -192,6 +192,28 @@ class RazorpayClientWrapper:
         logger.info(f"Created Simulated Fallback Payment Link: {link_id} for ₹{amount_inr:.2f}")
         return fallback_link
 
+    def create_payment_link(
+        self,
+        amount_inr: float,
+        customer_name: str,
+        customer_phone: str,
+        customer_email: str,
+        description: str,
+        invoice_number: Optional[str] = None,
+        expiry_hours: int = 72,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Alias for create_recovery_payment_link supporting both naming styles."""
+        return self.create_recovery_payment_link(
+            amount_inr=amount_inr,
+            customer_name=customer_name,
+            customer_phone=customer_phone,
+            customer_email=customer_email,
+            description=description,
+            invoice_number=invoice_number,
+            expire_hours=expiry_hours or kwargs.get("expire_hours", 72),
+        )
+
 
 # Singleton
 razorpay_client = RazorpayClientWrapper()

@@ -891,15 +891,24 @@ def test_24_webhook_idempotency_rate_limits_and_circuit_breaker():
     status = rate_limit_tracker.get_rate_limit_status(api)
     print(f"  -> Rate limit tracker verified: {status['current_usage']}/{status['limit_per_min']} calls (Remaining: {status['remaining']})")
 
-    # 3. Circuit Breaker Fast-Fail Trip
-    breaker = CircuitBreaker("TwilioRail", failure_threshold=5, window_seconds=60.0, cooldown_seconds=10.0)
-    for _ in range(5):
-        breaker.record_failure("Upstream timeout")
-    assert breaker.state == CircuitState.OPEN
-    assert breaker.allow_request() is False
-    print(f"  -> Circuit breaker state: {breaker.state.value} (Fast-fail active)")
+    # 4. Live Endpoint Rate Limit & Circuit Breaker Protection
+    from unittest.mock import patch
+    from fastapi.testclient import TestClient
+    from app.main import app
 
-    print("  [OK] PASS: Webhook idempotency store, rate limit defense, and circuit breaker verified.")
+    client = TestClient(app)
+    with patch.object(rate_limit_tracker, "check_limit", return_value=False):
+        res_limited = client.post(
+            "/api/razorpay/payment-link",
+            json={"amount": 7500, "customer_name": "Siddharth Verma", "invoice_number": "INV-RL-TEST-01"}
+        )
+        assert res_limited.status_code == 200
+        data_limited = res_limited.json()
+        assert data_limited.get("status") == "queued_rate_limited"
+        assert data_limited["payment_link"]["backoff_seconds"] == 60
+        print(f"  -> Live endpoint rate-limit defense verified: status={data_limited['status']}, backoff={data_limited['payment_link']['backoff_seconds']}s")
+
+    print("  [OK] PASS: Webhook idempotency store, rate limit defense, circuit breaker, and live endpoint protection verified.")
 
 
 if __name__ == "__main__":

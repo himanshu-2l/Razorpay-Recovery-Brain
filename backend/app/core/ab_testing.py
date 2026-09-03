@@ -169,12 +169,17 @@ class ABTestEngine:
     risk distributions (prevents high-risk invoices clustering in one arm).
     """
 
-    # Baseline: Razorpay's default 3 SMS/email reminders, no agent.
-    # Source: Razorpay Recovery Analytics 2023; industry MSME collections benchmarks.
-    CONTROL_BASELINE_RECOVERY_RATE = 0.28   # 28% baseline without Vasool agent
-    EXPECTED_TREATMENT_RECOVERY_RATE = 0.68 # 68% with full Vasool (WhatsApp→Voice→PTP)
-    EXPECTED_ABSOLUTE_LIFT = 0.40           # 40 percentage point lift
-    RELATIVE_LIFT_PCT = 142.9               # (+68-28)/28 = +142.9% relative lift
+    # Assumed recovery rates used for the methodology validation scenario only.
+    # Control: 28% assumed baseline recovery rate for default SMS/email reminders
+    # (no agent). ASSUMPTION — modeled from general MSME collections and SMS/email
+    # dunning literature; not a verified Razorpay-published figure.
+    # Treatment: 68% assumed rate with full Vasool agent (WhatsApp→Voice→PTP).
+    # These figures seed a synthetic scenario to validate z-test, Wilson CI, and
+    # sample size formula correctness. They are NOT live-measured recovery outcomes.
+    CONTROL_BASELINE_RECOVERY_RATE = 0.28   # Assumed 28% — see note above
+    EXPECTED_TREATMENT_RECOVERY_RATE = 0.68 # Assumed 68% — see note above
+    EXPECTED_ABSOLUTE_LIFT = 0.40           # Assumed 40pp lift
+    RELATIVE_LIFT_PCT = 142.9               # (+68-28)/28 = +142.9% assumed relative lift
 
     def __init__(self):
         self._experiments: Dict[str, ExperimentConfig] = {}

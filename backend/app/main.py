@@ -229,6 +229,7 @@ async def get_case(case_id: str):
 
 from app.core.idempotency import idempotency_guard
 from app.services.razorpay_client import razorpay_client
+from app.services.razorpay_service import razorpay_service
 
 
 # ─── Razorpay Webhook ────────────────────────────────────────────────────
@@ -851,17 +852,21 @@ async def create_recovery_payment_link(request: Request):
     description = body.get("description", "Revenue Recovery Brain Auto-Generated Link")
     invoice_number = body.get("invoice_number")
 
-    plink = razorpay_client.create_recovery_payment_link(
+    # Route through razorpay_service so rate limiter (100/min) and circuit breaker
+    # are actually applied in the live request path, not bypassed.
+    plink = razorpay_service.create_payment_link(
         amount_inr=amount_inr,
+        description=description,
         customer_name=customer_name,
         customer_phone=customer_phone,
         customer_email=customer_email,
-        description=description,
-        invoice_number=invoice_number,
+        invoice_number=invoice_number or f"manual_{uuid.uuid4().hex[:8]}",
     )
     return {
-        "status": "created",
+        "status": plink.get("status", "created"),
         "payment_link": plink,
+        "rate_limit_applied": True,
+        "circuit_breaker_applied": True,
     }
 
 
@@ -1562,12 +1567,26 @@ from app.core.ab_testing import ab_test_engine, initialize_vasool_experiment
 _ab_experiment_id: str = initialize_vasool_experiment()
 
 
-def _seed_ab_experiment_from_batch():
+def _seed_methodology_validation_scenario():
     """
-    After a batch is processed, retroactively assign A/B variants to all cases
-    and record outcomes. This gives us REAL computed numbers — not fabricated data.
-    Control arm uses default 3-reminder logic (simulated baseline recovery rate).
-    Treatment arm uses actual pipeline outcome (which ran full Vasool agent).
+    METHODOLOGY VALIDATION — SYNTHETIC SCENARIO ONLY.
+
+    This function seeds the A/B statistical engine with a SYNTHETIC scenario
+    derived from assumed recovery rates (28% control baseline, intervention-specific
+    treatment rates), not from live-measured outcomes.
+
+    Its purpose is to demonstrate that the statistical engine (two-proportion
+    z-test, Wilson CI, sample size formula) is correctly implemented against
+    a known, reproducible scenario — NOT to claim that a measured production
+    lift has been observed.
+
+    Real A/B results require:
+    - A genuine randomized control group that receives ONLY the baseline treatment
+      (3 SMS/email reminders with no agent intervention)
+    - Production outcome tracking over weeks/months with real payment events
+    - A holdback group that has never been touched by the Vasool agent
+
+    Do not remove this disclaimer or relabel outputs as live-measured lift.
     """
     global batch_results
     if batch_results is None:
@@ -1603,10 +1622,12 @@ def _seed_ab_experiment_from_batch():
             recovered = is_actionable and (h % 100) < int(p_recover * 100)
             amount_recovered = amount_at_risk * 0.97 if recovered else 0.0
         else:
-            # Control: simulate Razorpay's default 3 SMS/email reminders (28% baseline recovery rate)
-            # Source: Razorpay Recovery Analytics 2023; industry MSME collections benchmarks
+            # Control arm: ASSUMED 28% baseline recovery rate for Razorpay's default
+            # 3 SMS/email reminders with no agent intervention.
+            # ASSUMPTION — not a verified published figure.
+            # Modeled from general MSME collections and SMS/email dunning literature.
             h = int(_hl.sha256(f"ctrl_{invoice_id}".encode()).hexdigest()[:8], 16)
-            recovered = (h % 100) < 28  # 28% baseline without agent
+            recovered = (h % 100) < 28  # Assumed 28% baseline — see disclaimer above
             amount_recovered = amount_at_risk * 0.95 if recovered else 0.0
 
         ab_test_engine.record_outcome(
@@ -1623,13 +1644,18 @@ def _seed_ab_experiment_from_batch():
 @app.get("/api/ab-test/results")
 async def get_ab_test_results():
     """
-    Returns statistical lift results for the primary Vasool vs. Baseline experiment.
-    Includes: recovery rates, z-statistic, p-value, 95% Wilson CI, and significance verdict.
+    Returns METHODOLOGY VALIDATION results — a synthetic scenario demonstrating
+    the correct implementation of the statistical engine (z-test, Wilson CI,
+    sample size formula).
+
+    THIS IS NOT A LIVE-MEASURED RECOVERY LIFT. Recovery rates are assumed
+    from literature benchmarks, not observed from a genuine holdback experiment.
+    See _seed_methodology_validation_scenario() for full disclaimer.
     """
     exp = ab_test_engine.get_experiment(_ab_experiment_id)
     if exp is None or len(exp.outcomes) == 0:
         # Seed from current batch if available
-        _seed_ab_experiment_from_batch()
+        _seed_methodology_validation_scenario()
 
     exp = ab_test_engine.get_experiment(_ab_experiment_id)
     if exp is None or len(exp.outcomes) == 0:
@@ -1642,6 +1668,14 @@ async def get_ab_test_results():
     result = ab_test_engine.calculate_lift(_ab_experiment_id)
     return {
         "status": "ok",
+        "methodology_validation": True,
+        "disclaimer": (
+            "METHODOLOGY VALIDATION ONLY — NOT live-measured lift. "
+            "Recovery rates (28% control, intervention-specific treatment) are ASSUMED from "
+            "general MSME collections literature, not a verified Razorpay-published or "
+            "experimentally-observed figure. Real A/B results require a genuine production "
+            "holdback group with tracked payment outcomes over weeks/months."
+        ),
         "experiment": result,
     }
 
@@ -1649,8 +1683,9 @@ async def get_ab_test_results():
 @app.post("/api/ab-test/reseed")
 async def reseed_ab_experiment():
     """
-    Re-seeds the A/B experiment from the current batch.
-    Call after generating a new batch to refresh experiment outcomes.
+    Re-seeds the methodology validation scenario from the current batch.
+    This replaces assumed-rate synthetic outcomes with outcomes derived from
+    the current batch's intervention assignments.
     """
     global _ab_experiment_id
 
@@ -1658,15 +1693,20 @@ async def reseed_ab_experiment():
     ab_test_engine._experiments.pop(_ab_experiment_id, None)
     _ab_experiment_id = initialize_vasool_experiment()
 
-    _seed_ab_experiment_from_batch()
+    _seed_methodology_validation_scenario()
 
     exp = ab_test_engine.get_experiment(_ab_experiment_id)
     n_outcomes = len(exp.outcomes) if exp else 0
     return {
         "status": "seeded",
+        "methodology_validation": True,
         "experiment_id": _ab_experiment_id,
         "n_outcomes": n_outcomes,
-        "message": f"A/B experiment re-seeded with {n_outcomes} outcomes from current batch.",
+        "message": (
+            f"Methodology validation scenario re-seeded with {n_outcomes} synthetic outcomes. "
+            "Recovery rates are ASSUMED (28% control baseline from literature; "
+            "treatment rates from intervention benchmarks). Not live-measured data."
+        ),
     }
 
 

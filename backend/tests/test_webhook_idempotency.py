@@ -90,9 +90,49 @@ def test_circuit_breaker_trip():
     print("  [OK] Circuit breaker verified: tripped to OPEN upon 5th failure.")
 
 
+def test_live_endpoint_rate_limit_defense():
+    """
+    Test 5: Verify that the real /api/razorpay/payment-link endpoint routes through
+    RazorpayService and respects the RateLimitTracker by returning queued_rate_limited
+    with exponential backoff delay when check_limit returns False.
+    """
+    from unittest.mock import patch
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+
+    # 1. Normal call (under limit) -> should succeed with rate_limit_applied: True
+    res_normal = client.post(
+        "/api/razorpay/payment-link",
+        json={"amount": 2500, "customer_name": "Test User", "invoice_number": "INV-RL-OK-01"}
+    )
+    assert res_normal.status_code == 200
+    data_normal = res_normal.json()
+    assert data_normal.get("rate_limit_applied") is True
+    assert data_normal.get("circuit_breaker_applied") is True
+    assert data_normal.get("status") in ("created", "simulated_fallback")
+
+    # 2. Rate limited call -> mock rate_limit_tracker.check_limit to return False
+    with patch.object(rate_limit_tracker, "check_limit", return_value=False):
+        res_limited = client.post(
+            "/api/razorpay/payment-link",
+            json={"amount": 5000, "customer_name": "Test User 2", "invoice_number": "INV-RL-BLOCK-01"}
+        )
+        assert res_limited.status_code == 200
+        data_limited = res_limited.json()
+        assert data_limited.get("status") == "queued_rate_limited"
+        plink = data_limited.get("payment_link", {})
+        assert plink.get("status") == "queued_rate_limited"
+        assert plink.get("backoff_seconds") == 60
+        assert "Rate limit threshold" in plink.get("message", "")
+        print(f"  [OK] Live endpoint rate limit defense verified: returned {plink.get('status')} with backoff={plink.get('backoff_seconds')}s.")
+
+
 if __name__ == "__main__":
     print("Running Webhook Idempotency & Rate Limit Tests...")
     test_temporal_webhook_duplicates()
     test_rate_limiter_rapid_calls()
     test_circuit_breaker_trip()
+    test_live_endpoint_rate_limit_defense()
     print("ALL TESTS PASSED!")

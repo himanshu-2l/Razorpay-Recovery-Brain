@@ -16,7 +16,7 @@ from fastapi import APIRouter, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.core.idempotency_mutex import webhook_idempotency_store, rate_limit_tracker
-from app.services.razorpay_client import razorpay_client
+from app.services.razorpay_service import razorpay_service
 from app.services.outcome_reconciler import outcome_reconciler
 from app.services.diagnosis_engine import DiagnosisEngine
 from app.core.audit_ledger import audit_ledger
@@ -88,7 +88,7 @@ async def handle_razorpay_webhook(
         )
 
     # 3. Optional HMAC Signature Validation (if secret configured)
-    if x_razorpay_signature and not razorpay_client.verify_webhook_signature(raw_body, x_razorpay_signature):
+    if x_razorpay_signature and not razorpay_service.verify_webhook_signature(raw_body, x_razorpay_signature):
         logger.warning(f"Invalid webhook HMAC signature for event {event_id}")
         headers["X-Idempotency-Status"] = "INVALID_SIGNATURE"
         return JSONResponse(

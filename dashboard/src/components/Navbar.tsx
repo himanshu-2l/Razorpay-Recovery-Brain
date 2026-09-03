@@ -105,7 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <FlaskConical className="w-3.5 h-3.5" />
-            <span>A/B Results</span>
+            <span>Methodology (A/B)</span>
           </button>
         </nav>
 
