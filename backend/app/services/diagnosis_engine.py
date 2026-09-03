@@ -293,11 +293,36 @@ class DiagnosisEngine:
             root_cause = RootCause.UNKNOWN
             confidence = 0.0
             reasoning = f"Unknown leak type: {leak_type}"
+        # Cross-Leak Context Injection: append any active multi-funnel risk signals to reasoning
+        cross_profile = data.get("cross_leak_profile")
+        if cross_profile:
+            cross_signals = []
+            if cross_profile.get("total_b2b_overdue_inr", 0) > 0 and leak_type != LeakType.B2B_RECEIVABLE:
+                overdue = cross_profile["total_b2b_overdue_inr"]
+                ptp_broken = cross_profile.get("broken_promises_count", 0)
+                cross_signals.append(
+                    f"₹{overdue:,.0f} B2B overdue receivables ({ptp_broken} broken PTP(s))"
+                )
+            if cross_profile.get("abandonment_count_7d", 0) > 0 and leak_type not in (LeakType.CHECKOUT_ABANDONMENT,):
+                cross_signals.append(
+                    f"{cross_profile['abandonment_count_7d']} cart abandonment(s) this week (stage: {cross_profile.get('last_abandonment_stage', 'unknown')})"
+                )
+            if cross_profile.get("mandate_failure_count", 0) > 0 and leak_type != LeakType.SUBSCRIPTION_FAILURE:
+                cross_signals.append(
+                    f"{cross_profile['mandate_failure_count']} subscription mandate failure(s)"
+                )
+            if cross_signals:
+                reasoning += (
+                    f"\n[Cross-Leak Telemetry] Customer has active multi-funnel exposure: "
+                    + "; ".join(cross_signals)
+                    + ". Liquidity stress may span multiple payment relationships."
+                )
 
         return {
             "root_cause": root_cause,
             "confidence": confidence,
             "reasoning_chain": reasoning,
+            "cross_leak_profile": cross_profile,
             "diagnosed_at": datetime.now(timezone.utc).isoformat(),
         }
 

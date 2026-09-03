@@ -35,6 +35,7 @@ from app.services.data_generator import (
     generate_checkout_abandonments,
     generate_subscription_failures,
     generate_b2b_invoices,
+    ROOT_CAUSE_DESCRIPTIONS,
 )
 from app.core.idempotency import IdempotencyGuard
 
@@ -253,132 +254,145 @@ def run_full_batch_evaluation() -> Dict[str, Any]:
 
 
 # ==============================================================================
-# TASK 2: HELD-OUT 80/20 CLASSIFIER EVALUATION (PRECISION, RECALL, F1, CONFUSION MATRIX)
+# TASK 2: HELD-OUT 80/20 CLASSIFIER EVALUATION (COARSE & UNCOLLAPSED FINE-GRAINED)
 # ==============================================================================
 def run_classifier_heldout_evaluation() -> Dict[str, Any]:
-    print("\n[RUNNING TASK 2] Evaluating Diagnosis Classifier on 80/20 Held-Out Split...")
+    print("\n[RUNNING TASK 2] Evaluating Diagnosis Classifier on 80/20 Held-Out Split (Coarse & Uncollapsed)...")
     random.seed(1337)  # Distinct seed for held-out evaluation
 
     engine = DiagnosisEngine()
 
-    # Define all evaluation classes
-    CLASSES = [
+    # 1. Coarse evaluation classes (5 broad operational buckets)
+    COARSE_CLASSES = [
         "TD_INFRASTRUCTURE",       # td_bank_down, td_npci_timeout
-        "BD_CUSTOMER_AUTH",        # bd_insufficient_funds, bd_wrong_pin, bd_limit_exceeded
+        "BD_CUSTOMER_AUTH",        # bd_insufficient_funds, bd_wrong_pin, bd_limit_exceeded, card_expired
         "MANDATE_REAUTH",          # mandate_reauth, sub_mandate_bug
-        "CHECKOUT_UX_FRICTION",    # checkout_friction, checkout_price_shock, checkout_3ds_failure
+        "CHECKOUT_UX_FRICTION",    # checkout_friction, checkout_price_shock, checkout_3ds_failure, checkout_payment_mismatch
         "B2B_RECEIVABLE_AGING"     # recv_oversight, recv_cash_flow, recv_dispute, recv_chronic
     ]
 
-    # Generate 500 labeled synthetic failure events
+    # Generate 500 labeled synthetic failure events with both coarse and fine-grained ground truth
     dataset = []
 
-    # 1. Technical Declines
+    # 1. Technical Declines (100 samples)
     for _ in range(100):
         sub = random.choice(["td_bank_down", "td_npci_timeout"])
+        desc = random.choice(ROOT_CAUSE_DESCRIPTIONS[sub])
         if sub == "td_bank_down":
             item = {
                 "leak_type": LeakType.PAYMENT_FAILURE,
-                "data": {"error_code": "GATEWAY_ERROR", "error_source": "bank", "error_description": "Bank servers unavailable"},
-                "true_class": "TD_INFRASTRUCTURE"
+                "data": {"error_code": "GATEWAY_ERROR", "error_source": "bank", "error_description": desc},
+                "true_class": "TD_INFRASTRUCTURE",
+                "fine_class": "td_bank_down"
             }
         else:
             item = {
                 "leak_type": LeakType.PAYMENT_FAILURE,
-                "data": {"error_code": "SERVER_ERROR", "error_source": "bank", "error_description": "NPCI switch timed out"},
-                "true_class": "TD_INFRASTRUCTURE"
+                "data": {"error_code": "SERVER_ERROR", "error_source": "bank", "error_description": desc},
+                "true_class": "TD_INFRASTRUCTURE",
+                "fine_class": "td_npci_timeout"
             }
         dataset.append(item)
 
-    # 2. Business Declines
+    # 2. Business Declines (120 samples with distinct, realistic signals)
     for _ in range(120):
-        sub = random.choice(["balance", "pin", "limit"])
-        if sub == "balance":
-            item = {
-                "leak_type": LeakType.PAYMENT_FAILURE,
-                "data": {"error_code": "BAD_REQUEST_ERROR", "error_source": "customer", "error_description": "Insufficient balance in customer account"},
-                "true_class": "BD_CUSTOMER_AUTH"
-            }
-        elif sub == "pin":
-            item = {
-                "leak_type": LeakType.PAYMENT_FAILURE,
-                "data": {"error_code": "BAD_REQUEST_ERROR", "error_source": "customer", "error_description": "Incorrect MPIN entered"},
-                "true_class": "BD_CUSTOMER_AUTH"
-            }
-        else:
-            item = {
-                "leak_type": LeakType.PAYMENT_FAILURE,
-                "data": {"error_code": "BAD_REQUEST_ERROR", "error_source": "customer", "error_description": "Daily UPI transaction limit exceeded"},
-                "true_class": "BD_CUSTOMER_AUTH"
-            }
+        sub = random.choice(["bd_insufficient_funds", "bd_wrong_pin", "bd_limit_exceeded", "card_expired"])
+        desc = random.choice(ROOT_CAUSE_DESCRIPTIONS[sub])
+        item = {
+            "leak_type": LeakType.PAYMENT_FAILURE,
+            "data": {
+                "error_code": "BAD_REQUEST_ERROR",
+                "error_source": "customer",
+                "error_description": desc
+            },
+            "true_class": "BD_CUSTOMER_AUTH",
+            "fine_class": sub
+        }
         dataset.append(item)
 
-    # 3. Mandate Issues
+    # 3. Mandate Issues (80 samples)
     for _ in range(80):
         sub = random.choice(["payment_mandate", "sub_mandate"])
         if sub == "payment_mandate":
+            desc = random.choice(ROOT_CAUSE_DESCRIPTIONS["mandate_reauth"])
             item = {
                 "leak_type": LeakType.PAYMENT_FAILURE,
-                "data": {"is_recurring": True, "amount": 2500000, "error_description": "RBI e-mandate limit >15000 threshold"},
-                "true_class": "MANDATE_REAUTH"
+                "data": {"is_recurring": True, "amount": 2500000, "error_description": desc},
+                "true_class": "MANDATE_REAUTH",
+                "fine_class": "mandate_reauth"
             }
         else:
             item = {
                 "leak_type": LeakType.SUBSCRIPTION_FAILURE,
                 "data": {"amount": 3500000, "mandate_active": False, "recurring_cycle": "monthly"},
-                "true_class": "MANDATE_REAUTH"
+                "true_class": "MANDATE_REAUTH",
+                "fine_class": "sub_mandate_bug"
             }
         dataset.append(item)
 
-    # 4. Checkout Friction
+    # 4. Checkout Friction (100 samples)
     for _ in range(100):
-        sub = random.choice(["price_shock", "3ds_drop", "generic_drop"])
+        sub = random.choice(["price_shock", "3ds_drop", "generic_drop", "mismatch"])
         if sub == "price_shock":
             item = {
                 "leak_type": LeakType.CHECKOUT_ABANDONMENT,
-                "data": {"step": "shipping", "shipping_fee": 350, "time_on_page_seconds": 18, "cart_value": 800},
-                "true_class": "CHECKOUT_UX_FRICTION"
+                "data": {"abandonment_stage": "price_reveal", "time_spent_seconds": 18, "cart_value": 800},
+                "true_class": "CHECKOUT_UX_FRICTION",
+                "fine_class": "checkout_price_shock"
             }
         elif sub == "3ds_drop":
             item = {
                 "leak_type": LeakType.CHECKOUT_ABANDONMENT,
-                "data": {"step": "3ds_otp", "attempted_method": "card", "time_on_page_seconds": 120},
-                "true_class": "CHECKOUT_UX_FRICTION"
+                "data": {"abandonment_stage": "3ds_verification", "attempted_method": "card", "time_spent_seconds": 120},
+                "true_class": "CHECKOUT_UX_FRICTION",
+                "fine_class": "checkout_3ds_failure"
+            }
+        elif sub == "mismatch":
+            item = {
+                "leak_type": LeakType.CHECKOUT_ABANDONMENT,
+                "data": {"abandonment_stage": "payment_method_selection", "device_type": "mobile", "payment_methods_offered": ["card", "netbanking"], "time_spent_seconds": 45},
+                "true_class": "CHECKOUT_UX_FRICTION",
+                "fine_class": "checkout_payment_mismatch"
             }
         else:
             item = {
                 "leak_type": LeakType.CHECKOUT_ABANDONMENT,
-                "data": {"step": "address", "cart_value": 1500, "applied_coupon": "FIRST50"},
-                "true_class": "CHECKOUT_UX_FRICTION"
+                "data": {"abandonment_stage": "card_entry", "cart_value": 1500, "time_spent_seconds": 65},
+                "true_class": "CHECKOUT_UX_FRICTION",
+                "fine_class": "checkout_friction"
             }
         dataset.append(item)
 
-    # 5. B2B Receivables
+    # 5. B2B Receivables (100 samples)
     for _ in range(100):
         sub = random.choice(["oversight", "cash_flow", "dispute", "chronic"])
         if sub == "oversight":
             item = {
                 "leak_type": LeakType.B2B_RECEIVABLE,
-                "data": {"days_overdue": 18, "contact_count": 0, "broken_promises": 0},
-                "true_class": "B2B_RECEIVABLE_AGING"
+                "data": {"days_overdue": 25, "contact_count": 1, "broken_promises": 0, "partial_amount_paid": 0},
+                "true_class": "B2B_RECEIVABLE_AGING",
+                "fine_class": "recv_oversight"
             }
         elif sub == "cash_flow":
             item = {
                 "leak_type": LeakType.B2B_RECEIVABLE,
-                "data": {"days_overdue": 45, "contact_count": 2, "partial_amount_paid": 5000},
-                "true_class": "B2B_RECEIVABLE_AGING"
+                "data": {"days_overdue": 45, "contact_count": 2, "partial_amount_paid": 15000},
+                "true_class": "B2B_RECEIVABLE_AGING",
+                "fine_class": "recv_cash_flow"
             }
         elif sub == "dispute":
             item = {
                 "leak_type": LeakType.B2B_RECEIVABLE,
-                "data": {"days_overdue": 60, "disputed": True, "broken_promises": 0},
-                "true_class": "B2B_RECEIVABLE_AGING"
+                "data": {"days_overdue": 65, "contact_count": 3, "partial_amount_paid": 0, "disputed": True, "broken_promises": 0},
+                "true_class": "B2B_RECEIVABLE_AGING",
+                "fine_class": "recv_dispute"
             }
         else:
             item = {
                 "leak_type": LeakType.B2B_RECEIVABLE,
-                "data": {"days_overdue": 110, "broken_promises": 3, "contact_count": 5},
-                "true_class": "B2B_RECEIVABLE_AGING"
+                "data": {"days_overdue": 110, "broken_promises": 3, "contact_count": 5, "partial_amount_paid": 0},
+                "true_class": "B2B_RECEIVABLE_AGING",
+                "fine_class": "recv_chronic"
             }
         dataset.append(item)
 
@@ -390,9 +404,13 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
     train_set = dataset[:split_idx]
     heldout_test_set = dataset[split_idx:]  # 100 cases strictly held out
 
+    # Determine unique uncollapsed fine-grained classes
+    FINE_CLASSES = sorted(list(set(sample["fine_class"] for sample in dataset)))
+
     print(f"  -> Total Generated Samples: {len(dataset)}")
     print(f"  -> Training / Calibration Set: {len(train_set)} samples (80%)")
     print(f"  -> Untouched Held-Out Test Set: {len(heldout_test_set)} samples (20%)")
+    print(f"  -> Coarse Classes: {len(COARSE_CLASSES)} buckets | Fine-Grained Classes: {len(FINE_CLASSES)} uncollapsed classes")
 
     # Helper function to map diagnosed RootCause enum to High-Level Class
     def map_diagnosis_to_class(rc: RootCause) -> str:
@@ -410,49 +428,64 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
         return "BD_CUSTOMER_AUTH"
 
     # Evaluate on held-out test set
-    confusion_matrix = {true_c: {pred_c: 0 for pred_c in CLASSES} for true_c in CLASSES}
-    y_true = []
-    y_pred = []
+    coarse_confusion_matrix = {true_c: {pred_c: 0 for pred_c in COARSE_CLASSES} for true_c in COARSE_CLASSES}
+    fine_confusion_matrix = {true_c: {pred_c: 0 for pred_c in FINE_CLASSES} for true_c in FINE_CLASSES}
+
+    y_true_coarse = []
+    y_pred_coarse = []
+    y_true_fine = []
+    y_pred_fine = []
     misclassified_cases = []
 
     t0 = time.perf_counter()
     for sample in heldout_test_set:
         diag = engine.diagnose(sample["leak_type"], sample["data"])
-        pred_class = map_diagnosis_to_class(diag["root_cause"])
-        true_class = sample["true_class"]
-        
-        y_true.append(true_class)
-        y_pred.append(pred_class)
-        confusion_matrix[true_class][pred_class] += 1
+        pred_coarse = map_diagnosis_to_class(diag["root_cause"])
+        true_coarse = sample["true_class"]
+        pred_fine = diag["root_cause"].value
+        true_fine = sample["fine_class"]
 
-        if pred_class != true_class:
+        y_true_coarse.append(true_coarse)
+        y_pred_coarse.append(pred_coarse)
+        y_true_fine.append(true_fine)
+        y_pred_fine.append(pred_fine)
+
+        coarse_confusion_matrix[true_coarse][pred_coarse] += 1
+
+        if pred_fine not in fine_confusion_matrix[true_fine]:
+            fine_confusion_matrix[true_fine][pred_fine] = 0
+        fine_confusion_matrix[true_fine][pred_fine] += 1
+
+        if pred_coarse != true_coarse or pred_fine != true_fine:
             misclassified_cases.append({
-                "true_class": true_class,
-                "pred_class": pred_class,
+                "true_class": true_coarse,
+                "pred_class": pred_coarse,
+                "true_fine": true_fine,
+                "pred_fine": pred_fine,
                 "leak_type": sample["leak_type"].value,
                 "data": sample["data"],
                 "diagnosed_cause": diag["root_cause"].value,
-                "reasoning": diag.get("reasoning", "")
+                "confidence": diag.get("confidence", 0.0),
+                "reasoning": diag.get("reasoning_chain", "")
             })
 
     eval_latency_ms = (time.perf_counter() - t0) * 1000
 
-    # Compute Per-Class Precision, Recall, F1
-    metrics_per_class = {}
-    total_correct = 0
+    # 1. Compute Coarse Metrics
+    coarse_metrics = {}
+    total_coarse_correct = 0
+    for c in COARSE_CLASSES:
+        tp = coarse_confusion_matrix[c][c]
+        fp = sum(coarse_confusion_matrix[other][c] for other in COARSE_CLASSES if other != c)
+        fn = sum(coarse_confusion_matrix[c][other] for other in COARSE_CLASSES if other != c)
 
-    for c in CLASSES:
-        tp = confusion_matrix[c][c]
-        fp = sum(confusion_matrix[other][c] for other in CLASSES if other != c)
-        fn = sum(confusion_matrix[c][other] for other in CLASSES if other != c)
-        
         precision = (tp / (tp + fp)) if (tp + fp) > 0 else 0.0
         recall = (tp / (tp + fn)) if (tp + fn) > 0 else 0.0
         f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
-        
-        total_correct += tp
-        metrics_per_class[c] = {
-            "support": sum(confusion_matrix[c].values()),
+
+        total_coarse_correct += tp
+        coarse_metrics[c] = {
+            "support": sum(coarse_confusion_matrix[c].values()),
             "tp": tp,
             "fp": fp,
             "fn": fn,
@@ -460,25 +493,54 @@ def run_classifier_heldout_evaluation() -> Dict[str, Any]:
             "recall": recall,
             "f1": f1
         }
+    coarse_overall_accuracy = total_coarse_correct / len(heldout_test_set)
+    coarse_macro_f1 = sum(m["f1"] for m in coarse_metrics.values()) / len(COARSE_CLASSES)
 
-    overall_accuracy = total_correct / len(heldout_test_set)
-    macro_f1 = sum(m["f1"] for m in metrics_per_class.values()) / len(CLASSES)
+    # 2. Compute Fine-Grained (Uncollapsed) Metrics
+    fine_metrics = {}
+    total_fine_correct = 0
+    for c in FINE_CLASSES:
+        tp = fine_confusion_matrix[c].get(c, 0)
+        fp = sum(fine_confusion_matrix[other].get(c, 0) for other in FINE_CLASSES if other != c)
+        fn = sum(fine_confusion_matrix[c].get(other, 0) for other in FINE_CLASSES if other != c)
 
-    print(f"  -> Held-Out Accuracy: {overall_accuracy * 100:.1f}% ({total_correct}/{len(heldout_test_set)})")
-    print(f"  -> Macro-Averaged F1 Score: {macro_f1:.3f}")
-    print(f"  -> Misclassified Cases: {len(misclassified_cases)}")
-    print(f"  -> Evaluation Inference Latency: {eval_latency_ms:.2f}ms for 100 items ({eval_latency_ms/100:.3f}ms/item)")
+        precision = (tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+        recall = (tp / (tp + fn)) if (tp + fn) > 0 else 0.0
+        f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+
+        total_fine_correct += tp
+        fine_metrics[c] = {
+            "support": sum(fine_confusion_matrix[c].values()),
+            "tp": tp,
+            "fp": fp,
+            "fn": fn,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1
+        }
+    fine_overall_accuracy = total_fine_correct / len(heldout_test_set)
+    fine_macro_f1 = sum(m["f1"] for m in fine_metrics.values()) / len(FINE_CLASSES) if FINE_CLASSES else 0.0
+
+    print(f"  -> Coarse Held-Out Accuracy (5-Bucket): {coarse_overall_accuracy * 100:.1f}% ({total_coarse_correct}/{len(heldout_test_set)}) | Macro F1: {coarse_macro_f1:.3f}")
+    print(f"  -> Fine-Grained Held-Out Accuracy ({len(FINE_CLASSES)}-Class): {fine_overall_accuracy * 100:.1f}% ({total_fine_correct}/{len(heldout_test_set)}) | Macro F1: {fine_macro_f1:.3f}")
+    print(f"  -> Total Misclassified Cases (Fine-Grained): {len(misclassified_cases)}")
+    print(f"  -> Evaluation Inference Latency: {eval_latency_ms:.2f}ms for {len(heldout_test_set)} items ({eval_latency_ms/len(heldout_test_set):.3f}ms/item)")
 
     return {
         "train_count": len(train_set),
         "test_count": len(heldout_test_set),
-        "overall_accuracy": overall_accuracy,
-        "macro_f1": macro_f1,
+        "coarse_overall_accuracy": coarse_overall_accuracy,
+        "coarse_macro_f1": coarse_macro_f1,
+        "coarse_metrics_per_class": coarse_metrics,
+        "coarse_confusion_matrix": coarse_confusion_matrix,
+        "coarse_classes": COARSE_CLASSES,
+        "fine_overall_accuracy": fine_overall_accuracy,
+        "fine_macro_f1": fine_macro_f1,
+        "fine_metrics_per_class": fine_metrics,
+        "fine_confusion_matrix": fine_confusion_matrix,
+        "fine_classes": FINE_CLASSES,
         "eval_latency_ms": eval_latency_ms,
-        "metrics_per_class": metrics_per_class,
-        "confusion_matrix": confusion_matrix,
         "misclassified_cases": misclassified_cases,
-        "classes": CLASSES
     }
 
 
@@ -701,55 +763,82 @@ def write_batch_results_report(batch_res: Dict[str, Any], filepath: str):
 
 
 def write_classifier_report(clf_res: Dict[str, Any], filepath: str):
-    metrics = clf_res["metrics_per_class"]
-    cm = clf_res["confusion_matrix"]
-    classes = clf_res["classes"]
+    coarse_metrics = clf_res["coarse_metrics_per_class"]
+    coarse_cm = clf_res["coarse_confusion_matrix"]
+    coarse_classes = clf_res["coarse_classes"]
+
+    fine_metrics = clf_res["fine_metrics_per_class"]
+    fine_cm = clf_res["fine_confusion_matrix"]
+    fine_classes = clf_res["fine_classes"]
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write("# Diagnosis Classifier Held-Out Validation Report\n\n")
         f.write("> **Synthetic Data Disclosure:** The underlying dataset used for this benchmark consists of **500 synthetic transactions and invoices** generated according to known NPCI, RBI, and SME payment failure distributions. An **80/20 train/test split** was enforced (400 calibration / 100 held-out). Metrics below represent performance on the **100 untouched held-out samples** and should be interpreted as structural validation of the deterministic diagnosis rules rather than live bank telemetry.\n\n")
-        
-        f.write("## 1. Overall Classifier Summary\n\n")
-        f.write("| Metric | Result | Interpretation |\n")
-        f.write("| :--- | :---: | :--- |\n")
-        f.write(f"| **Held-Out Test Set Size** | `{clf_res['test_count']} samples` | Strictly untouched during rule calibration |\n")
-        f.write(f"| **Overall Accuracy** | `{clf_res['overall_accuracy'] * 100:.1f}%` | Correct classification rate on held-out split |\n")
-        f.write(f"| **Macro F1 Score** | `{clf_res['macro_f1']:.3f}` | Unweighted mean of class F1 scores |\n")
-        f.write(f"| **Average Inference Latency** | `{clf_res['eval_latency_ms']/clf_res['test_count']:.3f} ms / item` | Microsecond-speed deterministic rule evaluation |\n\n")
 
-        f.write("## 2. Per-Class Precision, Recall, and F1\n\n")
+        f.write("## 1. Overall Classifier Summary (Side-by-Side Comparison)\n\n")
+        f.write("| Evaluation Scope | Total Classes | Held-Out Test Size | Overall Accuracy | Macro F1 Score | Avg Inference Latency |\n")
+        f.write("| :--- | :---: | :---: | :---: | :---: | :---: |\n")
+        f.write(f"| **Coarse 5-Bucket View** | `{len(coarse_classes)} classes` | `{clf_res['test_count']} samples` | **`{clf_res['coarse_overall_accuracy'] * 100:.1f}%`** | `{clf_res['coarse_macro_f1']:.3f}` | `{clf_res['eval_latency_ms']/clf_res['test_count']:.3f} ms / item` |\n")
+        f.write(f"| **Fine-Grained View (Uncollapsed)** | `{len(fine_classes)} classes` | `{clf_res['test_count']} samples` | **`{clf_res['fine_overall_accuracy'] * 100:.1f}%`** | `{clf_res['fine_macro_f1']:.3f}` | `{clf_res['eval_latency_ms']/clf_res['test_count']:.3f} ms / item` |\n\n")
+
+        f.write("> **Methodological Note on Coarse vs. Fine-Grained Accuracy:**  \n")
+        f.write("> The coarse 5-bucket view groups statistically similar business-decline sub-types (`bd_insufficient_funds`, `bd_wrong_pin`, `bd_limit_exceeded`, `card_expired`) into broad operational archetypes. The fine-grained view evaluates true per-cause discrimination across all individual failure mechanisms with zero collapsing.\n")
+        f.write("> The fine-grained accuracy is naturally lower because real-world gateway descriptions (e.g. distinguishing daily limit ceilings vs balance depletion vs card validity lapse) contain natural semantic variations that occasionally fall back to generic heuristics. The uncollapsed metric is the more credible, transparent baseline to lead with.\n\n")
+
+        f.write("## 2. Coarse 5-Bucket Evaluation\n\n")
+        f.write("### Per-Class Precision, Recall, and F1 (Coarse)\n\n")
         f.write("| Class Name | Support | True Positives (TP) | False Positives (FP) | False Negatives (FN) | Precision | Recall | F1 Score |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
-        for c, m in metrics.items():
+        for c, m in coarse_metrics.items():
             f.write(f"| **`{c}`** | `{m['support']}` | `{m['tp']}` | `{m['fp']}` | `{m['fn']}` | `{m['precision']:.3f}` | `{m['recall']:.3f}` | **`{m['f1']:.3f}`** |\n")
         f.write("\n")
 
-        f.write("## 3. Confusion Matrix (Held-Out Test Set)\n\n")
-        f.write("| Actual \\ Predicted | " + " | ".join(f"`{c[:10]}`" for c in classes) + " |\n")
-        f.write("| :--- | " + " | ".join(":---:" for _ in classes) + " |\n")
-        for true_c in classes:
-            row_vals = " | ".join(f"`{cm[true_c][pred_c]}`" for pred_c in classes)
+        f.write("### Confusion Matrix (Coarse)\n\n")
+        f.write("| Actual \\ Predicted | " + " | ".join(f"`{c[:10]}`" for c in coarse_classes) + " |\n")
+        f.write("| :--- | " + " | ".join(":---:" for _ in coarse_classes) + " |\n")
+        for true_c in coarse_classes:
+            row_vals = " | ".join(f"`{coarse_cm[true_c][pred_c]}`" for pred_c in coarse_classes)
             f.write(f"| **`{true_c[:10]}`** | {row_vals} |\n")
+        f.write("\n")
+
+        f.write("## 3. Fine-Grained Validation (Uncollapsed)\n\n")
+        f.write("### Per-Class Precision, Recall, and F1 (Uncollapsed RootCause Enum)\n\n")
+        f.write("| Root Cause (Enum Value) | Support | TP | FP | FN | Precision | Recall | F1 Score |\n")
+        f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+        for c, m in fine_metrics.items():
+            f.write(f"| **`{c}`** | `{m['support']}` | `{m['tp']}` | `{m['fp']}` | `{m['fn']}` | `{m['precision']:.3f}` | `{m['recall']:.3f}` | **`{m['f1']:.3f}`** |\n")
+        f.write("\n")
+
+        f.write("### Confusion Matrix (Uncollapsed RootCause Enum)\n\n")
+        col_headers = [f"`{c[:8]}`" for c in fine_classes]
+        f.write("| Actual \\ Pred | " + " | ".join(col_headers) + " |\n")
+        f.write("| :--- | " + " | ".join(":---:" for _ in fine_classes) + " |\n")
+        for true_c in fine_classes:
+            row_vals = " | ".join(f"`{fine_cm[true_c].get(pred_c, 0)}`" for pred_c in fine_classes)
+            f.write(f"| **`{true_c[:14]}`** | {row_vals} |\n")
         f.write("\n")
 
         f.write("## 4. Known Limitations & Misclassification Analysis\n\n")
         misclassified = clf_res.get("misclassified_cases", [])
         if not misclassified:
-            f.write("### Zero Misclassifications on Current Deterministic Rule Patterns\n")
-            f.write("In the held-out test split (100 samples), 100% of structured synthetic cases mapped correctly to their root-cause classes based on error codes, descriptions, mandate thresholds, and cart step indicators.\n\n")
+            f.write("### Zero Misclassifications on Current Deterministic Rule Patterns\n\n")
         else:
-            f.write(f"### Identified Misclassifications ({len(misclassified)} cases)\n\n")
-            f.write("| True Class | Diagnosed Class | Leak Type | Input Key Signals | Diagnosed Reasoning |\n")
+            f.write(f"### Identified Misclassifications ({len(misclassified)} cases with fine-grained discrepancy)\n\n")
+            f.write("| True Root Cause | Predicted Cause | Leak Type | Input Key Signals | Diagnosed Reasoning |\n")
             f.write("| :--- | :--- | :--- | :--- | :--- |\n")
-            for m in misclassified:
-                signals = str(m["data"])[:60] + "..."
-                f.write(f"| `{m['true_class']}` | `{m['pred_class']}` | `{m['leak_type']}` | `{signals}` | {m['reasoning'][:80]}... |\n")
+            for m in misclassified[:15]:
+                signals = str(m["data"])[:65].replace("\n", " ") + "..."
+                reason = (m.get("reasoning") or "").replace("\n", " ")[:80] + "..."
+                f.write(f"| `{m['true_fine']}` | `{m['pred_fine']}` | `{m['leak_type']}` | `{signals}` | {reason} |\n")
+            if len(misclassified) > 15:
+                f.write(f"\n*...and {len(misclassified) - 15} more fine-grained misclassifications logged for offline tuning.*\n")
             f.write("\n")
 
-        f.write("### Real-World Telemetry Limitations & Fallback Strategy\n")
-        f.write("1. **Answer Leakage Removed:** The previous development-only `root_cause_hint` gateway field has been completely stripped from both data generation and diagnosis inference. The engine now classifies solely on realistic webhook signals (`error_code`, `error_source`, `error_description`, `amount`, `is_recurring`, `attempt_count`).\n")
-        f.write("2. **Unstructured Gateway Noise:** In live production bank integrations, bank switches occasionally return generic `BAD_REQUEST_ERROR` with uninformative descriptions like *'Payment processing failed'*. For such edge cases where deterministic rules cannot establish >70% confidence, the engine falls back to LLM reasoning chain (`llm_service.py`) for semantic disambiguation.\n")
-        f.write("3. **Mandate Thresholds:** Recurring payments above ₹15,000 are deterministically flagged for AFA re-authorization per RBI's e-mandate framework.\n\n")
+        f.write("## 5. Real-World Telemetry Limitations & Fallback Strategy\n\n")
+        f.write("1. **Answer Leakage Removed:** The system contains zero synthetic shortcut fields. The engine classifies strictly on realistic webhook signals (`error_code`, `error_source`, `error_description`, `amount`, `is_recurring`, `attempt_count`).\n")
+        f.write("2. **Downstream ENRV Protection:** Low-confidence fine-grained classifications dynamically widen P10-P90 uncertainty spreads in `intervention_router.py`, preventing false precision in financial recovery forecasting.\n")
+        f.write("3. **Unstructured Gateway Noise & LLM Fallback:** In production bank integrations, bank switches occasionally return generic `BAD_REQUEST_ERROR` with uninformative descriptions like *'Payment processing failed'*. For such edge cases where deterministic rules cannot establish >70% confidence, the engine falls back to LLM reasoning chain (`llm_service.py`) for semantic disambiguation.\n")
+        f.write("4. **Mandate Thresholds:** Recurring payments above ₹15,000 are deterministically flagged for AFA re-authorization per RBI's e-mandate framework.\n\n")
 
 
 def write_voice_latency_report(v_res: Dict[str, Any], filepath: str):

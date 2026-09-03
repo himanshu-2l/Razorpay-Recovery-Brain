@@ -43,6 +43,19 @@ pipeline = RecoveryPipeline()
 current_batch = None
 batch_results = None
 
+
+@app.on_event("startup")
+async def reload_ledger_on_startup():
+    """Reload audit ledger from SQLite so history survives process restarts."""
+    from app.core.audit_ledger import audit_ledger
+    reloaded = audit_ledger.reload_from_db()
+    if reloaded > 0:
+        print(f"[Startup] Audit ledger reloaded: {reloaded} blocks from audit_ledger.db")
+    else:
+        print("[Startup] Audit ledger: fresh start (no persisted history found)")
+
+
+
 # ── SSE Live Event Bus ───────────────────────────────────────────────────────
 # Broadcast real-time events to all connected dashboard clients
 _sse_clients: list[asyncio.Queue] = []
@@ -597,16 +610,36 @@ async def recommend_retry_window(request: Request):
     ts_str = body.get("timestamp")
     ref_time = datetime.fromisoformat(ts_str) if ts_str else datetime.now(timezone.utc)
 
+    customer_history = body.get("customer_history")
     recommendation = smart_scheduler.recommend_optimal_window(
         root_cause=root_cause,
         amount=amount,
         failure_timestamp=ref_time,
+        customer_history=customer_history,
     )
     return {
         "status": "success",
         "root_cause": root_cause,
         "amount": amount,
         "recommendation": recommendation,
+    }
+
+
+# ─── Cross-Leak Customer Intelligence ─────────────────────────────────────
+
+@app.get("/api/customers/{customer_id}/cross-leak-profile")
+async def get_customer_cross_leak_profile(customer_id: str):
+    """
+    Retrieve unified cross-leak risk profile for a customer across B2B, checkout, subscriptions, and payments.
+    """
+    from app.services.cross_leak_state import cross_leak_store
+    profile = cross_leak_store.get(customer_id)
+    if not profile:
+        profile = cross_leak_store.get_or_create(customer_id)
+    return {
+        "status": "success",
+        "customer_id": customer_id,
+        "cross_leak_profile": profile.to_dict(),
     }
 
 

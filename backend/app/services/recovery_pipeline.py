@@ -20,6 +20,7 @@ from app.core.audit_ledger import audit_ledger
 from app.services.receipt_service import receipt_service
 from app.services.stage_planner import stage_planner
 from app.services.outcome_reconciler import outcome_reconciler
+from app.services.cross_leak_state import cross_leak_store
 
 
 class RecoveryPipeline:
@@ -105,6 +106,9 @@ class RecoveryPipeline:
             current_time=current_time,
         )
 
+    # Alias for B2B receivable processing
+    process_b2b_receivable = process_overdue_invoice
+
     def _process_case(
         self,
         leak_type: LeakType,
@@ -118,6 +122,19 @@ class RecoveryPipeline:
         """Core pipeline: diagnose → route → compliance → simulate execution."""
         case_id = str(uuid.uuid4())
         logs = []
+
+        # Step 0: CROSS-LEAK STATE LINKAGE
+        customer_id = (
+            data.get("customer_id")
+            or customer.get("id")
+            or f"cust_{case_id[:8]}"
+        )
+        cross_profile = cross_leak_store.record_leak_event(
+            customer_id=customer_id,
+            leak_type_value=leak_type.value,
+            data={**data, "customer": customer},
+        )
+        data["cross_leak_profile"] = cross_profile.to_dict()
 
         # Step 1: DIAGNOSE
         diagnosis = self.diagnosis.diagnose(leak_type, data, customer_history)
@@ -149,10 +166,14 @@ class RecoveryPipeline:
         })
 
         # Step 2: ROUTE & COUNTERFACTUAL MATH
+        route_data = {
+            **data,
+            "diagnosis_confidence": diagnosis.get("confidence", 0.88),
+        }
         route_result = self.router.route(
             root_cause=root_cause,
             leak_type=leak_type,
-            data=data,
+            data=route_data,
             customer_contact_history=contact_history,
             amount_inr=amount_at_risk,
         )
@@ -278,6 +299,8 @@ class RecoveryPipeline:
             "status": status.value,
             "tax_clock": route_result.get("tax_clock"),
             "nudge_content": route_result.get("nudge_content"),
+            "failure_filter": route_result.get("failure_filter"),
+            "cross_leak_profile": cross_profile.to_dict(),
             "created_at": datetime.now(timezone.utc).isoformat(),
             "audit_logs": logs,
         }

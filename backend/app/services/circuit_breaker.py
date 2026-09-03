@@ -79,8 +79,24 @@ class BankCircuitBreaker:
             # State transition
             if issuer.success_rate < self.OUTAGE_THRESHOLD and not issuer.is_tripped:
                 issuer.is_tripped = True
+                # Lazy import prevents circular dependency at module load time.
+                # Automatically contracts the autonomy envelope on detected rail outage,
+                # matching what autonomy_envelope.py's docstring already claims it does.
+                from app.services.autonomy_envelope import autonomy_envelope as _ae
+                _ae.contract(
+                    reason=(
+                        f"Bank rail outage auto-detected: {code} success rate "
+                        f"{issuer.success_rate:.1%} fell below {self.OUTAGE_THRESHOLD:.0%} threshold. "
+                        f"Autonomy envelope contracted automatically to protect capital."
+                    )
+                )
             elif issuer.success_rate >= self.RECOVERY_THRESHOLD and issuer.is_tripped:
                 issuer.is_tripped = False
+                # Record one stable cycle — gradual, evidence-based recovery
+                # consistent with the 5-consecutive-stable-cycles expansion rule.
+                from app.services.autonomy_envelope import autonomy_envelope as _ae
+                _ae.record_stable_cycle()
+
 
     def is_rail_available(self, issuer_code: str) -> bool:
         """Check if an issuer rail is healthy for retries."""

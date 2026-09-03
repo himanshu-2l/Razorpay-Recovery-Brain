@@ -127,10 +127,12 @@
 
 > **Spoken:**
 > "What we didn't build: live WhatsApp API integration — that would use WATI or Kaleyra in production. Actual voicebot with STT — we'd run Whisper on a local GPU for speech recognition. Postgres with row-level locking — SQLite WAL is fine for this scale, production would use Postgres with SELECT FOR UPDATE.
-
-> What we did build is the decision logic that makes all of those channels work correctly — the root-cause engine, the compliance gate, the cross-leak unification, the cryptographic audit trail.
-
-> The live demo is at [your-render-url]. All 20 architectural tests pass. Thank you."
+>
+> What we did build is the decision logic that makes all of those channels work correctly — the root-cause engine, the GoCardless-style failure filter skipping futile retries, personalized customer scheduling, the compliance gate, cross-leak unification, and the cryptographic audit trail.
+>
+> You can even independently verify our audit trail right from the command line: run `python verify_ledger.py http://localhost:8000/api/audit-ledger/export` and watch it recompute the SHA-256 hash chain live.
+>
+> The live demo is at [your-render-url]. All 27 architectural verification tests pass. Thank you."
 
 ---
 
@@ -142,9 +144,9 @@
 | Razorpay split-screen | 0:25–1:10 | plink_ ID appearing in real Razorpay account |
 | Hinglish voice call | 1:10–2:30 | Real phone ringing, Twilio |
 | Compliance block | 2:30–3:15 | 9PM blocked, 2PM allowed — live |
-| Cross-leak demo | 3:15–3:55 | JSON endpoint, WhatsApp dedup |
+| Cross-leak & Failure Filter | 3:15–3:55 | JSON endpoint, shared risk profile, GoCardless filter |
 | Honest batch metrics | 3:55–4:25 | Exceptions shown, not hidden |
-| Honest close | 4:25–4:50 | What we didn't build |
+| Honest close & CLI Proof | 4:25–4:50 | What we didn't build + live verify_ledger.py |
 
 ---
 

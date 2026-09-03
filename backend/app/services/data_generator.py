@@ -61,6 +61,60 @@ RAZORPAY_ERROR_CODES = {
     },
 }
 
+# Distinct, realistic gateway description pools per specific root cause.
+# Uses natural phrasing returned by Indian acquiring switches and banks
+# (not exact rule-keyword mirrors, so classifier discrimination is honestly tested).
+ROOT_CAUSE_DESCRIPTIONS = {
+    "bd_insufficient_funds": [
+        "Payment declined: Insufficient funds available in the customer account",
+        "Your bank reported inadequate balance to complete this transaction",
+        "Transaction rejected by issuing bank: Low account balance",
+        "Debit failed: Account balance is less than transaction amount",
+        "The customer bank account does not have sufficient balance for this debit",
+    ],
+    "bd_wrong_pin": [
+        "Authentication failure: The UPI PIN entered by the customer was incorrect",
+        "Transaction failed: Incorrect MPIN entered on payment page",
+        "Authorization rejected: Invalid PIN or customer authentication credential mismatch",
+        "Bank rejected payment: Customer failed security authentication (wrong PIN/OTP)",
+        "Security validation failed: User entered incorrect MPIN during UPI authorization",
+    ],
+    "bd_limit_exceeded": [
+        "Payment failed: Customer has exceeded the permissible daily UPI transaction limit",
+        "Transaction declined: Requested amount exceeds the cardholder daily spending limit",
+        "Issuing bank rejected debit: Per-transaction ceiling limit reached for this account",
+        "Daily velocity limit exceeded on the customer bank account",
+        "Transaction rejected: Cumulative daily debit limit exceeded for online purchases",
+    ],
+    "card_expired": [
+        "Payment declined: The card used has expired or the validity date is invalid",
+        "Transaction failed: Card validity period has elapsed (expired instrument)",
+        "Issuing bank rejected payment: Card is past its expiry date",
+        "The debit or credit card presented has expired — please update payment details",
+        "Payment method lapsed: Expiry month/year on card is prior to current date",
+    ],
+    "mandate_reauth": [
+        "RBI e-mandate limit exceeded: Transactions above ₹15,000 require additional factor authentication",
+        "Mandate recurring debit requires explicit user approval under RBI recurring guidelines",
+        "Standing instruction failed: Customer authorization required for high-value mandate",
+    ],
+    "td_bank_down": [
+        "Payment processing failed due to error at bank or wallet gateway",
+        "Payment processing failed because of a temporary issue at the bank's end",
+        "Issuer bank switch unresponsive: Timed out waiting for bank gateway response",
+    ],
+    "td_npci_timeout": [
+        "Payment processing failed due to internal server error",
+        "NPCI central switch timeout during payment confirmation routing",
+        "Inter-bank payment switch network communication failure",
+    ],
+    "checkout_friction": [
+        "Payment processing cancelled by customer",
+        "Payment was not completed on time",
+        "Customer dismissed the checkout modal before authorization was completed",
+    ],
+}
+
 # Payment failure distribution based on real NPCI stats
 PAYMENT_FAILURE_DISTRIBUTION = {
     "td_bank_down": 0.08,           # ~8% of failures are TD
@@ -143,6 +197,13 @@ def generate_payment_failures(customers: List[Dict], count: int = 20) -> List[Di
             random.randint(50000, 200000) * 100,  # ₹50K-2L (high value)
         ])
 
+        if root_cause in ROOT_CAUSE_DESCRIPTIONS:
+            error_description = random.choice(ROOT_CAUSE_DESCRIPTIONS[root_cause])
+        else:
+            error_description = random.choice(
+                RAZORPAY_ERROR_CODES.get(error_code, {}).get("descriptions", ["Payment processing failed"])
+            )
+
         txn = {
             "id": str(uuid.uuid4()),
             "customer_id": customer["id"],
@@ -153,7 +214,7 @@ def generate_payment_failures(customers: List[Dict], count: int = 20) -> List[Di
             "payment_method": random.choices(payment_methods, weights=method_weights, k=1)[0],
             "status": "failed",
             "error_code": error_code,
-            "error_description": random.choice(RAZORPAY_ERROR_CODES[error_code]["descriptions"]),
+            "error_description": error_description,
             "error_source": error_source,
             "gateway_response": {
                 "error_code": error_code,

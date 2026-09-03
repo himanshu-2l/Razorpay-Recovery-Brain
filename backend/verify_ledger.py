@@ -128,13 +128,48 @@ def main():
             print(f"Failed to read file: {e}")
             sys.exit(1)
     else:
-        print("Importing local in-memory ledger instance...")
-        try:
-            from app.core.audit_ledger import audit_ledger
-            records = audit_ledger.export_chain()
-        except ImportError:
-            print("Could not import app.core.audit_ledger. Specify a JSON file or URL target.")
-            sys.exit(1)
+        # Default: try to load from the persisted SQLite DB first.
+        # This works out-of-process (after server kill) and gives a real
+        # verification of the actual recorded history — not a genesis-only tautology.
+        import sqlite3
+        from pathlib import Path
+
+        # Match the path used by audit_ledger.py (_DB_PATH constant)
+        db_candidate = Path(__file__).parent / "app" / "core" / "audit_ledger.db"
+        if db_candidate.exists():
+            print(f"Loading ledger from persisted DB: {db_candidate}")
+            conn = sqlite3.connect(str(db_candidate))
+            try:
+                rows = conn.execute(
+                    "SELECT sequence, event_type, case_id, timestamp, prev_hash, "
+                    "payload, content_hash, merchant_id "
+                    "FROM audit_records ORDER BY sequence ASC"
+                ).fetchall()
+            finally:
+                conn.close()
+            records = []
+            for row in rows:
+                seq, event_type, case_id, ts, prev_hash, payload_json, content_hash, mid = row
+                records.append({
+                    "sequence": seq,
+                    "event_type": event_type,
+                    "case_id": case_id,
+                    "timestamp": ts,
+                    "prev_hash": prev_hash,
+                    "payload": json.loads(payload_json),
+                    "content_hash": content_hash,
+                    "merchant_id": mid,
+                })
+        else:
+            # Fallback: in-process import (only has genesis block if server not running)
+            print("audit_ledger.db not found — importing local in-memory ledger instance...")
+            try:
+                from app.core.audit_ledger import audit_ledger
+                records = audit_ledger.export_chain()
+            except ImportError:
+                print("Could not import app.core.audit_ledger. Specify a JSON file or URL target.")
+                sys.exit(1)
+
 
     is_valid, verified_count, logs = verify_chain(records)
 

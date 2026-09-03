@@ -7,23 +7,23 @@
 | Metric | Evaluated Value | Notes |
 | :--- | :--- | :--- |
 | **Total Processed Cases** | `66` | 100% of batch evaluated without cherry-picking |
-| **Total Amount at Risk** | `₹13,365,317.00` | Across payments, checkout, subscriptions, B2B |
-| **Immediate Autonomous Recovered** | `₹298,023.16` | Automatically executed within autonomy envelope |
-| **Modeled Expected Net Recovery (ENRV)** | `₹6,808,680.97` | Modeled recoverable net value across actionable pipeline |
-| **Modeled Realization % (ENRV / Risk)** | `50.9%` | Realizable recovery rate factoring churn penalty & costs |
-| **Autonomous Executions** | `12` | Instant automated retries & standard nudges |
-| **Held / Escalated / Blocked Cases** | `54` | High-stakes HITL, economic floor, policy blocks, unfixable UX |
+| **Total Amount at Risk** | `₹13,555,552.00` | Across payments, checkout, subscriptions, B2B |
+| **Immediate Autonomous Recovered** | `₹237,893.69` | Automatically executed within autonomy envelope |
+| **Modeled Expected Net Recovery (ENRV)** | `₹6,228,637.71` | Modeled recoverable net value across actionable pipeline |
+| **Modeled Realization % (ENRV / Risk)** | `45.9%` | Realizable recovery rate factoring churn penalty & costs |
+| **Autonomous Executions** | `14` | Instant automated retries & standard nudges |
+| **Held / Escalated / Blocked Cases** | `52` | High-stakes HITL, economic floor, policy blocks, unfixable UX |
 
 ## 2. Category Performance Breakdown
 
 | Failure Category | Case Count | ₹ at Risk | Auto Recovered (₹) | Modeled ENRV (₹) | Realization % | Status Breakdown |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Checkout & Cart Drop-offs** | `21` | ₹288,263.00 | ₹11,161.00 | ₹55,675.17 | `19.3%` | `3 auto / 1 HITL / 2 blocked` |
-| **Business Declines (BD)** | `11` | ₹341,927.00 | ₹194,061.41 | ₹10,483.08 | `3.1%` | `4 auto / 0 HITL / 0 blocked` |
-| **Technical Declines (TD)** | `2` | ₹1,769.00 | ₹614.02 | ₹1,025.40 | `58.0%` | `0 auto / 0 HITL / 0 blocked` |
-| **Other** | `8` | ₹50,782.00 | ₹8,453.73 | ₹24,879.40 | `49.0%` | `1 auto / 1 HITL / 0 blocked` |
-| **Mandate & Recurring Issues** | `4` | ₹217,356.00 | ₹40,352.00 | ₹140,654.50 | `64.7%` | `2 auto / 2 HITL / 0 blocked` |
-| **B2B Receivables** | `20` | ₹12,465,220.00 | ₹43,381.00 | ₹6,575,963.42 | `52.8%` | `2 auto / 18 HITL / 0 blocked` |
+| **Business Declines (BD)** | `14` | ₹329,757.00 | ₹43,249.00 | ₹11,194.31 | `3.4%` | `6 auto / 0 HITL / 1 blocked` |
+| **Mandate & Recurring Issues** | `4` | ₹286,722.00 | ₹99,555.80 | ₹141,083.00 | `49.2%` | `1 auto / 2 HITL / 0 blocked` |
+| **Other** | `12` | ₹120,272.00 | ₹26,263.86 | ₹27,322.05 | `22.7%` | `4 auto / 0 HITL / 0 blocked` |
+| **Technical Declines (TD)** | `2` | ₹41,130.00 | ₹28,956.04 | ₹433.34 | `1.1%` | `0 auto / 0 HITL / 0 blocked` |
+| **Checkout & Cart Drop-offs** | `14` | ₹312,451.00 | ₹39,868.99 | ₹58,745.38 | `18.8%` | `3 auto / 1 HITL / 1 blocked` |
+| **B2B Receivables** | `20` | ₹12,465,220.00 | ₹0.00 | ₹5,989,859.63 | `48.1%` | `0 auto / 18 HITL / 0 blocked` |
 
 ## 3. Honest Exception & Non-Automated Cases List
 
@@ -31,83 +31,81 @@ The system explicitly refuses or holds actions that require human judgment, viol
 
 | Case ID | Customer | Failure Type | Root Cause | Amount (₹) | Pipeline Outcome | Explicit Reason |
 | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
-| `be8df28b` | Anita Patel | `payment_failure` | `checkout_friction` | ₹2,173.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-03T04:30:00+00:00) |
-| `56138f80` | Priya Shah | `payment_failure` | `checkout_friction` | ₹484.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `026670a6` | Shreya Reddy | `payment_failure` | `checkout_friction` | ₹119,201.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `037d6e2e` | Shreya Reddy | `payment_failure` | `td_bank_down` | ₹1,571.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: retry |
-| `4672a50d` | Sneha Singh | `payment_failure` | `checkout_friction` | ₹40,755.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `57a5ee68` | Kavita Patel | `payment_failure` | `bd_wrong_pin` | ₹120.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `b005884b` | Simran Kumar | `payment_failure` | `bd_wrong_pin` | ₹6,624.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `b4b811e9` | Ritu Singh | `payment_failure` | `td_bank_down` | ₹198.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: retry |
-| `b91ca0e7` | Sanjay Bhatia | `payment_failure` | `unknown` | ₹6,808.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹6,808.00 ≥ ₹50,000) or chronic dispute |
-| `06af12ed` | Arun Kumar | `payment_failure` | `bd_wrong_pin` | ₹375.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: whatsapp_nudge |
-| `84535d31` | Kavita Patel | `payment_failure` | `checkout_friction` | ₹26,376.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `98586c9b` | Priya Shah | `payment_failure` | `bd_wrong_pin` | ₹2,250.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `578ac000` | Neha Kumar | `payment_failure` | `checkout_friction` | ₹2,424.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `cca0e6e6` | Shreya Chopra | `payment_failure` | `bd_wrong_pin` | ₹1,096.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `b65c622c` | Shreya Mehta | `payment_failure` | `bd_wrong_pin` | ₹133,177.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `c3bd4650` | Arun Kumar | `payment_failure` | `bd_wrong_pin` | ₹4,500.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `d39de650` | Amit Mishra | `payment_failure` | `checkout_friction` | ₹7,500.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `c7fdec4b` | Swati Malhotra | `checkout_abandonment` | `checkout_payment_mismatch` | ₹5,181.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-03T04:30:00+00:00) |
-| `e4bb640b` | Shreya Chopra | `checkout_abandonment` | `checkout_payment_mismatch` | ₹2,971.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `f4490208` | Karan Patel | `checkout_abandonment` | `checkout_payment_mismatch` | ₹7,178.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `61b82a37` | Neha Joshi | `checkout_abandonment` | `checkout_payment_mismatch` | ₹7,383.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `43df0d73` | Suresh Shah | `checkout_abandonment` | `checkout_friction` | ₹6,263.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `b022e46b` | Shreya Chopra | `checkout_abandonment` | `checkout_price_shock` | ₹4,113.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹4,113.00 ≥ ₹50,000) or chronic dispute |
-| `70670ba0` | Nikhil Nair | `checkout_abandonment` | `checkout_payment_mismatch` | ₹6,007.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `ca534846` | Vivek Iyer | `checkout_abandonment` | `checkout_payment_mismatch` | ₹9,251.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `ffc53d0f` | Nikhil Kumar | `checkout_abandonment` | `checkout_friction` | ₹14,702.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `705a07cb` | Arjun Desai | `checkout_abandonment` | `checkout_friction` | ₹1,841.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `cef0f3f5` | Neha Verma | `checkout_abandonment` | `checkout_3ds_failure` | ₹13,299.00 | `FAILED` | Status: failed | Action: retry |
-| `580ee1b8` | Amit Mishra | `subscription_failure` | `sub_card_expired` | ₹4,107.00 | `FAILED` | Status: failed | Action: email_nudge |
-| `4dbbf7ed` | Priya Shah | `subscription_failure` | `sub_balance` | ₹6,242.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `f9fe61d4` | Neha Verma | `subscription_failure` | `sub_mandate_bug` | ₹97,214.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹97,214.00 ≥ ₹50,000) or chronic dispute |
-| `ca7852a2` | Shreya Mehta | `subscription_failure` | `sub_balance` | ₹9,471.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
-| `4e3c7600` | Sneha Singh | `subscription_failure` | `sub_card_expired` | ₹5,789.00 | `FAILED` | Status: failed | Action: email_nudge |
-| `72aba274` | Shreya Reddy | `subscription_failure` | `sub_card_expired` | ₹9,016.00 | `FAILED` | Status: failed | Action: email_nudge |
-| `c5a889aa` | Rohit Gupta | `subscription_failure` | `sub_balance` | ₹1,618.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: whatsapp_nudge |
-| `7391f8a5` | Amit Desai | `subscription_failure` | `sub_mandate_bug` | ₹79,790.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹79,790.00 ≥ ₹50,000) or chronic dispute |
-| `819d9e48` | Manoj Bhatia | `b2b_receivable` | `recv_cash_flow` | ₹122,422.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-03T04:30:00+00:00) |
-| `087030e0` | Kavita Patel | `b2b_receivable` | `recv_cash_flow` | ₹1,929,442.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-03T04:30:00+00:00) |
-| `039402c2` | Ritu Singh | `b2b_receivable` | `recv_chronic` | ₹121,019.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹121,019.00 ≥ ₹50,000) or chronic dispute |
-| `20f07527` | Sanjay Bhatia | `b2b_receivable` | `recv_oversight` | ₹28,120.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹28,120.00 ≥ ₹50,000) or chronic dispute |
-| `97dc8f90` | Rohit Gupta | `b2b_receivable` | `recv_cash_flow` | ₹126,581.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹126,581.00 ≥ ₹50,000) or chronic dispute |
-| `cbc9e3d1` | Pooja Iyer | `b2b_receivable` | `recv_oversight` | ₹2,680,688.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹2,680,688.00 ≥ ₹50,000) or chronic dispute |
-| `227c3fec` | Sneha Singh | `b2b_receivable` | `recv_chronic` | ₹2,595,421.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹2,595,421.00 ≥ ₹50,000) or chronic dispute |
-| `73203c9c` | Kavita Patel | `b2b_receivable` | `recv_dispute` | ₹2,185,806.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹2,185,806.00 ≥ ₹50,000) or chronic dispute |
-| `dca68be0` | Sanjay Bhatia | `b2b_receivable` | `recv_cash_flow` | ₹42,798.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹42,798.00 ≥ ₹50,000) or chronic dispute |
-| `517880ac` | Amit Desai | `b2b_receivable` | `recv_cash_flow` | ₹120,650.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹120,650.00 ≥ ₹50,000) or chronic dispute |
-| `900f8de8` | Amit Desai | `b2b_receivable` | `recv_cash_flow` | ₹32,803.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹32,803.00 ≥ ₹50,000) or chronic dispute |
-| `49ace6ac` | Sanjay Shah | `b2b_receivable` | `recv_cash_flow` | ₹1,486,210.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹1,486,210.00 ≥ ₹50,000) or chronic dispute |
-| `57a00e10` | Rohit Gupta | `b2b_receivable` | `recv_cash_flow` | ₹63,529.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹63,529.00 ≥ ₹50,000) or chronic dispute |
-| `cf4a837e` | Swati Agarwal | `b2b_receivable` | `recv_cash_flow` | ₹194,769.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹194,769.00 ≥ ₹50,000) or chronic dispute |
-| `a07d3653` | Rohit Gupta | `b2b_receivable` | `recv_cash_flow` | ₹113,892.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹113,892.00 ≥ ₹50,000) or chronic dispute |
-| `84023749` | Swati Agarwal | `b2b_receivable` | `recv_chronic` | ₹202,689.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹202,689.00 ≥ ₹50,000) or chronic dispute |
-| `e82c61df` | Neha Joshi | `b2b_receivable` | `recv_cash_flow` | ₹125,000.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹125,000.00 ≥ ₹50,000) or chronic dispute |
-| `8ac44dea` | Rohit Agarwal | `b2b_receivable` | `recv_chronic` | ₹250,000.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹250,000.00 ≥ ₹50,000) or chronic dispute |
+| `3741c5c1` | Anita Patel | `payment_failure` | `bd_insufficient_funds` | ₹2,173.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-04T04:30:00+00:00) |
+| `969934c5` | Priya Shah | `payment_failure` | `bd_insufficient_funds` | ₹484.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `3e7d7889` | Anita Kapoor | `payment_failure` | `bd_insufficient_funds` | ₹27,471.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `432ed0f7` | Nikhil Nair | `payment_failure` | `card_expired` | ₹26,859.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: email_nudge |
+| `172891ca` | Arun Kumar | `payment_failure` | `td_bank_down` | ₹40,755.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: retry |
+| `e6b3c8be` | Simran Kumar | `payment_failure` | `card_expired` | ₹6,624.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `2dc61bb5` | Karan Patel | `payment_failure` | `card_expired` | ₹3,633.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `e6dd25f7` | Ritu Singh | `payment_failure` | `bd_insufficient_funds` | ₹31,113.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `8106d7b9` | Nikhil Nair | `payment_failure` | `bd_insufficient_funds` | ₹260.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `aba831b8` | Nikhil Nair | `payment_failure` | `td_bank_down` | ₹375.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: retry |
+| `f936cada` | Vivek Nair | `payment_failure` | `bd_limit_exceeded` | ₹40,909.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `b895a21d` | Sneha Singh | `payment_failure` | `bd_wrong_pin` | ₹179,598.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `ecedc0d6` | Rohit Gupta | `payment_failure` | `checkout_friction` | ₹193,621.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `0b566ff5` | Simran Kumar | `payment_failure` | `card_expired` | ₹36,758.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `d1cdc789` | Arun Kumar | `payment_failure` | `bd_wrong_pin` | ₹4,500.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `a40cab21` | Amit Mishra | `payment_failure` | `checkout_friction` | ₹7,500.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `b6e8c1c9` | Shreya Reddy | `checkout_abandonment` | `checkout_friction` | ₹9,349.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-04T04:30:00+00:00) |
+| `643562bb` | Shreya Reddy | `checkout_abandonment` | `checkout_friction` | ₹7,312.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `1f546bf0` | Meera Malhotra | `checkout_abandonment` | `checkout_payment_mismatch` | ₹820.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `64f854e5` | Arjun Sharma | `checkout_abandonment` | `checkout_price_shock` | ₹14,482.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹14,482.00 ≥ ₹50,000) or chronic dispute |
+| `cf96471e` | Neha Verma | `checkout_abandonment` | `checkout_friction` | ₹8,456.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `2dfb640a` | Meera Malhotra | `checkout_abandonment` | `checkout_3ds_failure` | ₹944.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: retry |
+| `ab369f24` | Swati Malhotra | `checkout_abandonment` | `checkout_payment_mismatch` | ₹4,762.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `0369f3cd` | Shreya Reddy | `checkout_abandonment` | `checkout_friction` | ₹14,912.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `f4a10477` | Nikhil Kumar | `checkout_abandonment` | `checkout_payment_mismatch` | ₹11,178.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `8fea510c` | Priya Shah | `subscription_failure` | `sub_balance` | ₹6,242.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `0d77ecfb` | Kavita Patel | `subscription_failure` | `sub_mandate_bug` | ₹18,366.00 | `PARTIALLY_RECOVERED` | Status: partially_recovered | Action: reauth |
+| `d716a27c` | Neha Verma | `subscription_failure` | `sub_mandate_bug` | ₹97,214.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹97,214.00 ≥ ₹50,000) or chronic dispute |
+| `fd06bff3` | Sneha Singh | `subscription_failure` | `sub_card_expired` | ₹5,789.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `070f3ccf` | Kavita Mishra | `subscription_failure` | `sub_card_expired` | ₹7,731.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `fc950c90` | Shreya Reddy | `subscription_failure` | `sub_card_expired` | ₹9,016.00 | `FAILED` | Status: failed | Action: email_nudge |
+| `70100682` | Amit Desai | `subscription_failure` | `sub_mandate_bug` | ₹79,790.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹79,790.00 ≥ ₹50,000) or chronic dispute |
+| `fe81aea6` | Manoj Bhatia | `b2b_receivable` | `recv_cash_flow` | ₹122,422.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-04T04:30:00+00:00) |
+| `093236df` | Kavita Patel | `b2b_receivable` | `recv_cash_flow` | ₹1,929,442.00 | `STOPPED` | Blocked by Responsible Collections Policy — Contact attempted outside 8 AM–7 PM IST (Rescheduled to 2026-09-04T04:30:00+00:00) |
+| `247cc8f8` | Ritu Singh | `b2b_receivable` | `recv_chronic` | ₹121,019.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹121,019.00 ≥ ₹50,000) or chronic dispute |
+| `ac37309f` | Sanjay Bhatia | `b2b_receivable` | `recv_oversight` | ₹28,120.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹28,120.00 ≥ ₹50,000) or chronic dispute |
+| `0c54d4fc` | Rohit Gupta | `b2b_receivable` | `recv_cash_flow` | ₹126,581.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹126,581.00 ≥ ₹50,000) or chronic dispute |
+| `808d0d23` | Pooja Iyer | `b2b_receivable` | `recv_oversight` | ₹2,680,688.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹2,680,688.00 ≥ ₹50,000) or chronic dispute |
+| `723ba620` | Sneha Singh | `b2b_receivable` | `recv_chronic` | ₹2,595,421.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹2,595,421.00 ≥ ₹50,000) or chronic dispute |
+| `9ff21833` | Kavita Mishra | `b2b_receivable` | `recv_oversight` | ₹23,617.00 | `FAILED` | Status: failed | Action: whatsapp_nudge |
+| `73d31362` | Kavita Patel | `b2b_receivable` | `recv_dispute` | ₹2,185,806.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹2,185,806.00 ≥ ₹50,000) or chronic dispute |
+| `cc9d2ec8` | Anita Kapoor | `b2b_receivable` | `recv_cash_flow` | ₹19,764.00 | `FAILED` | Status: failed | Action: voice_call |
+| `0f752740` | Sanjay Bhatia | `b2b_receivable` | `recv_cash_flow` | ₹42,798.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹42,798.00 ≥ ₹50,000) or chronic dispute |
+| `7beb1bef` | Amit Desai | `b2b_receivable` | `recv_cash_flow` | ₹120,650.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹120,650.00 ≥ ₹50,000) or chronic dispute |
+| `d556282b` | Amit Desai | `b2b_receivable` | `recv_cash_flow` | ₹32,803.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹32,803.00 ≥ ₹50,000) or chronic dispute |
+| `d177b6e0` | Sanjay Shah | `b2b_receivable` | `recv_cash_flow` | ₹1,486,210.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹1,486,210.00 ≥ ₹50,000) or chronic dispute |
+| `a4e3811a` | Rohit Gupta | `b2b_receivable` | `recv_cash_flow` | ₹63,529.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹63,529.00 ≥ ₹50,000) or chronic dispute |
+| `4cca92e9` | Swati Agarwal | `b2b_receivable` | `recv_cash_flow` | ₹194,769.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹194,769.00 ≥ ₹50,000) or chronic dispute |
+| `86d5be4a` | Rohit Gupta | `b2b_receivable` | `recv_cash_flow` | ₹113,892.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹113,892.00 ≥ ₹50,000) or chronic dispute |
+| `62d12867` | Swati Agarwal | `b2b_receivable` | `recv_chronic` | ₹202,689.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹202,689.00 ≥ ₹50,000) or chronic dispute |
+| `87cfe229` | Neha Joshi | `b2b_receivable` | `recv_cash_flow` | ₹125,000.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹125,000.00 ≥ ₹50,000) or chronic dispute |
+| `81307ef1` | Rohit Agarwal | `b2b_receivable` | `recv_chronic` | ₹250,000.00 | `AWAITING_RESPONSE` | Held for Human Operator Approval — High-stakes amount (₹250,000.00 ≥ ₹50,000) or chronic dispute |
 
 ## 4. Full Per-Case Audit Sample (First 20 Cases)
 
 | Case ID | Customer | Root Cause | Intervention | Amount | Status | Cryptographic Receipt Seal |
 | :--- | :--- | :--- | :--- | :---: | :--- | :--- |
-| `be8df28b` | Anita Patel | `checkout_friction` | `whatsapp_nudge` | ₹2,173.00 | `stopped` | `b3c44c1f46bca6...` |
-| `56138f80` | Priya Shah | `checkout_friction` | `whatsapp_nudge` | ₹484.00 | `failed` | `dee698c722202f...` |
-| `a972fc7f` | Arjun Desai | `bd_wrong_pin` | `whatsapp_nudge` | ₹91,352.00 | `recovered` | `def942694e1e3a...` |
-| `7430385c` | Arun Kumar | `checkout_friction` | `whatsapp_nudge` | ₹2,952.00 | `recovered` | `f5dda1c2139bb6...` |
-| `026670a6` | Shreya Reddy | `checkout_friction` | `whatsapp_nudge` | ₹119,201.00 | `failed` | `8ece7007025573...` |
-| `037d6e2e` | Shreya Reddy | `td_bank_down` | `retry` | ₹1,571.00 | `partially_recovered` | `398b5e93ee496c...` |
-| `4672a50d` | Sneha Singh | `checkout_friction` | `whatsapp_nudge` | ₹40,755.00 | `failed` | `ed41e4974d3f6c...` |
-| `57a5ee68` | Kavita Patel | `bd_wrong_pin` | `whatsapp_nudge` | ₹120.00 | `failed` | `fe05a3750fe726...` |
-| `b005884b` | Simran Kumar | `bd_wrong_pin` | `whatsapp_nudge` | ₹6,624.00 | `failed` | `7153028d2f0b01...` |
-| `001ba458` | Shreya Reddy | `bd_wrong_pin` | `whatsapp_nudge` | ₹60,151.00 | `recovered` | `9a62d3e71d3e24...` |
-| `b4b811e9` | Ritu Singh | `td_bank_down` | `retry` | ₹198.00 | `partially_recovered` | `d24aa7a97cd567...` |
-| `b91ca0e7` | Sanjay Bhatia | `unknown` | `escalate_human` | ₹6,808.00 | `awaiting_response` | `01a1ef948ed338...` |
-| `a84827a0` | Arjun Desai | `checkout_friction` | `whatsapp_nudge` | ₹260.00 | `recovered` | `0e01a7dc537b91...` |
-| `06af12ed` | Arun Kumar | `bd_wrong_pin` | `whatsapp_nudge` | ₹375.00 | `partially_recovered` | `14394ab925a6a7...` |
-| `84535d31` | Kavita Patel | `checkout_friction` | `whatsapp_nudge` | ₹26,376.00 | `failed` | `5c37b77fb1e0f6...` |
-| `c6f9e5a0` | Vivek Nair | `bd_wrong_pin` | `whatsapp_nudge` | ₹40,909.00 | `recovered` | `511fba216d0521...` |
-| `98586c9b` | Priya Shah | `bd_wrong_pin` | `whatsapp_nudge` | ₹2,250.00 | `failed` | `b403534a4ca94e...` |
-| `578ac000` | Neha Kumar | `checkout_friction` | `whatsapp_nudge` | ₹2,424.00 | `failed` | `9093b4e14d8837...` |
-| `cca0e6e6` | Shreya Chopra | `bd_wrong_pin` | `whatsapp_nudge` | ₹1,096.00 | `failed` | `27521ce762d726...` |
-| `60b2d596` | Anita Kapoor | `bd_wrong_pin` | `whatsapp_nudge` | ₹1,373.00 | `recovered` | `2f7740f96640c2...` |
+| `3741c5c1` | Anita Patel | `bd_insufficient_funds` | `whatsapp_nudge` | ₹2,173.00 | `stopped` | `f4e69fc143a89e...` |
+| `969934c5` | Priya Shah | `bd_insufficient_funds` | `whatsapp_nudge` | ₹484.00 | `failed` | `69317a77990558...` |
+| `1953c2ea` | Arjun Desai | `mandate_reauth` | `reauth` | ₹91,352.00 | `recovered` | `829164044f8cfd...` |
+| `528533e9` | Arun Kumar | `bd_limit_exceeded` | `email_nudge` | ₹2,952.00 | `recovered` | `9e5646448b9c4c...` |
+| `3e7d7889` | Anita Kapoor | `bd_insufficient_funds` | `whatsapp_nudge` | ₹27,471.00 | `failed` | `7a286278086e22...` |
+| `432ed0f7` | Nikhil Nair | `card_expired` | `email_nudge` | ₹26,859.00 | `partially_recovered` | `5056a33eacedcb...` |
+| `172891ca` | Arun Kumar | `td_bank_down` | `retry` | ₹40,755.00 | `partially_recovered` | `4a7573cf6f7f86...` |
+| `61553e92` | Kavita Patel | `bd_insufficient_funds` | `whatsapp_nudge` | ₹120.00 | `recovered` | `04b6717e0163c9...` |
+| `e6b3c8be` | Simran Kumar | `card_expired` | `email_nudge` | ₹6,624.00 | `failed` | `e67e96d7e30111...` |
+| `2dc61bb5` | Karan Patel | `card_expired` | `email_nudge` | ₹3,633.00 | `failed` | `d662903c2c5574...` |
+| `e6dd25f7` | Ritu Singh | `bd_insufficient_funds` | `whatsapp_nudge` | ₹31,113.00 | `failed` | `339576d9244b15...` |
+| `cff350d8` | Sanjay Bhatia | `bd_limit_exceeded` | `email_nudge` | ₹6,808.00 | `recovered` | `398b249bbd9199...` |
+| `8106d7b9` | Nikhil Nair | `bd_insufficient_funds` | `whatsapp_nudge` | ₹260.00 | `failed` | `3c758f9b1212bb...` |
+| `aba831b8` | Nikhil Nair | `td_bank_down` | `retry` | ₹375.00 | `partially_recovered` | `9335180719f7ae...` |
+| `4f029847` | Kavita Patel | `bd_wrong_pin` | `whatsapp_nudge` | ₹26,376.00 | `recovered` | `93ccf7ba460353...` |
+| `f936cada` | Vivek Nair | `bd_limit_exceeded` | `email_nudge` | ₹40,909.00 | `failed` | `aae4e227ea8cf1...` |
+| `11525111` | Priya Shah | `bd_wrong_pin` | `whatsapp_nudge` | ₹2,250.00 | `recovered` | `2788779232503a...` |
+| `671f57aa` | Neha Kumar | `card_expired` | `email_nudge` | ₹2,424.00 | `recovered` | `9a50331f41ee7f...` |
+| `b895a21d` | Sneha Singh | `bd_wrong_pin` | `whatsapp_nudge` | ₹179,598.00 | `failed` | `74a6573dac8bf1...` |
+| `e9b03e6b` | Nikhil Nair | `bd_insufficient_funds` | `whatsapp_nudge` | ₹4,743.00 | `recovered` | `f29665ca3bbe37...` |
 

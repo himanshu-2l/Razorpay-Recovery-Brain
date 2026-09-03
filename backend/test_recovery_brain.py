@@ -911,6 +911,295 @@ def test_24_webhook_idempotency_rate_limits_and_circuit_breaker():
     print("  [OK] PASS: Webhook idempotency store, rate limit defense, circuit breaker, and live endpoint protection verified.")
 
 
+def test_25_gocardless_failure_filter():
+    print("\n[TEST 25] GoCardless-Style Failure Filter (Skip Retries on P_fail >= 90% & Terminal Declines)")
+    from app.services.intervention_router import InterventionRouter
+    from app.models.database import RootCause, LeakType, InterventionType
+
+    router = InterventionRouter()
+
+    # 1. Terminal decline code: ACCOUNT_CLOSED
+    res_terminal = router.route(
+        root_cause=RootCause.BD_WRONG_PIN,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"error_code": "ACCOUNT_CLOSED", "error_source": "bank"},
+        amount_inr=5000.0,
+    )
+    print(f"  -> Terminal decline (ACCOUNT_CLOSED): Intervention={res_terminal['intervention'].value} | Filtered={res_terminal['failure_filter']['applied']}")
+    assert res_terminal["intervention"] == InterventionType.STOP
+    assert res_terminal["failure_filter"]["applied"] is True
+    assert res_terminal["failure_filter"]["terminal_code_matched"] is True
+
+    # 2. Terminal decline code: INVALID_VPA
+    res_vpa = router.route(
+        root_cause=RootCause.UNKNOWN,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"error_code": "INVALID_VPA", "error_source": "customer"},
+        amount_inr=1500.0,
+    )
+    print(f"  -> Terminal decline (INVALID_VPA): Intervention={res_vpa['intervention'].value} | Filtered={res_vpa['failure_filter']['applied']}")
+    assert res_vpa["intervention"] == InterventionType.STOP
+    assert res_vpa["failure_filter"]["applied"] is True
+
+    # 3. Viable transaction: TD_BANK_DOWN (P_action = 82%, P_fail = 18% < 90%)
+    res_viable = router.route(
+        root_cause=RootCause.TD_BANK_DOWN,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"error_code": "GATEWAY_ERROR", "error_source": "bank"},
+        amount_inr=8500.0,
+    )
+    print(f"  -> Viable retry (TD_BANK_DOWN): Intervention={res_viable['intervention'].value} | Filtered={res_viable['failure_filter']['applied']} (P_fail={res_viable['failure_filter']['predicted_failure_probability']:.0%})")
+    assert res_viable["intervention"] == InterventionType.RETRY
+    assert res_viable["failure_filter"]["applied"] is False
+    assert res_viable["failure_filter"]["predicted_failure_probability"] < 0.90
+
+    print("  [OK] PASS: GoCardless-style failure filter verified (futile retries halted, viable retries permitted).")
+
+
+def test_26_personalized_retry_scheduling():
+    print("\n[TEST 26] Customer-Personalized Smart Retry Scheduling (GoCardless Telemetry Layer)")
+    from app.services.smart_scheduler import smart_scheduler, CandidateType
+    from datetime import datetime, timezone
+
+    ref_time = datetime(2026, 9, 2, 10, 0, 0, tzinfo=timezone.utc)
+
+    # 1. Generic scheduling without customer history (falls back to calendar windows)
+    rec_generic = smart_scheduler.recommend_optimal_window(
+        root_cause="bd_insufficient_funds",
+        amount=6000.0,
+        failure_timestamp=ref_time,
+        customer_history=None,
+    )
+    print(f"  -> Generic Insufficient Funds window: {rec_generic['optimal_window']} ({rec_generic['optimal_label']})")
+    assert rec_generic["optimal_window"] in (CandidateType.PLUS_1_DAY_MORNING.value, CandidateType.PAYDAY_WINDOW.value)
+
+    # 2. Personalized scheduling with customer historical payment day (7th of month)
+    cust_history = {
+        "preferred_payment_day": 7,
+        "historical_successful_days": [7, 8],
+    }
+    rec_pers = smart_scheduler.recommend_optimal_window(
+        root_cause="bd_insufficient_funds",
+        amount=6000.0,
+        failure_timestamp=ref_time,
+        customer_history=cust_history,
+    )
+    print(f"  -> Personalized Customer window: {rec_pers['optimal_window']} ({rec_pers['optimal_label']})")
+    print(f"  -> Scheduled at: {rec_pers['scheduled_at']} | Rationale: {rec_pers['reason'][:75]}...")
+    assert rec_pers["optimal_window"] == CandidateType.PERSONALIZED_CUSTOMER_WINDOW.value
+    assert "7th of Month" in rec_pers["optimal_label"]
+
+    print("  [OK] PASS: Customer-personalized retry timing verified against historical liquidity pattern.")
+
+
+def test_27_cross_leak_customer_profile_unification():
+    print("\n[TEST 27] Demonstrable Cross-Leak State Unification Across 4 Recovery Funnels")
+    from app.services.cross_leak_state import cross_leak_store
+    from app.services.recovery_pipeline import RecoveryPipeline
+
+    cross_leak_store.reset()
+    pipeline = RecoveryPipeline()
+
+    test_customer = {
+        "id": "cust_rohit_mehta_corp",
+        "name": "Rohit Mehta",
+        "company": "Mehta Logistics Pvt Ltd",
+        "email": "rohit@mehtalogistics.in",
+        "phone": "+919876543210",
+    }
+
+    # Step 1: Ingest B2B Receivable invoice overdue with 1 broken promise
+    b2b_data = {
+        "customer_id": test_customer["id"],
+        "customer": test_customer,
+        "amount_inr": 85000.0,
+        "days_overdue": 45,
+        "broken_promises": 1,
+        "invoice_number": "INV-2026-ML-88",
+    }
+    b2b_case = pipeline.process_b2b_receivable(b2b_data, test_customer)
+    print(f"  -> Processed B2B Case: id={b2b_case['id'][:8]} | Customer={b2b_case['customer_name']} | Overdue=Rs {b2b_case['amount_at_risk']:,.0f}")
+
+    # Check that cross_leak_store recorded B2B debt
+    profile = cross_leak_store.get(test_customer["id"])
+    assert profile is not None
+    assert profile.total_b2b_overdue_inr == 85000.0
+    assert profile.broken_promises_count == 1
+    assert profile.cross_leak_risk_score > 0.50
+    print(f"  -> Cross-Leak Store Updated: B2B Debt=Rs {profile.total_b2b_overdue_inr:,.0f} | Risk Score={profile.cross_leak_risk_score} | Summary: {profile.cross_leak_summary}")
+
+    # Step 2: Customer now suffers a retail payment failure on personal checkout
+    pay_data = {
+        "customer_id": test_customer["id"],
+        "customer": test_customer,
+        "amount": 450000,  # Rs 4,500
+        "error_code": "BAD_REQUEST_ERROR",
+        "error_source": "customer",
+        "error_description": "Insufficient balance in account",
+    }
+    pay_case = pipeline.process_payment_failure(pay_data, test_customer)
+    print(f"  -> Processed Payment Failure Case: id={pay_case['id'][:8]} | Root Cause={pay_case['root_cause']}")
+    print(f"  -> Diagnosis Reasoning Chain: {pay_case['reasoning_chain']}")
+
+    # Verify that diagnosis reasoning chain explicitly cites the open B2B receivable
+    assert "Cross-Leak" in pay_case["reasoning_chain"]
+    assert "85,000" in pay_case["reasoning_chain"]
+    assert pay_case.get("cross_leak_profile") is not None
+    assert pay_case["cross_leak_profile"]["total_b2b_overdue_inr"] == 85000.0
+
+    print("  [OK] PASS: Cross-leak state unification verified (B2B overdue actively informed retail payment failure diagnosis).")
+
+
+def test_28_circuit_breaker_auto_contracts_autonomy_envelope():
+    print("\n[TEST 28] Circuit Breaker Auto-Wiring: Rail Outage Automatically Contracts Autonomy Envelope")
+    from app.services.circuit_breaker import bank_circuit_breaker
+    from app.services.autonomy_envelope import autonomy_envelope
+
+    # Reset autonomy envelope to EXPANDED state for clean test
+    with autonomy_envelope._mutex:
+        autonomy_envelope.state = "EXPANDED"
+        autonomy_envelope.contraction_reason = None
+        autonomy_envelope.consecutive_stable_cycles = 0
+
+    # Confirm starting state
+    assert autonomy_envelope.state == "EXPANDED", "Precondition: envelope should start EXPANDED"
+
+    # Simulate a bank rail outage via the existing test helper
+    # This sets is_tripped=True and success_rate=0.12 WITHOUT going through record_attempt()
+    # To test the wiring in record_attempt(), we use that directly instead:
+    # Force the issuer to a healthy starting SR so the trip fires cleanly
+    bank_circuit_breaker.simulate_rail_outage("ICIC", force_tripped=False)
+    with bank_circuit_breaker._mutex:
+        bank_circuit_breaker._issuers["ICIC"].success_rate = 0.80  # healthy starting point
+        bank_circuit_breaker._issuers["ICIC"].is_tripped = False
+
+    print("  -> ICIC issuer reset to healthy (SR=80%, is_tripped=False)")
+
+    # Now drive the SR below OUTAGE_THRESHOLD (0.30) via failed attempts.
+    # Each record_attempt failure moves SR by EMA: new = 0.9*old + 0.1*0
+    # Starting SR=0.80, need to get below 0.30.
+    # After ~18 failures: 0.80 * 0.9^18 ≈ 0.125 < 0.30. We'll do 20 to be safe.
+    for _ in range(20):
+        bank_circuit_breaker.record_attempt("ICIC", success=False)
+
+    sr = bank_circuit_breaker._issuers["ICIC"].success_rate
+    tripped = bank_circuit_breaker._issuers["ICIC"].is_tripped
+    print(f"  -> After 20 failures: ICIC SR={sr:.3f}, is_tripped={tripped}")
+    print(f"  -> Autonomy Envelope state: {autonomy_envelope.state}")
+    print(f"  -> Contraction reason: {autonomy_envelope.contraction_reason}")
+
+    assert tripped, "ICIC circuit breaker should have tripped after consecutive failures"
+    assert autonomy_envelope.state == "CONTRACTED", (
+        "Autonomy envelope should be CONTRACTED automatically — no manual API call needed"
+    )
+    assert autonomy_envelope.contraction_reason is not None
+    assert "ICIC" in autonomy_envelope.contraction_reason
+    assert "auto-detected" in autonomy_envelope.contraction_reason.lower()
+
+    print("  [OK] PASS: Bank rail outage auto-detected → autonomy envelope contracted without manual intervention.")
+
+    # Cleanup: restore state for other tests
+    bank_circuit_breaker.simulate_rail_outage("ICIC", force_tripped=False)
+    with autonomy_envelope._mutex:
+        autonomy_envelope.state = "EXPANDED"
+        autonomy_envelope.contraction_reason = None
+        autonomy_envelope.consecutive_stable_cycles = 0
+
+
+def test_29_audit_ledger_persists_across_restart():
+    print("\n[TEST 29] Audit Ledger SQLite Persistence: Verifiable Out-of-Process After Restart")
+    import sqlite3
+    import importlib
+    from pathlib import Path
+
+    # Use a dedicated temp DB path so this test is fully isolated from the
+    # live singleton's DB and from test_6 which tests in-memory integrity.
+    from app.core import audit_ledger as ledger_module
+    original_db_path = ledger_module._DB_PATH
+    temp_db = Path(__file__).parent / "app" / "core" / "_test_29_temp_ledger.db"
+
+    # Patch the module-level constant for this test
+    ledger_module._DB_PATH = temp_db
+
+    # Create a fresh ledger instance (bypasses singleton for isolation)
+    from app.core.audit_ledger import CryptographicAuditLedger, AuditRecord
+    ledger = CryptographicAuditLedger.__new__(CryptographicAuditLedger)
+    ledger._records = []
+    ledger._mutex = __import__("threading").Lock()
+    ledger._db_path = temp_db
+    ledger._ensure_db_schema()
+    # Only seed genesis if DB is empty
+    if ledger._db_row_count() == 0:
+        ledger._append_genesis()
+
+    # Record 3 events (simulates a real batch run)
+    ledger.record_event("PAYMENT_FAILURE_DIAGNOSED", "case_test_001", {"root_cause": "bd_insufficient_funds", "amount": 5000})
+    ledger.record_event("INTERVENTION_ROUTED", "case_test_001", {"intervention": "whatsapp_nudge", "enrv": 420.5})
+    ledger.record_event("RECOVERY_COMPLETED", "case_test_001", {"recovered": True, "amount_recovered": 5000})
+
+    block_count_before = len(ledger._records)
+    head_hash_before = ledger._records[-1].content_hash
+    print(f"  -> Recorded {block_count_before} blocks. Head hash: {head_hash_before[:16]}...")
+
+    # ── SIMULATE PROCESS RESTART ──────────────────────────────────────────────
+    # Instantiate a brand-new object with empty in-memory state (no singleton reuse)
+    restarted = CryptographicAuditLedger.__new__(CryptographicAuditLedger)
+    restarted._records = []
+    restarted._mutex = __import__("threading").Lock()
+    restarted._db_path = temp_db
+    restarted._ensure_db_schema()
+
+    blocks_reloaded = restarted.reload_from_db()
+    print(f"  -> After simulated restart: reloaded {blocks_reloaded} blocks from {temp_db.name}")
+
+    assert blocks_reloaded == block_count_before, (
+        f"Expected {block_count_before} blocks reloaded, got {blocks_reloaded}"
+    )
+    assert restarted._records[-1].content_hash == head_hash_before, (
+        "Head hash mismatch after reload — data corrupted"
+    )
+
+    # ── VERIFY VIA standalone verify_chain() ─────────────────────────────────
+    # Import verify_ledger's verify_chain to simulate out-of-process verification
+    sys.path.insert(0, str(Path(__file__).parent))
+    from verify_ledger import verify_chain
+
+    # Read directly from SQLite (as verify_ledger.py does)
+    conn = sqlite3.connect(str(temp_db))
+    rows = conn.execute(
+        "SELECT sequence, event_type, case_id, timestamp, prev_hash, "
+        "payload, content_hash, merchant_id FROM audit_records ORDER BY sequence ASC"
+    ).fetchall()
+    conn.close()
+
+    import json
+    db_records = [
+        {
+            "sequence": r[0], "event_type": r[1], "case_id": r[2],
+            "timestamp": r[3], "prev_hash": r[4], "payload": json.loads(r[5]),
+            "content_hash": r[6], "merchant_id": r[7],
+        }
+        for r in rows
+    ]
+
+    is_valid, verified_count, logs = verify_chain(db_records)
+    for line in logs:
+        print(f"  {line}")
+
+    assert is_valid, f"Chain verification failed: {logs}"
+    assert verified_count == block_count_before, (
+        f"Expected {block_count_before} blocks verified, got {verified_count}"
+    )
+    assert verified_count > 1, "Verified only genesis block — DB persistence is not working"
+
+    print(f"  [OK] PASS: Audit ledger survived simulated restart. {verified_count} blocks verified tamper-free from SQLite.")
+
+    # Cleanup
+    if temp_db.exists():
+        temp_db.unlink()
+    ledger_module._DB_PATH = original_db_path
+
+
 if __name__ == "__main__":
     print("=================================================================")
     print("  REVENUE RECOVERY BRAIN -- ARCHITECTURAL VERIFICATION SUITE")
@@ -940,9 +1229,13 @@ if __name__ == "__main__":
     test_22_voice_safety_filter_and_rbi_credential_prohibition()
     test_23_dpdp_consent_retention_and_access_rights()
     test_24_webhook_idempotency_rate_limits_and_circuit_breaker()
+    test_25_gocardless_failure_filter()
+    test_26_personalized_retry_scheduling()
+    test_27_cross_leak_customer_profile_unification()
+    test_28_circuit_breaker_auto_contracts_autonomy_envelope()
+    test_29_audit_ledger_persists_across_restart()
 
     print("\n=================================================================")
-    print("  ALL 24 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
+    print("  ALL 29 ARCHITECTURAL VERIFICATION TESTS PASSED (100%)")
     print("=================================================================\n")
-
 

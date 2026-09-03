@@ -6,10 +6,10 @@
 
 | Adversarial Scenario | Expected Guardrail Behavior | Verification Status | Cryptographic Audit Evidence |
 | :--- | :--- | :---: | :--- |
-| **a) Webhook Race Condition** | Exactly 1 winner, 9 duplicate rejections | **`PASSED`** | Event ID: `evt_adversarial_race_1839e7` |
-| **b) Economic Floor (< ₹100)** | Blocked from outreach, zero cost wasted | **`PASSED`** | Sequence #134 (`9057ee14f13c5b3a...`) |
-| **c) Off-Hours (9:30 PM IST)** | Blocked & rescheduled to next day 10 AM | **`PASSED`** | Sequence #135 (`4af5eac6869f3c88...`) |
-| **d) High Stakes (≥ ₹50,000)** | Held for human approval, auto-action halted | **`PASSED`** | Sequence #136 (`9a54f647cfc6759f...`) |
+| **a) Webhook Race Condition** | Exactly 1 winner, 9 duplicate rejections | **`PASSED`** | Event ID: `evt_adversarial_race_241699` |
+| **b) Economic Floor (< ₹100)** | Blocked from outreach, zero cost wasted | **`PASSED`** | Sequence #134 (`6144029625cbdb57...`) |
+| **c) Off-Hours (9:30 PM IST)** | Blocked & rescheduled to next day 10 AM | **`PASSED`** | Sequence #135 (`e5b4947047b7e7e9...`) |
+| **d) High Stakes (≥ ₹50,000)** | Held for human approval, auto-action halted | **`PASSED`** | Sequence #136 (`18017cc4b72b452c...`) |
 
 ## 2. Guardrail Evidence Details
 
@@ -25,7 +25,7 @@
 ### c. Time Window Contact Guardrail
 - **Action:** `blocked_time_window`
 - **Rule:** `Responsible Collections Policy (RBI FPC Principles) — Contact permitted only 8 AM – 7 PM IST`
-- **Rescheduled Target:** `2026-09-03 04:30:00+00:00`
+- **Rescheduled Target:** `2026-09-04 04:30:00+00:00`
 - **Audit Sequence:** `Record #135`
 
 ### d. High-Stakes Human-in-the-Loop Threshold
