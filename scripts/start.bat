@@ -9,7 +9,11 @@ echo.
 
 :: Start FastAPI backend in a new window
 echo [1/2] Starting FastAPI backend on port 8000...
-start "RRB Backend (Port 8000)" cmd /k "cd /d %~dp0..\backend && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0"
+if exist "%~dp0..\backend\venv\Scripts\python.exe" (
+    start "RRB Backend (Port 8000)" cmd /k "cd /d %~dp0..\backend && venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0"
+) else (
+    start "RRB Backend (Port 8000)" cmd /k "cd /d %~dp0..\backend && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0"
+)
 
 :: Wait 3 seconds for backend to spin up
 ping -n 4 127.0.0.1 > nul

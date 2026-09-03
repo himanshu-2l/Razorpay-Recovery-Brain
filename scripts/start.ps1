@@ -14,10 +14,11 @@ Write-Host ""
 
 # Start FastAPI backend
 Write-Host "[1/2] Starting FastAPI Backend on port 8000..." -ForegroundColor Yellow
+$pythonExe = if (Test-Path "$ROOT\backend\.venv\Scripts\python.exe") { "$ROOT\backend\.venv\Scripts\python.exe" } elseif (Test-Path "$ROOT\backend\venv\Scripts\python.exe") { "$ROOT\backend\venv\Scripts\python.exe" } else { "python" }
 $backendJob = Start-Process -FilePath "powershell" -ArgumentList @(
     "-NoExit",
     "-Command",
-    "Set-Location '$ROOT\backend'; Write-Host 'Backend starting...' -ForegroundColor Yellow; .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0"
+    "Set-Location '$ROOT\backend'; Write-Host 'Backend starting...' -ForegroundColor Yellow; & '$pythonExe' -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0"
 ) -PassThru
 
 Write-Host "  Backend PID: $($backendJob.Id)" -ForegroundColor Gray
