@@ -16,6 +16,8 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 import logging
 import httpx
+import razorpay
+from razorpay.errors import SignatureVerificationError
 
 logger = logging.getLogger(__name__)
 
@@ -29,25 +31,58 @@ from app.core.config import (
 
 class RazorpayClientWrapper:
     """
-    Production-ready wrapper for Razorpay Test Mode API.
-    Provides verified HMAC signature validation and real Payment Link creation/cancellation.
+    Production-ready wrapper utilizing the official Razorpay Python SDK (v2.0.1).
+    Provides native client methods for Payment Link creation, cancellation, and
+    HMAC webhook signature validation, with seamless simulated fallbacks.
     """
 
     def __init__(self):
         self.key_id = RAZORPAY_KEY_ID
         self.key_secret = RAZORPAY_KEY_SECRET
+        self.webhook_secret = RAZORPAY_WEBHOOK_SECRET
         self._active_links_by_invoice: Dict[str, Dict[str, Any]] = {}
+
+        # Official Razorpay Python SDK 2.0.1 Client
+        try:
+            self.sdk_client = razorpay.Client(auth=(self.key_id, self.key_secret))
+            self.sdk_client.set_app_details({
+                "title": "Razorpay Revenue Recovery Brain",
+                "version": "2.0.1"
+            })
+            logger.info("Initialized official Razorpay Python SDK 2.0.1 client instance.")
+        except Exception as e:
+            logger.warning(f"Could not initialize Razorpay SDK client: {e}")
+            self.sdk_client = None
 
     def verify_webhook_signature(self, raw_body: bytes, signature: str) -> bool:
         """
         Cryptographic verification of Razorpay HMAC-SHA256 signature on raw webhook bytes.
+        Uses native razorpay.Client.utility.verify_webhook_signature from SDK 2.0.1
+        with a deterministic HMAC fallback.
         """
         if not signature:
             return False
+
+        # 1. Native Razorpay SDK 2.0.1 signature verification
+        if self.sdk_client:
+            try:
+                body_str = raw_body.decode("utf-8") if isinstance(raw_body, bytes) else str(raw_body)
+                self.sdk_client.utility.verify_webhook_signature(
+                    body_str, signature, self.webhook_secret or self.key_secret
+                )
+                return True
+            except SignatureVerificationError:
+                return False
+            except Exception as e:
+                logger.debug(f"Razorpay SDK verify_webhook_signature exception: {e}")
+
+        # 2. Resilient deterministic fallback
         try:
+            msg = raw_body if isinstance(raw_body, bytes) else str(raw_body).encode("utf-8")
+            secret = self.webhook_secret or self.key_secret
             expected_signature = hmac.new(
-                key=self.key_secret.encode("utf-8"),
-                msg=raw_body,
+                key=secret.encode("utf-8"),
+                msg=msg,
                 digestmod=hashlib.sha256
             ).hexdigest()
             return hmac.compare_digest(expected_signature, signature)
@@ -57,10 +92,21 @@ class RazorpayClientWrapper:
 
     def cancel_payment_link(self, link_id: str) -> bool:
         """
-        Cancel an existing payment link on Razorpay test API.
+        Cancel an existing payment link on Razorpay test API using SDK 2.0.1.
         """
         if not link_id or not link_id.startswith("plink_"):
             return False
+
+        # 1. Native Razorpay SDK 2.0.1 call
+        if self.sdk_client and not link_id.startswith("plink_sim_"):
+            try:
+                self.sdk_client.payment_link.cancel(link_id)
+                logger.info(f"Successfully cancelled Razorpay payment link {link_id} via SDK 2.0.1.")
+                return True
+            except Exception as e:
+                logger.warning(f"Razorpay SDK payment_link.cancel({link_id}) failed: {e}. Trying HTTP client fallback.")
+
+        # 2. HTTP fallback if SDK is unavailable
         try:
             with httpx.Client(timeout=6.0) as client:
                 res = client.post(
@@ -138,6 +184,23 @@ class RazorpayClientWrapper:
             "expire_by": expire_by
         }
 
+        # 1. Native Razorpay SDK 2.0.1 Call
+        if self.sdk_client and not self.key_id.startswith("rzp_test_placeholder"):
+            try:
+                link_data = self.sdk_client.payment_link.create(data=api_payload)
+                if link_data and link_data.get("id"):
+                    link_data["invalidated_previous_link_id"] = invalidated_link_id
+                    link_data["mode"] = "live_razorpay_sdk_v2"
+                    self._active_links_by_invoice[inv_key] = link_data
+                    logger.info(
+                        f"Created Real Razorpay Payment Link via SDK 2.0.1: {link_data.get('id')} "
+                        f"for ₹{amount_inr:.2f} -> {link_data.get('short_url')}"
+                    )
+                    return link_data
+            except Exception as e:
+                logger.warning(f"Razorpay SDK 2.0.1 payment_link.create call failed: {e}. Trying HTTP client fallback.")
+
+        # 2. HTTP Client Fallback
         try:
             with httpx.Client(timeout=8.0) as client:
                 res = client.post(

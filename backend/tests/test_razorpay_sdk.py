@@ -1,0 +1,117 @@
+import hmac
+import hashlib
+from unittest.mock import MagicMock, patch
+import pytest
+import razorpay
+from razorpay.errors import SignatureVerificationError
+
+from app.services.razorpay_client import RazorpayClientWrapper
+
+
+def test_razorpay_sdk_initialization():
+    """Verify that RazorpayClientWrapper initializes the official razorpay.Client (v2.0.1)."""
+    client = RazorpayClientWrapper()
+    assert client.sdk_client is not None
+    assert isinstance(client.sdk_client, razorpay.Client)
+    assert hasattr(client.sdk_client, "payment_link")
+    assert hasattr(client.sdk_client, "utility")
+
+
+def test_razorpay_sdk_webhook_verification():
+    """Verify HMAC webhook signature validation through the SDK 2.0.1 utility."""
+    client = RazorpayClientWrapper()
+    client.webhook_secret = "test_webhook_secret_key_123"
+
+    payload = b'{"event":"payment.captured","payload":{"payment":{"entity":{"id":"pay_test_999"}}}}'
+    valid_signature = hmac.new(
+        key=b"test_webhook_secret_key_123",
+        msg=payload,
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    # Valid signature should pass
+    assert client.verify_webhook_signature(payload, valid_signature) is True
+
+    # Tampered signature should fail
+    tampered_sig = valid_signature[:-4] + "ffff"
+    assert client.verify_webhook_signature(payload, tampered_sig) is False
+
+    # Empty signature should fail
+    assert client.verify_webhook_signature(payload, "") is False
+
+
+def test_razorpay_sdk_payment_link_creation():
+    """Verify that create_recovery_payment_link invokes the official SDK client method."""
+    client = RazorpayClientWrapper()
+    client.key_id = "rzp_test_real_key_mock"
+
+    mock_sdk_response = {
+        "id": "plink_sdk_test_12345",
+        "entity": "payment_link",
+        "amount": 250000,
+        "amount_paid": 0,
+        "currency": "INR",
+        "status": "created",
+        "short_url": "https://rzp.io/i/testsdk",
+        "description": "Invoice INV-2026-901 Recovery",
+        "customer": {"name": "Test Merchant", "contact": "+919999999999", "email": "test@merchant.in"},
+    }
+
+    with patch.object(client.sdk_client.payment_link, "create", return_value=mock_sdk_response) as mock_create:
+        res = client.create_recovery_payment_link(
+            amount_inr=2500.0,
+            customer_name="Test Merchant",
+            customer_phone="+919999999999",
+            customer_email="test@merchant.in",
+            description="Invoice INV-2026-901 Recovery",
+            invoice_number="INV-2026-901",
+        )
+
+        assert mock_create.called
+        assert res["id"] == "plink_sdk_test_12345"
+        assert res["mode"] == "live_razorpay_sdk_v2"
+        assert res["short_url"] == "https://rzp.io/i/testsdk"
+
+
+def test_razorpay_sdk_payment_link_invalidation():
+    """Verify single-active-link enforcement: prior link is invalidated on new issuance."""
+    client = RazorpayClientWrapper()
+    client.key_id = "rzp_test_real_key_mock"
+
+    link1 = {
+        "id": "plink_first_001",
+        "status": "created",
+        "short_url": "https://rzp.io/i/first",
+    }
+    link2 = {
+        "id": "plink_second_002",
+        "status": "created",
+        "short_url": "https://rzp.io/i/second",
+    }
+
+    with patch.object(client.sdk_client.payment_link, "cancel", return_value={"status": "cancelled"}) as mock_cancel, \
+         patch.object(client.sdk_client.payment_link, "create", side_effect=[link1, link2]):
+
+        # First link
+        res1 = client.create_recovery_payment_link(
+            amount_inr=1000.0,
+            customer_name="Alpha Corp",
+            customer_phone="+919876543210",
+            customer_email="alpha@corp.in",
+            description="Payment Link 1",
+            invoice_number="INV-ALPHA-01",
+        )
+        assert res1["id"] == "plink_first_001"
+
+        # Second link for same invoice should invalidate link1
+        res2 = client.create_recovery_payment_link(
+            amount_inr=1000.0,
+            customer_name="Alpha Corp",
+            customer_phone="+919876543210",
+            customer_email="alpha@corp.in",
+            description="Payment Link 2",
+            invoice_number="INV-ALPHA-01",
+        )
+        assert res2["id"] == "plink_second_002"
+        assert res2["invalidated_previous_link_id"] == "plink_first_001"
+        assert mock_cancel.called
