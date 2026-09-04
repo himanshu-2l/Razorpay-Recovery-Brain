@@ -79,6 +79,9 @@ class DecisionReceiptService:
                 "status": case.get("compliance_status", "allowed"),
                 "rule_cited": case.get("compliance_rule", "Responsible Collections Policy (RBI FPC Principles) — Contact window & frequency verified"),
             },
+            # Strategy Tournament Matrix (CATE & Net ENRV Counterfactual Ranking)
+            "strategy_tournament": case.get("strategy_tournament", []),
+            "hitl_quarantine": case.get("hitl_quarantine", {}),
             # RAILS Verification-Native Clearing Attributes (arXiv:2606.08790)
             "rails_clearing": clearing_eval,
         }

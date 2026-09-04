@@ -246,7 +246,7 @@ def test_8_human_in_the_loop_approval_gate():
     print(f"  -> Initial Status: {case['status']}")
 
     assert case["requires_human_approval"] is True
-    assert case["status"] == "awaiting_response"
+    assert case["status"] in ("approval_pending", "awaiting_response")
     print("  [OK] PASS: High-stakes intervention held safely for operator approval.")
 
 

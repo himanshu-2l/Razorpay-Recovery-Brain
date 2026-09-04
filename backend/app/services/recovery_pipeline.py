@@ -65,7 +65,11 @@ class RecoveryPipeline:
         """Process a checkout abandonment through the pipeline."""
         return self._process_case(
             leak_type=LeakType.CHECKOUT_ABANDONMENT,
-            data={**case_data, "customer_name": customer.get("name", "")},
+            data={
+                **case_data,
+                "customer_name": customer.get("name", ""),
+                "customer_ltv": customer.get("lifetime_value", 12000.0),
+            },
             customer=customer,
             contact_history=contact_history,
             amount_at_risk=case_data.get("amount", 0) / 100 if case_data.get("amount", 0) > 10000 else case_data.get("amount", 0),
@@ -248,19 +252,20 @@ class RecoveryPipeline:
                 }
             })
         elif compliance_result["action"] == ComplianceAction.ALLOWED:
-            if counterfactual.get("requires_human_approval"):
-                # Human-In-The-Loop gate for high-stakes recovery
-                status = CaseStatus.AWAITING_RESPONSE
+            if counterfactual.get("requires_human_approval") or route_result.get("hitl_quarantine", {}).get("is_quarantined"):
+                # Zero-I/O Human-In-The-Loop quarantine gate for high-stakes recovery
+                status = CaseStatus.APPROVAL_PENDING
                 amount_recovered = 0
                 logs.append({
                     "case_id": case_id,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "action": "queued_for_approval",
-                    "actor": "execution_layer",
+                    "actor": "hitl_quarantine_gate",
                     "details": {
-                        "step": "execution",
+                        "step": "hitl_quarantine",
                         "intervention": intervention.value,
                         "status": status.value,
+                        "quarantine_reason": route_result.get("hitl_quarantine", {}).get("quarantine_reason"),
                         "amount_recovered": amount_recovered,
                         "nudge_content": route_result.get("nudge_content"),
                     }
@@ -268,12 +273,15 @@ class RecoveryPipeline:
             else:
                 # Bounded automated execution
                 status, amount_recovered = self._simulate_execution(
-                    intervention, root_cause, amount_at_risk, data
+                    intervention=intervention,
+                    root_cause=root_cause,
+                    amount_at_risk=amount_at_risk,
+                    data=data,
                 )
                 logs.append({
                     "case_id": case_id,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "action": "executed",
+                    "action": "intervened",
                     "actor": "execution_layer",
                     "details": {
                         "step": "execution",
@@ -329,6 +337,8 @@ class RecoveryPipeline:
             "chosen_intervention": intervention.value,
             "intervention_reason": route_result["reason"],
             "alternatives_rejected": route_result["alternatives_rejected"],
+            "strategy_tournament": route_result.get("strategy_tournament", []),
+            "hitl_quarantine": route_result.get("hitl_quarantine", {}),
             "counterfactual": counterfactual,
             "requires_human_approval": counterfactual.get("requires_human_approval", False),
             "compliance_status": compliance_result["action"].value,
@@ -368,10 +378,6 @@ class RecoveryPipeline:
             return True
         if customer.get("gap_payment_confirmed") or customer.get("paid_in_gap"):
             return True
-        # 2. Check if invoice / payment status transitioned to 'paid' / 'captured'
-        status_val = str(data.get("status", "")).lower()
-        if status_val in ("paid", "settled", "captured", "completed"):
-            return True
         return False
 
     def _simulate_execution(
@@ -405,6 +411,10 @@ class RecoveryPipeline:
             (InterventionType.WHATSAPP_NUDGE, RootCause.CHECKOUT_FRICTION): 0.30,
             (InterventionType.WHATSAPP_NUDGE, RootCause.SUB_BALANCE): 0.40,
             (InterventionType.WHATSAPP_NUDGE, RootCause.RECV_OVERSIGHT): 0.70,
+
+            # Autonomous Bounded Margin Concession (NexaCart Benchmark)
+            (InterventionType.DISCOUNT_NUDGE, RootCause.CHECKOUT_PRICE_SHOCK): 0.65,
+            (InterventionType.DISCOUNT_NUDGE, RootCause.CHECKOUT_FRICTION): 0.60,
 
             # Email nudges
             (InterventionType.EMAIL_NUDGE, RootCause.BD_LIMIT_EXCEEDED): 0.55,

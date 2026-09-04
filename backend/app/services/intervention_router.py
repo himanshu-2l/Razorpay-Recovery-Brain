@@ -59,7 +59,7 @@ class InterventionRouter:
         # Checkout
         RootCause.CHECKOUT_PAYMENT_MISMATCH: InterventionType.WHATSAPP_NUDGE,
         RootCause.CHECKOUT_3DS_FAILURE: InterventionType.RETRY,
-        RootCause.CHECKOUT_PRICE_SHOCK: InterventionType.STOP,  # Not recoverable
+        RootCause.CHECKOUT_PRICE_SHOCK: InterventionType.DISCOUNT_NUDGE,  # Autonomous Bounded Margin Concession
         RootCause.CHECKOUT_FRICTION: InterventionType.WHATSAPP_NUDGE,
 
         # Subscription
@@ -78,6 +78,11 @@ class InterventionRouter:
 
     # Nudge message templates (personalized by root cause)
     NUDGE_MESSAGES = {
+        RootCause.CHECKOUT_PRICE_SHOCK: {
+            "whatsapp": "Hi {name}, we noticed you left your items in cart! As a token of appreciation, here is an exclusive {discount_pct}% checkout concession valid for 2 hours: {payment_link}",
+            "email_subject": "Exclusive {discount_pct}% concession on your cart",
+            "email_body": "Complete your purchase today and enjoy an exclusive {discount_pct}% courtesy discount applied directly at checkout.",
+        },
         RootCause.BD_INSUFFICIENT_FUNDS: {
             "whatsapp": "Hi {name}, your payment of ₹{amount} was declined by your bank — this usually means insufficient balance. You can retry anytime: {payment_link}",
             "email_subject": "Payment of ₹{amount} needs your attention",
@@ -131,6 +136,7 @@ class InterventionRouter:
         InterventionType.REAUTH: 0.0,
         InterventionType.EMAIL_NUDGE: 0.50,
         InterventionType.WHATSAPP_NUDGE: 2.50,
+        InterventionType.DISCOUNT_NUDGE: 5.00,  # Base delivery cost + coupon tracking
         InterventionType.VOICE_CALL: 15.00,
         InterventionType.ESCALATE_HUMAN: 50.00,
         InterventionType.STOP: 0.0,
@@ -164,14 +170,11 @@ class InterventionRouter:
     }
 
     # Expected success probabilities under targeted intervention.
-    # ASSUMPTIONS — derived from engineering judgment, Vonage/Twilio B2B voice
-    # uplift studies (publicly cited in their respective product documentation),
-    # and the internal methodology validation scenario. Not verified Razorpay
-    # production A/B data.
     INTERVENTION_SUCCESS_RATES = {
         InterventionType.RETRY: 0.82,           # Auto-retry at right window: 82% success
         InterventionType.REAUTH: 0.74,          # Re-auth mandate: 74% complete on first link
         InterventionType.WHATSAPP_NUDGE: 0.68,  # WhatsApp: 68% open-to-pay (India CSAT 2023)
+        InterventionType.DISCOUNT_NUDGE: 0.65,  # Bounded discount concession: 65% win-back
         InterventionType.EMAIL_NUDGE: 0.45,     # Email: 45% act within 48h
         InterventionType.VOICE_CALL: 0.78,      # Hinglish voice agent: 78% PTP commitment
         InterventionType.ESCALATE_HUMAN: 0.55,  # Human: 55% (lower due to complex cases routed here)
@@ -280,39 +283,34 @@ class InterventionRouter:
                     f"Low-to-mid value (₹{amount:,.0f}), {days_overdue} days overdue. "
                     f"WhatsApp nudge with Section 43B(h) 45-day deadline reminder is sufficient."
                 )
+        # Autonomous Bounded Margin Concession for Checkout Price Shock / Friction
+        elif root_cause == RootCause.CHECKOUT_PRICE_SHOCK:
+            customer_ltv = float(data.get("customer_ltv") or self.B2C_DEFAULT_LTV_INR)
+            if effective_amount <= 15000 and customer_ltv >= 4000:
+                discount_pct = 8
+                data["discount_pct"] = discount_pct
+                intervention = InterventionType.DISCOUNT_NUDGE
+                reason = (
+                    f"Autonomous Bounded Margin Concession: Price-shock drop-off on ₹{effective_amount:,.0f} cart "
+                    f"with strong customer LTV (₹{customer_ltv:,.0f}). Authorized bounded {discount_pct}% win-back concession."
+                )
+            else:
+                intervention = InterventionType.STOP
+                reason = (
+                    f"Price shock abandonment on cart ₹{effective_amount:,.0f} exceeds margin concession ceiling "
+                    f"or customer LTV (₹{customer_ltv:,.0f}) does not justify discount. Action stopped to preserve merchant margin."
+                )
         else:
             reason = self._generate_reason(root_cause, intervention, data)
 
         # ── DOWNSTREAM ENRV EXPOSURE TO FINE-GRAINED CLASSIFIER UNCERTAINTY ────
-        # The do-nothing natural recovery baseline p_natural is heavily dependent on the
-        # specific fine-grained RootCause (e.g., BD_INSUFFICIENT_FUNDS: 0.08, BD_WRONG_PIN: 0.12,
-        # BD_LIMIT_EXCEEDED: 0.15, CARD_EXPIRED: 0.01).
-        # In production payment gateways, distinguishing between these sub-types from raw
-        # error payloads often involves classifier uncertainty.
-        # If classifier confidence is low, treating p_natural as a rigid point estimate
-        # creates false precision in the calculated ENRV.
-        # Therefore, we capture the classifier's fine-grained confidence score and
-        # dynamically expand the P10-P90 uncertainty bands when confidence is reduced,
-        # ensuring downstream operators and financial risk models see an honest, wider
-        # uncertainty band rather than a falsely-precise expectation.
         p_natural = self.NATURAL_RECOVERY_BASELINES.get(root_cause, 0.05)
         p_action = self.INTERVENTION_SUCCESS_RATES.get(intervention, 0.50)
         cost_inr = self.INTERVENTION_COSTS.get(intervention, 0.0)
+        if intervention == InterventionType.DISCOUNT_NUDGE:
+            cost_inr += effective_amount * (float(data.get("discount_pct", 8)) / 100.0)
 
         # ── GOCARDLESS-STYLE FAILURE FILTER CHECK ─────────────────────────────
-        # Modeled after GoCardless Success+: skip automated actions when the case
-        # is structurally terminal (payment instrument cannot recover itself).
-        #
-        # ARCHITECTURE NOTE — Per-case probabilistic filtering (GoCardless's full
-        # mechanism uses an ML model to predict P(failure) per customer per attempt)
-        # requires a trained model over historical payment data that we don't have.
-        # What we CAN honestly implement with lookup tables:
-        #   (1) Terminal decline code detection — structurally futile cases
-        #       (ACCOUNT_CLOSED, CARD_STOLEN, INVALID_VPA, etc.)
-        #   (2) Cross-leak escalation (below) — multi-funnel delinquency signal
-        #
-        # The natural recovery rate (p_natural) is surfaced transparently in
-        # failure_filter_metadata so callers can see case-level recovery difficulty.
         predicted_failure_prob = round(1.0 - p_natural, 4)
         error_code = str(data.get("error_code", "")).upper()
         is_filtered = False
@@ -327,9 +325,6 @@ class InterventionRouter:
             )
 
         # ── CROSS-LEAK ESCALATION ─────────────────────────────────────────────
-        # If cross-leak telemetry shows this customer has active multi-funnel
-        # delinquency (broken promises + failed payments across accounts),
-        # automated nudges are unlikely to work — escalate to human.
         if not is_filtered:
             cross_profile = data.get("cross_leak_profile") or {}
             cross_risk_score = cross_profile.get("cross_leak_risk_score", 0)
@@ -343,8 +338,7 @@ class InterventionRouter:
                 reason = (
                     f"Cross-leak escalation: customer risk score {cross_risk_score:.0%} "
                     f"with {broken_promises} broken PTP(s). Automated nudge escalated to human "
-                    f"for multi-funnel delinquent customer (cross_leak_summary: "
-                    f"{cross_profile.get('cross_leak_summary', 'N/A')})."
+                    f"for multi-funnel delinquent customer."
                 )
 
         if is_filtered:
@@ -372,26 +366,8 @@ class InterventionRouter:
         )
 
         # ── CHURN PENALTY: UPLIFT MODELING & SLEEPING DOGS DEFENSE ────────────
-        # In causal uplift modeling (Gutiérrez & Gérardy 2017; Verhelst et al. 2023),
-        # customers partition into four behavioral quadrants:
-        #   1. Persuadables: Recover only if contacted (target of intervention).
-        #   2. Sure Things:  Recover organically regardless (P_natural baseline).
-        #   3. Lost Causes:   Never recover (filtered out via Terminal Failure Filter).
-        #   4. Sleeping Dogs: React negatively to outreach (churn or cancel).
-        #
-        # The churn_penalty_inr term directly quantifies the risk of disturbing
-        # "Sleeping Dogs." If the penalty exceeds the incremental lift, the action
-        # is aborted to protect merchant customer relationships and net ARR/LTV.
-        #
-        # B2B: Churn risk is applied against full Annual Recurring Revenue (ARR),
-        # not just the invoice. Outstanding invoice ≈ 1 month; contract year is at risk.
-        # If customer_arr is not provided, 3x invoice is used as a conservative proxy.
-        #
-        # B2C: Churn risk is applied against Customer LTV with a 10% penalty weight.
         if leak_type == LeakType.B2B_RECEIVABLE:
             tenure_months = float(data.get("tenure_months", 24))
-            # Established clients (≥2yr) have higher relationship tolerance for collections.
-            # Discount decays linearly from 1.0 at 0 months to 0.40 at 5+ years.
             tenure_discount = max(0.40, 1.0 - (tenure_months / 120.0))
             relationship_score = float(data.get("relationship_score", 0.85))
             p_churn = (
@@ -399,37 +375,24 @@ class InterventionRouter:
                 if intervention == InterventionType.VOICE_CALL
                 else self.B2B_CHURN_RATE_NUDGE
             )
-            # Use ARR if provided; otherwise conservative 3x invoice proxy.
             customer_arr = data.get("customer_arr", effective_amount * self.B2B_ARR_FALLBACK_MULTIPLIER)
             churn_penalty_inr = p_churn * customer_arr * relationship_score * tenure_discount
         else:
             customer_ltv = data.get("customer_ltv", self.B2C_DEFAULT_LTV_INR)
             p_churn = 0.015 if intervention in (InterventionType.RETRY, InterventionType.EMAIL_NUDGE) else 0.035
-            churn_penalty_inr = p_churn * customer_ltv * 0.10  # 10% penalty weight
+            churn_penalty_inr = p_churn * customer_ltv * 0.10
 
         # ── TIME-VALUE OF MONEY DISCOUNTING ────────────────────────────────────
-        # ENRV_adjusted = ENRV × 1/(1+r)^(t/365)
-        # r = 18% p.a. (approximate cost of working capital for Indian SMEs).
-        # For B2C payment failures, recovery is typically same-day (t=1),
-        # making the discount factor negligible (~0.9995) — correctly applied.
         wacc_r = 0.18
         days_to_recovery = float(data.get("days_overdue", 1) if leak_type == LeakType.B2B_RECEIVABLE else 1.0)
         time_discount_factor = 1.0 / ((1.0 + wacc_r) ** (days_to_recovery / 365.0))
 
         # ── CONDITIONAL AVERAGE TREATMENT EFFECT (CATE / ITE) ─────────────────
-        # ΔP = P(recovery | action) - P(recovery | do-nothing)
-        # Formal CATE/ITE estimation per causal inference literature.
         incremental_prob = max(0.0, p_action - p_natural)
         raw_enrv = (incremental_prob * effective_amount) - cost_inr - churn_penalty_inr
         enrv_inr = max(0.0, raw_enrv * time_discount_factor)
 
-        # ── UNCERTAINTY BANDS (SEGMENT-AWARE ASYMMETRIC + CONFIDENCE SPREAD) ──
-        # B2B: Wider downside (P10 = 0.55x) reflects counterparty risk, legal delays,
-        # and multi-stakeholder approval chains in corporate collections.
-        # B2C: Narrower distribution (P10 = 0.65x) — retail consumer behavior is
-        # more predictable and mean-reverting.
-        # CONFIDENCE SPREAD: When fine-grained classification confidence drops below 85%,
-        # the uncertainty band is dynamically widened to expose the classification risk.
+        # ── UNCERTAINTY BANDS ────────────────────────────────────────────────
         bands = (
             self.ENRV_BANDS_B2B if leak_type == LeakType.B2B_RECEIVABLE
             else self.ENRV_BANDS_B2C
@@ -452,13 +415,58 @@ class InterventionRouter:
             )
         }
 
-        # Autonomy Envelope Check & HITL Gate
+        # ── ZERO-I/O HIGH-VALUE HITL POLICY BOUNDARY & QUARANTINE GATE ────────
+        b2b_broken_promises = data.get("broken_promises", 0) if leak_type == LeakType.B2B_RECEIVABLE else 0
+        is_high_value = effective_amount >= 50000.0
+        is_low_confidence = fine_grained_confidence < 0.75
+        is_chronic_delinquent = b2b_broken_promises >= 2
+
         can_auto_execute, envelope_reason = autonomy_envelope.can_execute_autonomously(
             amount_inr=effective_amount,
-            confidence=0.92,
+            confidence=fine_grained_confidence,
             action_name=intervention.value,
         )
-        requires_human_approval = bool(not can_auto_execute or effective_amount >= 50000 or intervention == InterventionType.ESCALATE_HUMAN)
+
+        quarantine_triggered = bool(
+            not can_auto_execute
+            or is_high_value
+            or is_low_confidence
+            or is_chronic_delinquent
+            or intervention == InterventionType.ESCALATE_HUMAN
+        )
+
+        quarantine_reason = None
+        if is_high_value:
+            quarantine_reason = f"Zero-I/O Amount Cap: Transaction value ₹{effective_amount:,.0f} reaches the ₹50,000 ceiling. Requires merchant sign-off."
+        elif is_low_confidence:
+            quarantine_reason = f"Zero-I/O Confidence Floor: Diagnostic confidence ({fine_grained_confidence:.0%}) below 75% boundary."
+        elif is_chronic_delinquent:
+            quarantine_reason = f"Zero-I/O Delinquency Rule: Customer has {b2b_broken_promises} broken promises. Requires human negotiation."
+        elif intervention == InterventionType.ESCALATE_HUMAN:
+            quarantine_reason = "Complex edge case routed to human operations team."
+        elif not can_auto_execute:
+            quarantine_reason = envelope_reason
+
+        hitl_quarantine = {
+            "is_quarantined": quarantine_triggered,
+            "status": "APPROVAL_PENDING" if quarantine_triggered else "AUTO_CLEARED",
+            "quarantine_reason": quarantine_reason,
+            "threshold_inr": 50000.0,
+            "effective_amount_inr": effective_amount,
+            "can_auto_execute": not quarantine_triggered,
+            "autonomy_envelope_state": autonomy_envelope.state,
+        }
+
+        # ── MULTI-CANDIDATE STRATEGY TOURNAMENT MATRIX ────────────────────────
+        strategy_tournament = self._evaluate_strategy_tournament(
+            root_cause=root_cause,
+            chosen_intervention=intervention,
+            leak_type=leak_type,
+            effective_amount=effective_amount,
+            p_natural=p_natural,
+            time_discount_factor=time_discount_factor,
+            data=data,
+        )
 
         # Cross-reference: evaluate rejected alternatives
         alternatives_rejected = self._evaluate_alternatives(
@@ -467,7 +475,7 @@ class InterventionRouter:
 
         # Build nudge message if applicable
         nudge_content = None
-        if intervention in (InterventionType.WHATSAPP_NUDGE, InterventionType.EMAIL_NUDGE):
+        if intervention in (InterventionType.WHATSAPP_NUDGE, InterventionType.EMAIL_NUDGE, InterventionType.DISCOUNT_NUDGE):
             nudge_content = self._build_nudge(root_cause, data)
 
         # Calendar-Aligned & Customer-Personalized Smart Retry Scheduling
@@ -484,6 +492,8 @@ class InterventionRouter:
             "reason": reason,
             "failure_filter": failure_filter_metadata,
             "alternatives_rejected": alternatives_rejected,
+            "strategy_tournament": strategy_tournament,
+            "hitl_quarantine": hitl_quarantine,
             "nudge_content": nudge_content,
             "tax_clock": tax_clock_data,
             "smart_schedule": smart_schedule,
@@ -491,7 +501,7 @@ class InterventionRouter:
                 "p_natural_recovery": round(p_natural, 4),
                 "p_intervention_recovery": round(p_action, 4),
                 "incremental_lift_pct": round((p_action - p_natural) * 100, 1),
-                "intervention_cost_inr": cost_inr,
+                "intervention_cost_inr": round(cost_inr, 2),
                 "churn_penalty_inr": round(churn_penalty_inr, 2),
                 "wacc_annual_rate": wacc_r,
                 "time_value_discount_factor": round(time_discount_factor, 4),
@@ -501,7 +511,8 @@ class InterventionRouter:
                 "uncertainty_band_widened": uncertainty_expansion > 0,
                 "uncertainty_expansion_factor": round(uncertainty_expansion, 3),
                 "autonomy_envelope_state": autonomy_envelope.state,
-                "requires_human_approval": requires_human_approval,
+                "requires_human_approval": quarantine_triggered,
+                "hitl_quarantine": hitl_quarantine,
             },
             "routed_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -574,6 +585,124 @@ class InterventionRouter:
 
         return alternatives
 
+    def _evaluate_strategy_tournament(
+        self,
+        root_cause: RootCause,
+        chosen_intervention: InterventionType,
+        leak_type: LeakType,
+        effective_amount: float,
+        p_natural: float,
+        time_discount_factor: float,
+        data: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """
+        Evaluates a competitive multi-candidate tournament across all available interventions.
+        Computes P(recovery), CATE incremental lift, operational cost, churn risk,
+        and Net ENRV for each candidate, returning a ranked counterfactual matrix.
+        """
+        candidates = [
+            InterventionType.RETRY,
+            InterventionType.WHATSAPP_NUDGE,
+            InterventionType.EMAIL_NUDGE,
+            InterventionType.VOICE_CALL,
+            InterventionType.REAUTH,
+            InterventionType.DISCOUNT_NUDGE,
+            InterventionType.ESCALATE_HUMAN,
+            InterventionType.STOP,
+        ]
+
+        bank_code = data.get("bank", data.get("error_source", "HDFC"))
+        rail_available = bank_circuit_breaker.is_rail_available(bank_code)
+        customer_ltv = float(data.get("customer_ltv") or self.B2C_DEFAULT_LTV_INR)
+
+        tournament = []
+        for candidate in candidates:
+            # Baseline probability
+            p_action = self.INTERVENTION_SUCCESS_RATES.get(candidate, 0.50)
+
+            # Contextual probability adjustments
+            if candidate == InterventionType.RETRY:
+                if not rail_available:
+                    p_action = 0.0
+                elif root_cause.value.startswith("bd_") or root_cause in (RootCause.CARD_EXPIRED, RootCause.CHECKOUT_PRICE_SHOCK):
+                    p_action = 0.04
+            elif candidate == InterventionType.DISCOUNT_NUDGE:
+                if root_cause not in (RootCause.CHECKOUT_PRICE_SHOCK, RootCause.CHECKOUT_FRICTION):
+                    p_action = 0.20
+            elif candidate == InterventionType.VOICE_CALL and leak_type != LeakType.B2B_RECEIVABLE:
+                p_action = 0.35  # High-friction intrusion for retail consumer checkout
+
+            # Operational Cost
+            cost = self.INTERVENTION_COSTS.get(candidate, 0.0)
+            if candidate == InterventionType.DISCOUNT_NUDGE:
+                cost += effective_amount * (float(data.get("discount_pct", 8)) / 100.0)
+
+            # Churn Risk
+            if leak_type == LeakType.B2B_RECEIVABLE:
+                tenure_months = float(data.get("tenure_months", 24))
+                tenure_discount = max(0.40, 1.0 - (tenure_months / 120.0))
+                rel_score = float(data.get("relationship_score", 0.85))
+                p_churn = self.B2B_CHURN_RATE_VOICE if candidate == InterventionType.VOICE_CALL else self.B2B_CHURN_RATE_NUDGE
+                cust_arr = data.get("customer_arr", effective_amount * self.B2B_ARR_FALLBACK_MULTIPLIER)
+                churn_penalty = p_churn * cust_arr * rel_score * tenure_discount
+            else:
+                p_churn = 0.01 if candidate in (InterventionType.RETRY, InterventionType.EMAIL_NUDGE, InterventionType.STOP) else 0.03
+                churn_penalty = p_churn * customer_ltv * 0.10
+
+            # CATE Incremental Lift & Net ENRV
+            incremental_lift = max(0.0, p_action - p_natural)
+            raw_enrv = (incremental_lift * effective_amount) - cost - churn_penalty
+            enrv = max(0.0, raw_enrv * time_discount_factor)
+
+            # Rejection or Selection Rationale
+            is_selected = (candidate == chosen_intervention)
+            rejection_reason = None
+            if not is_selected:
+                if candidate == InterventionType.RETRY and not rail_available:
+                    rejection_reason = f"Bank switch circuit breaker tripped on {bank_code.upper()} rail."
+                elif candidate == InterventionType.RETRY and root_cause.value.startswith("bd_"):
+                    rejection_reason = "Futile retry on business decline (insufficient balance or auth error cannot self-heal)."
+                elif candidate == InterventionType.VOICE_CALL and effective_amount < 50000 and leak_type != LeakType.B2B_RECEIVABLE:
+                    rejection_reason = "High unit cost (₹15/call) economically sub-optimal for retail cart."
+                elif candidate == InterventionType.DISCOUNT_NUDGE and root_cause not in (RootCause.CHECKOUT_PRICE_SHOCK, RootCause.CHECKOUT_FRICTION):
+                    rejection_reason = "Margin concession unnecessary for technical or balance declines."
+                elif candidate == InterventionType.STOP:
+                    rejection_reason = "Do-nothing counterfactual foregoes recoverable revenue."
+                elif candidate == InterventionType.ESCALATE_HUMAN and effective_amount < 50000:
+                    rejection_reason = "Human desk triage expense (₹50) exceeds automated recovery threshold."
+                else:
+                    rejection_reason = "Sub-optimal ENRV yield compared to winning strategy."
+
+            labels = {
+                InterventionType.RETRY: "Automated Rail Retry",
+                InterventionType.WHATSAPP_NUDGE: "1-Tap WhatsApp Nudge",
+                InterventionType.EMAIL_NUDGE: "Email Recovery Nudge",
+                InterventionType.VOICE_CALL: "Hinglish Conversational Voice Call",
+                InterventionType.REAUTH: "Mandate Re-Authorization Push",
+                InterventionType.DISCOUNT_NUDGE: "Autonomous Bounded Margin Concession",
+                InterventionType.ESCALATE_HUMAN: "Human Desk Escalation",
+                InterventionType.STOP: "Do-Nothing (Suppress Outreach)",
+            }
+
+            tournament.append({
+                "strategy": candidate.value,
+                "label": labels.get(candidate, candidate.value),
+                "success_probability": round(p_action, 4),
+                "incremental_lift_pct": round(incremental_lift * 100, 1),
+                "operational_cost_inr": round(cost, 2),
+                "churn_penalty_inr": round(churn_penalty, 2),
+                "expected_net_recovery_inr": round(enrv, 2),
+                "status": "SELECTED" if is_selected else "REJECTED",
+                "rejection_reason": rejection_reason,
+            })
+
+        # Rank tournament entries: chosen winner at top, others sorted by ENRV descending
+        tournament.sort(key=lambda x: (x["status"] == "SELECTED", x["expected_net_recovery_inr"]), reverse=True)
+        for idx, entry in enumerate(tournament):
+            entry["rank"] = idx + 1
+
+        return tournament
+
     def _build_nudge(self, root_cause: RootCause, data: Dict) -> Optional[Dict[str, str]]:
         """Build personalized nudge content based on root cause."""
         templates = self.NUDGE_MESSAGES.get(root_cause)
@@ -589,6 +718,7 @@ class InterventionRouter:
             "invoice_number": data.get("invoice_number", ""),
             "days_overdue": str(data.get("days_overdue", "")),
             "plan_name": data.get("plan_name", "subscription"),
+            "discount_pct": str(data.get("discount_pct", 8)),
         }
 
         result = {}

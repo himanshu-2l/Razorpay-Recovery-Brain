@@ -77,6 +77,7 @@ class InterventionType(str, enum.Enum):
     EMAIL_NUDGE = "email_nudge"
     VOICE_CALL = "voice_call"
     ESCALATE_HUMAN = "escalate_human"
+    DISCOUNT_NUDGE = "discount_nudge"
     STOP = "stop"
     NONE = "none"
 
@@ -86,6 +87,7 @@ class CaseStatus(str, enum.Enum):
     DIAGNOSING = "diagnosing"
     INTERVENING = "intervening"
     AWAITING_RESPONSE = "awaiting_response"
+    APPROVAL_PENDING = "approval_pending"
     RECOVERED = "recovered"
     PARTIALLY_RECOVERED = "partially_recovered"
     FAILED = "failed"

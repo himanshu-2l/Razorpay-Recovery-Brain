@@ -279,3 +279,125 @@ def test_bolna_telephony_service_and_status():
     assert call_data["provider"] == "bolna_ai"
 
 
+def test_strategy_tournament_matrix_evaluation():
+    """Verify Counterfactual Strategy Tournament evaluates candidates across CATE lift, cost, and ENRV."""
+    from app.services.intervention_router import InterventionRouter
+    from app.models.database import RootCause, LeakType, InterventionType
+
+    router = InterventionRouter()
+    res = router.route(
+        root_cause=RootCause.SUB_BALANCE,
+        leak_type=LeakType.SUBSCRIPTION_FAILURE,
+        data={
+            "amount": 1499.0,
+            "broken_promises": 0,
+            "lifetime_value": 15000.0,
+            "diagnosis_confidence": 0.88,
+        },
+    )
+
+    tournament = res.get("strategy_tournament", [])
+    assert len(tournament) == 8, f"Expected 8 tournament candidates, got {len(tournament)}"
+
+    # Check top-ranked winner
+    winner = tournament[0]
+    assert winner["status"] == "SELECTED"
+    assert winner["rank"] == 1
+    assert winner["strategy"] == res["intervention"].value
+    assert winner["expected_net_recovery_inr"] > 0
+
+    # Check that all rejected candidates have valid rationales
+    for entry in tournament[1:]:
+        assert entry["status"] == "REJECTED"
+        assert entry["rejection_reason"] != ""
+        assert "expected_net_recovery_inr" in entry
+        assert "operational_cost_inr" in entry
+
+
+def test_autonomous_bounded_margin_concession():
+    """Verify checkout price shock triggers bounded discount nudge when LTV is high."""
+    from app.services.recovery_pipeline import RecoveryPipeline
+
+    pipeline = RecoveryPipeline()
+    cart_dropoff = {
+        "id": "cart_price_shock_001",
+        "amount": 4999.0,
+        "items": [{"name": "Premium Wireless Noise-Cancelling Headphones", "price": 4999.0}],
+        "abandonment_stage": "price_reveal",
+        "drop_reason": "price_shock_high_tax",
+    }
+    customer = {
+        "id": "cust_high_ltv_99",
+        "name": "Rohan Sharma",
+        "lifetime_value": 25000.0,
+        "email": "rohan@example.com",
+        "phone": "+919876543210",
+    }
+    from app.services.compliance_engine import IST
+    day_time_ist = datetime.now(IST).replace(hour=14, minute=0, second=0, microsecond=0)
+    day_time_utc = day_time_ist.astimezone(timezone.utc)
+
+    case = pipeline.process_checkout_abandonment(cart_dropoff, customer, current_time=day_time_utc)
+    assert case["chosen_intervention"] == "discount_nudge"
+    assert case["status"] in ("recovered", "intervening", "simulated", "pending")
+    
+    # Check that tournament contains discount_nudge as winner
+    tournament = case.get("strategy_tournament", [])
+    assert len(tournament) > 0
+    winner = tournament[0]
+    assert winner["strategy"] == "discount_nudge"
+    assert winner["status"] == "SELECTED"
+
+
+def test_zero_io_hitl_quarantine_and_1click_action():
+    """Verify high-value transactions (> ₹50k) are quarantined and merchant 1-click approve works."""
+    from fastapi.testclient import TestClient
+    import app.main as m
+    from app.main import app
+
+    client = TestClient(app)
+
+    # Inject high-value case into batch_results
+    test_case_id = "case_hitl_test_999"
+    mock_case = {
+        "id": test_case_id,
+        "status": "approval_pending",
+        "amount_at_risk": 75000.0,
+        "leak_type": "b2b_receivable",
+        "chosen_intervention": "voice_call",
+        "hitl_quarantine": {
+            "is_quarantined": True,
+            "quarantine_reason": "HIGH_VALUE_THRESHOLD (> ₹50,000)",
+        },
+        "customer": {"name": "Titanium Heavy Engineering", "phone": "+919876543210"},
+    }
+    if m.batch_results is None:
+        m.batch_results = {"cases": [mock_case], "summary": {}}
+    else:
+        m.batch_results["cases"].append(mock_case)
+
+    # 1. Approve case
+    approve_res = client.post(f"/api/cases/{test_case_id}/approve", json={"note": "Approved by Head of Treasury"})
+    assert approve_res.status_code == 200
+    res_data = approve_res.json()
+    assert res_data["status"] == "approved"
+    assert res_data["amount_recovered"] == 75000.0
+    assert "receipt" in res_data
+    assert res_data["receipt"]["case_id"] == test_case_id
+
+    # 2. Test reject case with another test case
+    test_reject_id = "case_hitl_reject_888"
+    mock_case_2 = {
+        "id": test_reject_id,
+        "status": "approval_pending",
+        "amount_at_risk": 90000.0,
+        "customer": {"name": "Apex Infra", "phone": "+919876543210"},
+    }
+    m.batch_results["cases"].append(mock_case_2)
+
+    reject_res = client.post(f"/api/cases/{test_reject_id}/reject", json={"reason": "Customer undergoing insolvency"})
+    assert reject_res.status_code == 200
+    assert reject_res.json()["status"] == "rejected"
+
+
+

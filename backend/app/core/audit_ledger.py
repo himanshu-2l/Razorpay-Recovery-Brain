@@ -118,6 +118,7 @@ class CryptographicAuditLedger:
             conn.close()
 
     def _db_row_count(self) -> int:
+        self._ensure_db_schema()
         conn = sqlite3.connect(str(self._db_path))
         try:
             row = conn.execute("SELECT COUNT(*) FROM audit_records").fetchone()
@@ -127,6 +128,7 @@ class CryptographicAuditLedger:
 
     def _write_to_db(self, record: "AuditRecord"):
         """Persist one AuditRecord to SQLite. Must be called while _mutex is held."""
+        self._ensure_db_schema()
         conn = sqlite3.connect(str(self._db_path))
         try:
             conn.execute(
