@@ -12,6 +12,7 @@ import {
   Zap,
   Activity,
   AlertCircle,
+  MessageSquare,
 } from 'lucide-react';
 import type { VoiceCallDemoResponse } from '../types';
 import { API_BASE } from '../api';
@@ -76,6 +77,14 @@ export const VoiceStudio: React.FC = () => {
   const [gpuStatus, setGpuStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const [twilioCallStatus, setTwilioCallStatus] = useState<null | { mode: string; message: string; call_sid?: string }>(null);
   const [isTwilioCalling, setIsTwilioCalling] = useState(false);
+  const [telephonyProvider, setTelephonyProvider] = useState<'twilio' | 'bolna'>('bolna');
+  const [telephonyMeta, setTelephonyMeta] = useState<{
+    bolna?: { configured: boolean; status: string; wallet_balance: number; agents_count: number };
+    twilio?: { configured: boolean; status: string };
+    whatsapp?: { configured: boolean; status: string };
+  } | null>(null);
+  const [whatsAppStatus, setWhatsAppStatus] = useState<null | { mode: string; message: string; payment_link?: string }>(null);
+  const [isWhatsAppSending, setIsWhatsAppSending] = useState(false);
 
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -108,6 +117,23 @@ export const VoiceStudio: React.FC = () => {
     };
     checkGpu();
     const gpuInterval = setInterval(checkGpu, 30000);
+
+    const fetchTelephonyStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/demo/telephony-status`);
+        if (res.ok) {
+          const data = await res.json();
+          setTelephonyMeta(data);
+          // If Bolna is active and Twilio needs SID, default to Bolna
+          if (data.bolna?.configured && !data.twilio?.configured) {
+            setTelephonyProvider('bolna');
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load telephony status', err);
+      }
+    };
+    fetchTelephonyStatus();
 
     return () => {
       if (synthRef.current) synthRef.current.cancel();
@@ -251,13 +277,14 @@ export const VoiceStudio: React.FC = () => {
           customer_name: debtorName,
           amount_inr: invoiceAmount,
           invoice_number: invoiceNumber,
+          provider: telephonyProvider,
         }),
       });
       const data = await res.json();
       setTwilioCallStatus({
-        mode: data.mode || 'unknown',
+        mode: data.mode || data.provider || 'unknown',
         message: data.message || 'Call initiated',
-        call_sid: data.call_sid,
+        call_sid: data.call_sid || data.call_id || (data.agent_id ? `Agent: ${data.agent_id}` : undefined),
       });
     } catch (err) {
       setTwilioCallStatus({
@@ -266,6 +293,36 @@ export const VoiceStudio: React.FC = () => {
       });
     } finally {
       setIsTwilioCalling(false);
+    }
+  };
+
+  const handleTriggerRealWhatsApp = async () => {
+    setIsWhatsAppSending(true);
+    setWhatsAppStatus(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/demo/trigger-real-whatsapp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_number: phoneNumber,
+          customer_name: debtorName,
+          amount_inr: invoiceAmount,
+          invoice_number: invoiceNumber,
+        }),
+      });
+      const data = await res.json();
+      setWhatsAppStatus({
+        mode: data.mode || 'unknown',
+        message: data.message || 'WhatsApp dispatched',
+        payment_link: data.payment_link,
+      });
+    } catch (err: any) {
+      setWhatsAppStatus({
+        mode: 'error',
+        message: err.message || 'Failed to trigger WhatsApp message.',
+      });
+    } finally {
+      setIsWhatsAppSending(false);
     }
   };
 
@@ -278,13 +335,13 @@ export const VoiceStudio: React.FC = () => {
           <div className="space-y-1">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>THE WINNING DIFFERENTIATOR · MULTI-PERSONA HINGLISH VOICE TELEPHONY</span>
+              <span>VOICE RECOVERY SUITE · NOTIFICATION CALL & OFFLINE DIALOGUE SIMULATOR</span>
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight font-sans">
               B2B Receivables Voice Recovery Studio
             </h2>
             <p className="text-xs text-gray-400 max-w-2xl">
-              Indian SME payment delays average 73 days against 30-day terms. Our conversational AI agent initiates bounded, empathetic calls in natural Hinglish, extracts structured Promise-to-Pay (PTP), and tracks sub-800ms latency budgets.
+              Indian SME payment delays average 73 days against 30-day terms. Features: (1) <strong className="text-purple-300">Compliant Automated Notification Calls</strong> via Twilio/Bolna with RBI curfew gating, and (2) <strong className="text-purple-300">Offline Hinglish Dialogue Simulator</strong> with 4 negotiation personas, structured intent extraction, and an 800ms architectural target SLA budget.
             </p>
             {/* GPU Server Status Pill */}
             <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono border ${
@@ -332,14 +389,65 @@ export const VoiceStudio: React.FC = () => {
               {audioEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
             </button>
 
+            {/* Telephony Provider Selector */}
+            <div className="flex items-center bg-black/40 border border-white/10 rounded-full p-1 text-xs">
+              <button
+                onClick={() => setTelephonyProvider('twilio')}
+                className={`px-3 py-1.5 rounded-full font-medium transition-all ${
+                  telephonyProvider === 'twilio'
+                    ? 'bg-blue-600/30 border border-blue-500/50 text-blue-200'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+                title="Twilio Programmable Voice with Polly.Aditi"
+              >
+                Twilio
+              </button>
+              <button
+                onClick={() => setTelephonyProvider('bolna')}
+                className={`px-3 py-1.5 rounded-full font-medium transition-all flex items-center space-x-1.5 ${
+                  telephonyProvider === 'bolna'
+                    ? 'bg-purple-600/30 border border-purple-500/50 text-purple-200'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+                title="Bolna AI Indian Conversational Backup"
+              >
+                <span>Bolna AI</span>
+                {telephonyMeta?.bolna?.configured && (
+                  <span className="text-[10px] bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded-full font-mono">
+                    ₹{telephonyMeta.bolna.wallet_balance?.toFixed(0) ?? 500}
+                  </span>
+                )}
+              </button>
+            </div>
+
             <button
               onClick={handleTriggerRealCall}
               disabled={isTwilioCalling}
-              className="px-5 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/30 disabled:opacity-50"
-              title="Dial real phone number using Twilio Programmable Voice"
+              className={`px-5 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 text-white disabled:opacity-50 ${
+                telephonyProvider === 'bolna'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/30'
+              }`}
+              title={telephonyProvider === 'bolna' ? 'Dial phone using Bolna AI Conversational Agent' : 'Dial phone using Twilio Programmable Voice'}
             >
               <Radio className={`w-4 h-4 ${isTwilioCalling ? 'animate-pulse' : ''}`} />
-              <span>{isTwilioCalling ? 'Dialing Phone...' : 'Dial Real Phone (Twilio)'}</span>
+              <span>
+                {isTwilioCalling
+                  ? 'Connecting...'
+                  : telephonyProvider === 'bolna'
+                  ? 'Call (Bolna AI)'
+                  : 'Call (Twilio Voice)'}
+              </span>
+            </button>
+
+            <button
+              onClick={handleTriggerRealWhatsApp}
+              disabled={isWhatsAppSending}
+              className="px-5 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 text-white shadow-green-600/30 disabled:opacity-50"
+              title="Send real WhatsApp message with Razorpay payment link"
+            >
+              <MessageSquare className={`w-4 h-4 ${isWhatsAppSending ? 'animate-pulse' : ''}`} />
+              <span>{isWhatsAppSending ? 'Sending WhatsApp...' : 'Send WhatsApp (Razorpay Link)'}</span>
             </button>
 
             <button
@@ -353,12 +461,12 @@ export const VoiceStudio: React.FC = () => {
               {isCalling ? (
                 <>
                   <PhoneOff className="w-4 h-4" />
-                  <span>End Call Simulation</span>
+                  <span>End Dialogue Simulator</span>
                 </>
               ) : (
                 <>
                   <PhoneCall className="w-4 h-4" />
-                  <span>Simulate Voice Call</span>
+                  <span>Run Dialogue Simulator (Offline)</span>
                 </>
               )}
             </button>
@@ -367,7 +475,7 @@ export const VoiceStudio: React.FC = () => {
 
         {twilioCallStatus && (
           <div className={`mt-4 p-3 rounded-xl border text-xs flex items-center justify-between relative z-10 ${
-            twilioCallStatus.mode === 'live_twilio'
+            twilioCallStatus.mode === 'live_twilio' || twilioCallStatus.mode === 'live_bolna'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
           }`}>
@@ -376,7 +484,30 @@ export const VoiceStudio: React.FC = () => {
               <span><strong>{twilioCallStatus.mode.toUpperCase()}:</strong> {twilioCallStatus.message}</span>
             </div>
             {twilioCallStatus.call_sid && (
-              <span className="font-mono text-[11px] opacity-75">SID: {twilioCallStatus.call_sid}</span>
+              <span className="font-mono text-[11px] opacity-75">{twilioCallStatus.call_sid}</span>
+            )}
+          </div>
+        )}
+
+        {whatsAppStatus && (
+          <div className={`mt-4 p-3 rounded-xl border text-xs flex items-center justify-between relative z-10 ${
+            whatsAppStatus.mode === 'live_twilio' || whatsAppStatus.mode === 'live_meta'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          }`}>
+            <div className="flex items-center space-x-2">
+              <MessageSquare className="w-4 h-4" />
+              <span><strong>WHATSAPP ({whatsAppStatus.mode.toUpperCase()}):</strong> {whatsAppStatus.message}</span>
+            </div>
+            {whatsAppStatus.payment_link && (
+              <a
+                href={whatsAppStatus.payment_link}
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-mono text-[11px] hover:text-white"
+              >
+                Open Razorpay Link ↗
+              </a>
             )}
           </div>
         )}
@@ -514,7 +645,7 @@ export const VoiceStudio: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Radio className="w-4 h-4 text-purple-400 animate-pulse" />
                 <span className="text-xs font-mono font-semibold text-white uppercase tracking-wider">
-                  Live Conversational Feed & Intent Extraction
+                  Offline Dialogue Simulation & Intent Extraction (LLM / Script)
                 </span>
               </div>
               <div className="flex items-center space-x-2">
@@ -560,38 +691,41 @@ export const VoiceStudio: React.FC = () => {
               })}
             </div>
 
-            {/* ── Sub-800ms Telephony Latency Waterfall Bar ─────────────────── */}
+            {/* ── Sub-800ms Architectural Reference Target SLA Budget ─────────────────── */}
             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 font-mono text-[11px] space-y-1.5">
               <div className="flex items-center justify-between text-gray-400">
                 <span className="flex items-center space-x-1.5">
                   <Zap className="w-3.5 h-3.5 text-cyan-400" />
-                  <span className="font-bold text-white uppercase text-[10px]">Per-Turn Latency Budget Telemetry:</span>
+                  <span className="font-bold text-white uppercase text-[10px]">Architectural Reference Target SLA (Unintegrated Stack):</span>
                 </span>
-                <span className="text-emerald-400 font-bold">571.2ms / 800ms Budget</span>
+                <span className="text-emerald-400 font-bold">571.2ms / 800ms Target Budget (Theoretical)</span>
               </div>
 
               <div className="grid grid-cols-5 gap-1.5 text-[9px] text-center">
                 <div className="p-1 rounded bg-white/[0.03] border border-white/5">
-                  <span className="text-gray-500 block">VAD</span>
-                  <span className="text-cyan-300 font-bold">65ms</span>
+                  <span className="text-gray-500 block">VAD (Silero)</span>
+                  <span className="text-cyan-300 font-bold">65ms*</span>
                 </div>
                 <div className="p-1 rounded bg-white/[0.03] border border-white/5">
-                  <span className="text-gray-500 block">STT</span>
-                  <span className="text-cyan-300 font-bold">120ms</span>
+                  <span className="text-gray-500 block">STT (Deepgram)</span>
+                  <span className="text-cyan-300 font-bold">120ms*</span>
                 </div>
                 <div className="p-1 rounded bg-white/[0.03] border border-white/5">
-                  <span className="text-gray-500 block">CONTEXT</span>
+                  <span className="text-gray-500 block">LOCAL CONTEXT</span>
                   <span className="text-emerald-300 font-bold">4.2ms</span>
                 </div>
                 <div className="p-1 rounded bg-white/[0.03] border border-white/5">
-                  <span className="text-gray-500 block">LLM TTFT</span>
-                  <span className="text-purple-300 font-bold">210ms</span>
+                  <span className="text-gray-500 block">LLM TTFT (vLLM)</span>
+                  <span className="text-purple-300 font-bold">210ms*</span>
                 </div>
                 <div className="p-1 rounded bg-white/[0.03] border border-white/5">
-                  <span className="text-gray-500 block">TTS AUDIO</span>
-                  <span className="text-pink-300 font-bold">130ms</span>
+                  <span className="text-gray-500 block">TTS (Cartesia)</span>
+                  <span className="text-pink-300 font-bold">130ms*</span>
                 </div>
               </div>
+              <p className="text-[9px] text-gray-500 italic pt-0.5">
+                *Target SLA budget for unintegrated 3rd-party streaming components, not live measured telemetry. Context is locally measured.
+              </p>
             </div>
 
             {/* Conversation Messages with Intent Metadata */}
@@ -599,7 +733,7 @@ export const VoiceStudio: React.FC = () => {
               {!callData ? (
                 <div className="py-12 text-center text-gray-500 font-mono text-xs space-y-2">
                   <Mic className="w-6 h-6 mx-auto text-gray-600" />
-                  <p>Select a persona strategy and click "Simulate Voice Call" to experience real-time Hinglish debt recovery.</p>
+                  <p>Select a persona strategy and click "Run Dialogue Simulator" to view simulated Hinglish debt recovery.</p>
                 </div>
               ) : (
                 callData.conversation?.flow?.slice(0, activeStep).map((msg) => (
@@ -613,7 +747,7 @@ export const VoiceStudio: React.FC = () => {
                   >
                     <div className="flex items-center justify-between text-[10px] font-mono">
                       <span className={msg.speaker === 'agent' ? 'text-purple-300 font-bold uppercase' : 'text-blue-300 font-bold uppercase'}>
-                        {msg.speaker === 'agent' ? '🤖 Razorpay AI Voice Agent' : `👤 ${debtorName}`}
+                        {msg.speaker === 'agent' ? '🤖 AI Voice Agent (Simulated Dialogue)' : `👤 ${debtorName}`}
                       </span>
 
                       {/* Structured Intent Tag */}

@@ -539,16 +539,16 @@ export const WebhookPlayground: React.FC = () => {
                     </span>
                     <div className="flex items-center justify-between">
                       <div className="text-base font-bold text-white font-mono">
-                        {response.case.chosen_intervention.replace(/_/g, ' ').toUpperCase()}
+                        {(response.case.chosen_intervention || 'N/A').replace(/_/g, ' ').toUpperCase()}
                       </div>
                       <div className={`text-xs font-mono font-bold px-2.5 py-1 rounded-full border ${
-                        COMPLIANCE_COLORS[response.case.compliance_status] || 'text-gray-400'
+                        COMPLIANCE_COLORS[response.case.compliance_status || ''] || 'text-gray-400'
                       } ${
                         response.case.compliance_status === 'allowed' 
                           ? 'bg-emerald-500/10 border-emerald-500/20' 
                           : 'bg-red-500/10 border-red-500/20'
                       }`}>
-                        {response.case.compliance_status.replace(/_/g, ' ').toUpperCase()}
+                        {(response.case.compliance_status || 'UNKNOWN').replace(/_/g, ' ').toUpperCase()}
                       </div>
                     </div>
                     <p className="text-xs text-gray-300 font-mono leading-relaxed">
