@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.core.idempotency_mutex import webhook_idempotency_store, rate_limit_tracker
+from app.core.idempotency_mutex import webhook_idempotency_store, rate_limit_tracker, RateLimitTracker
 from app.services.razorpay_service import razorpay_service
 from app.core.circuit_breaker import CircuitBreaker, CircuitState
 
@@ -129,10 +129,92 @@ def test_live_endpoint_rate_limit_defense():
         print(f"  [OK] Live endpoint rate limit defense verified: returned {plink.get('status')} with backoff={plink.get('backoff_seconds')}s.")
 
 
+def test_rate_limiter_multiprocess_sliding_window():
+    """
+    Test 5: Multi-Process Rate Limit Concurrency:
+    Spawns multiple isolated OS processes hitting the same shared SQLite WAL database file.
+    Asserts the combined count across all worker processes strictly respects the quota limit.
+    """
+    import subprocess
+    import tempfile
+
+    db_fd, temp_db = tempfile.mkstemp(suffix=".db")
+    os.close(db_fd)
+
+    try:
+        api = f"multi_proc_api_{int(time.time())}"
+        limit = 15
+        num_workers = 3
+        attempts_per_worker = 10  # Total 30 attempts across 3 processes for limit of 15
+
+        main_tracker = RateLimitTracker(db_path=temp_db)
+        main_tracker.DEFAULT_LIMITS[api] = limit
+
+        backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        worker_code = f"""
+import sys, os
+sys.path.insert(0, {repr(backend_dir)})
+from app.core.idempotency_mutex import RateLimitTracker
+
+tracker = RateLimitTracker(db_path={repr(temp_db)})
+tracker.DEFAULT_LIMITS[{repr(api)}] = {limit}
+
+accepted = 0
+for _ in range({attempts_per_worker}):
+    if tracker.record_call({repr(api)}):
+        accepted += 1
+
+print(accepted)
+"""
+
+        procs = [
+            subprocess.Popen(
+                [sys.executable, "-c", worker_code],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            for _ in range(num_workers)
+        ]
+
+        results = []
+        for p in procs:
+            stdout, stderr = p.communicate(timeout=15.0)
+            assert p.returncode == 0, f"Worker process crashed: {stderr}"
+            results.append(int(stdout.strip()))
+
+        total_accepted = sum(results)
+        assert total_accepted == limit, (
+            f"Expected exactly {limit} total accepted calls across {num_workers} processes, "
+            f"got {total_accepted} (per-process results: {results})"
+        )
+
+        # Primary process verification
+        assert main_tracker.check_limit(api) is False
+        assert main_tracker.record_call(api) is False
+
+        status = main_tracker.get_rate_limit_status(api)
+        assert status["current_usage"] == limit
+        assert status["remaining"] == 0
+        assert status["is_rate_limited"] is True
+
+        main_tracker.close()
+        print(f"  [OK] Multi-process rate limit verified: {results} sum to {total_accepted}/{limit} across {num_workers} processes.")
+    finally:
+        for suffix in ["", "-wal", "-shm"]:
+            fpath = temp_db + suffix
+            if os.path.exists(fpath):
+                try:
+                    os.remove(fpath)
+                except OSError:
+                    pass
+
+
 if __name__ == "__main__":
     print("Running Webhook Idempotency & Rate Limit Tests...")
     test_temporal_webhook_duplicates()
     test_rate_limiter_rapid_calls()
     test_circuit_breaker_trip()
     test_live_endpoint_rate_limit_defense()
+    test_rate_limiter_multiprocess_sliding_window()
     print("ALL TESTS PASSED!")

@@ -209,10 +209,12 @@ webhook_idempotency_store = WebhookIdempotencyStore()
 
 class RateLimitTracker:
     """
-    Sliding window rate limit defense for external APIs:
+    Cross-process sliding window rate limit defense for external APIs:
     - Razorpay: 100 requests / minute
     - Twilio: 50 requests / minute
     - SendGrid: 100 requests / minute
+
+    Persists atomic bucket counters in SQLite WAL to prevent multi-worker quota multiplication.
     """
     _instance = None
     _lock = threading.Lock()
@@ -223,65 +225,149 @@ class RateLimitTracker:
         "sendgrid": 100,
     }
 
-    def __new__(cls):
+    def __new__(cls, db_path: Optional[str] = None):
         with cls._lock:
-            if cls._instance is None:
-                cls._instance = super(RateLimitTracker, cls).__new__(cls)
-                cls._instance._calls: Dict[str, list] = {}
-                cls._mutex = threading.Lock()
-            return cls._instance
+            if db_path is None or db_path == SQLITE_MUTEX_PATH:
+                if cls._instance is None:
+                    cls._instance = super(RateLimitTracker, cls).__new__(cls)
+                    cls._instance._init_db(SQLITE_MUTEX_PATH)
+                return cls._instance
+            instance = super(RateLimitTracker, cls).__new__(cls)
+            instance._init_db(db_path)
+            return instance
 
-    def _get_window(self, api_name: str) -> list:
-        now = datetime.now(timezone.utc).timestamp()
-        cutoff = now - 60.0  # 1 minute sliding window
-        api_key = api_name.lower()
-        if api_key not in self._calls:
-            self._calls[api_key] = []
-        # Filter calls older than 60 seconds
-        self._calls[api_key] = [t for t in self._calls[api_key] if t > cutoff]
-        return self._calls[api_key]
+    def __init__(self, db_path: Optional[str] = None):
+        pass
+
+    def _init_db(self, db_path: str = SQLITE_MUTEX_PATH):
+        self.db_path = db_path
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False, timeout=15.0, isolation_level=None)
+        self.conn.execute("PRAGMA journal_mode=WAL;")
+        self.conn.execute("PRAGMA synchronous=NORMAL;")
+        self.conn.execute("PRAGMA busy_timeout=15000;")
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS rate_limits (
+                api_name TEXT NOT NULL,
+                window_bucket INTEGER NOT NULL,
+                call_count INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (api_name, window_bucket)
+            )
+        """)
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_rate_limits_window ON rate_limits(api_name, window_bucket);")
+        self._mutex = threading.Lock()
 
     def check_limit(self, api_name: str) -> bool:
         """Returns True if within rate limit, False if threshold exceeded."""
         api_key = api_name.lower()
         limit = self.DEFAULT_LIMITS.get(api_key, 100)
+        now = int(datetime.now(timezone.utc).timestamp())
+        cutoff = now - 60
         with self._mutex:
-            window = self._get_window(api_key)
-            return len(window) < limit
+            try:
+                cursor = self.conn.cursor()
+                cursor.execute(
+                    "SELECT COALESCE(SUM(call_count), 0) FROM rate_limits WHERE api_name = ? AND window_bucket > ?",
+                    (api_key, cutoff)
+                )
+                row = cursor.fetchone()
+                current_usage = row[0] if row else 0
+                return current_usage < limit
+            except Exception:
+                return True
 
     def record_call(self, api_name: str) -> bool:
         """
         Records an API call. Returns True if accepted, False if rate limited.
+        Atomically inspects and increments within an immediate write transaction.
         """
         api_key = api_name.lower()
         limit = self.DEFAULT_LIMITS.get(api_key, 100)
         now = datetime.now(timezone.utc).timestamp()
+        now_bucket = int(now)
+        cutoff = now_bucket - 60
+
         with self._mutex:
-            window = self._get_window(api_key)
-            if len(window) >= limit:
+            cursor = self.conn.cursor()
+            try:
+                cursor.execute("BEGIN IMMEDIATE")
+                cursor.execute(
+                    "SELECT COALESCE(SUM(call_count), 0) FROM rate_limits WHERE api_name = ? AND window_bucket > ?",
+                    (api_key, cutoff)
+                )
+                row = cursor.fetchone()
+                current_usage = row[0] if row else 0
+
+                if current_usage >= limit:
+                    cursor.execute("ROLLBACK")
+                    return False
+
+                cursor.execute(
+                    """
+                    INSERT INTO rate_limits (api_name, window_bucket, call_count)
+                    VALUES (?, ?, 1)
+                    ON CONFLICT(api_name, window_bucket) DO UPDATE SET call_count = call_count + 1
+                    """,
+                    (api_key, now_bucket)
+                )
+                # Purge obsolete buckets older than 2 minutes
+                cursor.execute(
+                    "DELETE FROM rate_limits WHERE api_name = ? AND window_bucket <= ?",
+                    (api_key, cutoff - 60)
+                )
+                cursor.execute("COMMIT")
+                return True
+            except Exception:
+                try:
+                    cursor.execute("ROLLBACK")
+                except Exception:
+                    pass
                 return False
-            window.append(now)
-            return True
 
     def get_rate_limit_status(self, api_name: str) -> Dict[str, Any]:
         """Telemetry on API rate limit headroom and reset countdown."""
         api_key = api_name.lower()
         limit = self.DEFAULT_LIMITS.get(api_key, 100)
+        now = datetime.now(timezone.utc).timestamp()
+        now_bucket = int(now)
+        cutoff = now_bucket - 60
+
         with self._mutex:
-            window = self._get_window(api_key)
-            current_count = len(window)
-            remaining = max(0, limit - current_count)
-            now = datetime.now(timezone.utc).timestamp()
-            oldest = window[0] if window else now
-            reset_seconds = max(0, int(60 - (now - oldest))) if window else 0
-            return {
-                "api_name": api_name,
-                "limit_per_min": limit,
-                "current_usage": current_count,
-                "remaining": remaining,
-                "reset_seconds": reset_seconds,
-                "is_rate_limited": current_count >= limit,
-            }
+            try:
+                cursor = self.conn.cursor()
+                cursor.execute(
+                    "SELECT COALESCE(SUM(call_count), 0), MIN(window_bucket) FROM rate_limits WHERE api_name = ? AND window_bucket > ?",
+                    (api_key, cutoff)
+                )
+                row = cursor.fetchone()
+                current_count = row[0] if row else 0
+                min_bucket = row[1] if row and row[1] is not None else None
+                remaining = max(0, limit - current_count)
+                reset_seconds = max(0, int(60 - (now - min_bucket))) if (current_count > 0 and min_bucket is not None) else 0
+                return {
+                    "api_name": api_name,
+                    "limit_per_min": limit,
+                    "current_usage": current_count,
+                    "remaining": remaining,
+                    "reset_seconds": reset_seconds,
+                    "is_rate_limited": current_count >= limit,
+                }
+            except Exception:
+                return {
+                    "api_name": api_name,
+                    "limit_per_min": limit,
+                    "current_usage": 0,
+                    "remaining": limit,
+                    "reset_seconds": 0,
+                    "is_rate_limited": False,
+                }
+
+    def close(self):
+        """Close database connection."""
+        with self._mutex:
+            try:
+                self.conn.close()
+            except Exception:
+                pass
 
 
 rate_limit_tracker = RateLimitTracker()
