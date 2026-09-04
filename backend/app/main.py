@@ -1069,7 +1069,10 @@ async def approve_case_action(case_id: str, request: Request):
     Human-In-The-Loop (HITL) 1-Click Operator Approval.
     Executes the paused recovery action for high-value cases (> ₹50,000).
     """
-    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
     operator_note = body.get("note", "Approved by Merchant Finance Operator")
 
     if batch_results:
@@ -1106,7 +1109,10 @@ async def reject_case_action(case_id: str, request: Request):
     Human-In-The-Loop (HITL) 1-Click Operator Rejection.
     Stops the proposed recovery action and preserves customer relationship.
     """
-    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
     operator_reason = body.get("reason", "Rejected by Merchant Finance Operator")
 
     if batch_results:
