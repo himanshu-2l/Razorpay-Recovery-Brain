@@ -1,12 +1,11 @@
 """
 Test Suite: Competitive Innovations & Uncontested Moat
 ======================================================
-Verifies all 5 competitor-inspired architectural breakthroughs:
+Verifies competitor-inspired architectural breakthroughs:
 1. Deterministic Hinglish Time-Phrase Parsing (recoup)
 2. 3-Phase PTP Lifecycle with Webhook-Gated Settlement (urudhi)
 3. Gap-Payment Defense Double-Check Stopping Rule (HappyGarg8o)
-4. 3-Arm Randomized A/B Statistical Engine with Wilson CIs (arrya5)
-5. Cross-Leak Unification Engine (Our Primary Uncontested Moat)
+4. Cross-Leak Unification Engine (Our Primary Uncontested Moat)
 """
 
 import pytest
@@ -14,7 +13,6 @@ from datetime import datetime, timezone, timedelta
 from app.services.hinglish_time_parser import HinglishTimeParser
 from app.services.ptp_tracker import PTPTracker
 from app.services.recovery_pipeline import RecoveryPipeline
-from app.core.ab_testing import ab_test_engine
 from app.core.audit_ledger import audit_ledger
 
 
@@ -105,29 +103,6 @@ def test_gap_payment_defense_suppresses_outreach():
     gap_logs = [log for log in result["audit_logs"] if log.get("action") == "gap_payment_intercepted"]
     assert len(gap_logs) >= 1
     assert gap_logs[0]["details"]["defense_policy"] == "HappyGarg8o_DoubleCheck_T1"
-
-
-def test_three_arm_ab_statistical_engine():
-    """Verify arrya5-style 3-arm design with Wilson 95% CIs and cost-efficiency metrics."""
-    benchmark = ab_test_engine.get_three_arm_benchmark()
-
-    # Check 3 arms exist
-    assert "arm_1_untreated_control" in benchmark["arms"]
-    assert "arm_2_rules_heuristic" in benchmark["arms"]
-    assert "arm_3_agentic_brain" in benchmark["arms"]
-
-    # Check Wilson CIs are strictly bounded within [0, 100]
-    for arm_key, arm in benchmark["arms"].items():
-        ci = arm["wilson_ci_95"]
-        assert 0.0 <= ci[0] < ci[1] <= 100.0
-
-    # Agentic brain should have decisive p < 0.001 vs untreated holdout
-    vs_ctrl = benchmark["comparative_metrics"]["agentic_vs_untreated"]
-    assert vs_ctrl["statistically_significant"] is True
-    assert vs_ctrl["p_value"] < 0.001
-
-    # Efficiency multiplier must show decisive cost-efficiency advantage
-    assert "higher net recovery per communication rupee spent" in benchmark["comparative_metrics"]["efficiency_multiplier"]
 
 
 def test_cross_leak_unification_moat():

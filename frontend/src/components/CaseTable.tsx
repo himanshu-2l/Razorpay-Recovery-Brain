@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { Search, Filter, Layers, Eye } from 'lucide-react';
 import type { CaseItem } from '../types';
 
+// Converts snake_case or SCREAMING_SNAKE to Title Case: "payment_failure" → "Payment Failure"
+const toTitleCase = (s: string): string =>
+  s.replace(/_/g, ' ').replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
 interface CaseTableProps {
   cases: CaseItem[];
   onSelectCase: (caseItem: CaseItem) => void;
@@ -165,7 +169,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({ cases, onSelectCase }) => 
 
                     {/* Leak Type */}
                     <td className="py-3 px-4 font-mono text-gray-300 text-[11px]">
-                      {c.leak_type.replace('_', ' ')}
+                      {toTitleCase(c.leak_type)}
                     </td>
 
                     {/* Root Cause */}
@@ -177,8 +181,8 @@ export const CaseTable: React.FC<CaseTableProps> = ({ cases, onSelectCase }) => 
 
                     {/* Intervention */}
                     <td className="py-3 px-4">
-                      <span className="font-mono text-white text-[11px] font-medium uppercase">
-                        {c.chosen_intervention.replace('_', ' ')}
+                      <span className="font-mono text-white text-[11px] font-medium">
+                        {toTitleCase(c.chosen_intervention)}
                       </span>
                     </td>
 
@@ -195,7 +199,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({ cases, onSelectCase }) => 
                     {/* Status */}
                     <td className="py-3 px-4 text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono border font-semibold ${statusColor}`}>
-                        {c.status.toUpperCase()}
+                        {toTitleCase(c.status)}
                       </span>
                     </td>
 

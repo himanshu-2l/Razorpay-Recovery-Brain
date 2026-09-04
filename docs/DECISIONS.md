@@ -69,14 +69,29 @@ To ensure our system represents the absolute state-of-the-art across all technic
 - **The Problem**: LLMs frequently hallucinate or miscalculate relative vernacular dates (e.g. interpreting "somvar" as next month or "parso" as yesterday).
 - **The Solution**: A deterministic rule-based parser (`HinglishTimeParser`) translating Indian phrases (`parso`, `somvar ko`, `salary ke baad`, `kal shaam`) into exact ISO-8601 IST timestamps, with automatic clamping to RBI allowed communication windows (07:00 – 19:00 IST).
 
-### D. 3-Arm A/B Experiment & Statistical Honesty (from `arrya5`)
-- **The Circularity Problem**: Testing an AI against simulated outcomes based on its own predicted probabilities is statistically circular.
-- **Our 3-Arm Setup**:
-  1. **Arm A (Untreated Control)**: Zero intervention. Baseline natural recovery $\approx 1.8\%$.
-  2. **Arm B (Deterministic Heuristics)**: Fixed static retry at $+4\text{h}$ + generic SMS link.
-  3. **Arm C (Agentic Recovery Brain)**: Root-cause diagnosis, gateway circuit breaking, Hinglish telephony, and Section 43B(h) urgency.
-- **Statistical Honesty Disclosure**:
-  > *At our batch size of $N=53$, the Agentic Brain demonstrates a statistically significant lift over the Untreated Control ($p = 0.007$, Wilson 95% CI $[6.2\%, 21.8\%]$). While the lift between the Agentic Brain and Deterministic Heuristics is not yet statistically conclusive at this sample size ($p = 0.17$), the Agentic Brain achieves a $3.1\times$ efficiency advantage in net recovery value per rupee spent on communications.*
+### D. Causal Uplift Modeling & Methodology Validation (CATE / ITE Framework)
+- **The Circularity Problem**: Testing an AI against simulated outcomes derived from its own predicted probabilities is statistically circular. A production deployment requires genuine randomized holdback groups.
+- **The Uplift Modeling Framing**:
+  - We model the **Conditional Average Treatment Effect (CATE / ITE)**: $\Delta P = P(\text{recovery} \mid \text{action}) - P(\text{recovery} \mid \text{do-nothing})$.
+  - Grounded in causal uplift literature:
+    - *Gutiérrez & Gérardy (2017)*: "Causal Inference and Uplift Modelling: A Review of the Literature" (Rubin causal model comparison).
+    - *Verhelst et al. (arXiv:2312.07206)*: "A churn prediction dataset from the telecom sector: a new benchmark for uplift modeling" (Orange Belgium churn benchmark).
+    - *arXiv:2111.10106*: "A Large Scale Benchmark for Individual Treatment Effect Prediction and Uplift Modeling" (near-random assignment for valid causal estimates).
+    - *arXiv:2211.07264*: "Partial counterfactual identification and uplift modeling: theoretical results and real-world assessment".
+  - Customers partition into four behavioral quadrants: *Persuadables*, *Sure Things*, *Lost Causes*, and *Sleeping Dogs*.
+  - Our explicit `churn_penalty_inr` quantitatively penalizes touching the *Sleeping Dogs* quadrant, preventing negative-ROI brand damage.
+- **Constrained Optimization & Debt Collection Literature**:
+  - Our intervention routing follows the foundational structure of *Abe et al. (ACM SIGKDD 2010)*: "Optimizing Debt Collections Using Constrained Reinforcement Learning", which predicts repayment probabilities per debtor-action pair and optimizes assignment via linear programming (deployed at New York State Dept of Taxation & Finance).
+  - Extended by risk-tiered deep RL recommendation models (*ScienceDirect, 2024*) and multi-criteria optimization for collections (*ScienceDirect, 2026*).
+  - B2B invoice payment prediction grounded in *arXiv:1912.10828* ("Optimize Cash Collection: Use Machine Learning to Predict Invoice Payment").
+- **Empirical India / UPI Payment Rails Grounding**:
+  - Scale figures grounded in *arXiv:2601.02369* ("Fair Distribution of Digital Payments"): 350M+ users, 550+ banks, 117B annual transactions.
+  - Subscriptions: 20 million monthly UPI AutoPay mandate revocations due to low balance (*Business Standard*, Sept 2025).
+  - Infrastructure: Real recurring switch outages documented by *Observer Research Foundation* ("UPI at Scale: Outages and the Push for Resilient Systems"), grounding Technical Decline (TD) vs. Business Decline (BD) isolation.
+- **Methodology Validation Setup**:
+  - **Near-Random Assignment**: Uses deterministic SHA-256 hash assignment ensuring balanced arms (analogous to propensity score AUC $\approx 0.509$).
+  - **Stratified Balance**: Partitions cases across risk-score quartiles to eliminate covariate imbalance.
+  - **Evaluation Rigor**: Two-proportion $z$-test with 95% Wilson confidence intervals, power analysis for minimum sample sizes, and explicit labeling that simulated recovery rates are assumed from collections literature rather than live-measured lift.
 
 ---
 

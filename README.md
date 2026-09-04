@@ -2,7 +2,7 @@
 ### **Track 03 — AI Revenue Recovery | Razorpay AI Buildathon 2026**
 *Author: Himanshu | High-Performance Multi-Modal Revenue Recovery Grid*
 
-[![Test Suite](https://img.shields.io/badge/Architectural_Tests-41%2F41_Passed_(100%25)-10B981.svg?style=for-the-badge&logo=pytest&logoColor=white)](backend/tests/)
+[![Test Suite](https://img.shields.io/badge/Architectural_Tests-49%2F49_Passed_(100%25)-10B981.svg?style=for-the-badge&logo=pytest&logoColor=white)](backend/tests/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-19.2-61DAFB.svg?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
 [![Vite](https://img.shields.io/badge/Vite-8.2-646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
@@ -13,7 +13,13 @@
 
 ## ⚡ The Problem Statement
 
-India processes over **15 billion monthly UPI transactions with an approximate 8% decline rate—resulting in over 1.2 billion declined payments every month**. At the same time, merchants silently hemorrhage capital across three other disconnected funnels: 70%+ checkout abandonments, involuntary subscription mandate churn under the RBI's >₹15,000 Additional Factor Authentication (AFA) regulation, and an average 73-day Days Sales Outstanding (DSO) on B2B trade receivables under Section 43B(h) of the Income Tax Act. Traditional recovery tools fail because they are dumb pumps: firing blind retries into down bank switches, spamming debtors at 10 PM in violation of RBI Fair Practices, and treating the same customer as four disconnected strangers across different channels.
+India's digital payment ecosystem is the largest real-time rails network on earth, processing over **117 billion transactions worth $2.19 trillion annually across 350+ million users and 550+ banks** ([arXiv:2601.02369](https://arxiv.org/abs/2601.02369)). Yet merchants silently hemorrhage capital across four disconnected funnels:
+1. **Recurring Mandate Revocations**: Over **20 million UPI AutoPay mandates are revoked every month** specifically because customer accounts fall short of the required balance at execution time (*Business Standard*, Sept 2025).
+2. **Involuntary Payment Failures**: Over **2,000 unique bank decline codes** plague digital checkout, where blind retries trigger issuer rate-limits and switch blacklisting rather than recovery.
+3. **Cart Abandonment**: 70%+ checkout abandonments driven by UPI intent app mismatches and friction.
+4. **B2B Trade Receivables**: Average 73-day Days Sales Outstanding (DSO) on B2B invoices, threatening buyers with non-deductibility penalties under Section 43B(h) of the Income Tax Act (45-day statutory cliff).
+
+Traditional recovery tools fail because they are dumb pumps: firing blind retries into degraded bank switches, spamming debtors at 10 PM in violation of RBI Fair Practices, and treating the same customer as four disconnected strangers across different channels.
 
 ---
 
@@ -164,7 +170,7 @@ cd backend
 pytest -v tests/
 ```
 
-### Verified Test Results (41/41 Passing):
+### Verified Test Results (49/49 Passing):
 * **29 Architectural Core Tests** (`tests/test_recovery_brain.py`):
   * Webhook concurrency & atomic lease locks (10 simultaneous threads).
   * RBI Fair Practices Code contact windows (9:30 PM blocked, 2:00 PM allowed).
@@ -175,6 +181,13 @@ pytest -v tests/
   * Deterministic hashing, Wilson score confidence intervals, and two-proportion z-tests.
 * **4 Concurrency & Rate Limit Tests** (`tests/test_webhook_idempotency.py`):
   * Rapid replay attacks and edge-level 409 Conflict rejection.
+* **4 Competitive Breakthrough Tests** (`tests/test_competitive_enhancements.py`):
+  * Deterministic Hinglish time-phrase parser (07:00–19:00 IST curfew clamped).
+  * 3-phase PTP lifecycle with webhook-gated settlement.
+  * T1 gap-payment double-check stopping rule.
+  * Cross-leak profile store multi-funnel unification.
+* **4 RAILS Verification-Native Clearing Tests** (`tests/test_rails_clearing.py`):
+  * SHA-256 Merkle root verification, deterministic dispute-evidence generation, and transaction sealing.
 
 ---
 
@@ -207,6 +220,42 @@ In the spirit of intellectual honesty and the **Karpathy Guidelines**, here is a
 | **RBI Fair Practices Guard** | **REAL**: Hardcoded time-window gates (8 AM – 7 PM IST), frequency caps, and 48-hour cool-offs. | Fully production-ready code with zero external dependencies. |
 | **Conversational Telephony** | **HYBRID**: Twilio API caller is fully coded and functional when credentials exist; gracefully falls back to browser TTS / Web Speech API simulation for zero-dependency local evaluation. | Plug in live Twilio Elastic SIP trunking or Exotel enterprise telephony route. |
 | **LLM Inference** | **HYBRID**: Structured to call local Ollama / vLLM endpoints (Mistral-7B / LLaMA-3); includes deterministic keyword + regex heuristic fallback classifier so 100% of tests pass without GPU. | Host fine-tuned 4-bit quantized Mistral-7B on dedicated on-prem GPU cluster. |
+
+---
+
+## 📚 Academic & Empirical Literature Foundations
+
+Rather than relying on ad-hoc heuristics, the **Revenue Recovery Brain** maps directly to established, peer-reviewed literature in causal inference, constrained reinforcement learning, and digital payments operations:
+
+### 1. Constrained Reinforcement Learning for Collections
+* **Abe, Melville, Pendus, Reddy et al.**, *"Optimizing Debt Collections Using Constrained Reinforcement Learning,"* **ACM SIGKDD 2010** (IBM Research).
+  * **Direct Mathematical Mapping**: Abe et al. formulate collections as a constrained decision system where Model 1 estimates repayment probability per debtor $P(\text{repay} \mid x)$, Model 2 predicts expected recovery amount $E[\text{amount} \mid x, a]$, and an optimization engine assigns actions under capacity and cost constraints.
+  * **Real-World Pedigree**: This exact architecture was deployed at the *New York State Department of Taxation and Finance* to optimize collections under operational limits. Our `InterventionRouter` and Expected Net Recoverable Value (ENRV) calculator directly implement this dual-prediction and constrained allocation principle.
+
+### 2. Causal Uplift Modeling & The "Sleeping Dogs" Defense
+* **Gutiérrez & Gérardy**, *"Causal Inference and Uplift Modelling: A Review of the Literature,"* 2017.
+* **Verhelst et al.**, *"A Benchmark Dataset for Churn-Specific Uplift Modeling,"* **arXiv:2312.07206**, 2023.
+  * **CATE / ITE Formulation**: Our incremental recovery metric $\Delta P = P(\text{recovery} \mid \text{action}) - P(\text{recovery} \mid \text{do-nothing})$ is formally the **Conditional Average Treatment Effect (CATE)** / Individual Treatment Effect (ITE).
+  * **Four Behavioral Quadrants**: Uplift literature divides customers into:
+    1. *Persuadables*: Respond only when nudged (target for automated intervention).
+    2. *Sure Things*: Settle organically regardless of intervention ($P_{\text{natural}}$ baseline).
+    3. *Lost Causes*: Never pay ($P \approx 0$, eliminated via Terminal Failure Filter).
+    4. *Sleeping Dogs*: **React negatively to contact** (churning, canceling subscriptions, or filing disputes).
+  * **Sleeping Dogs Penalty**: Our `churn_penalty_inr` explicitly penalizes touching the *Sleeping Dogs* quadrant, preventing destructive negative-ROI customer friction. In production validation, causal models are ranked via the **Qini coefficient** and Area Under the Uplift Curve (AUUC).
+
+### 3. Involuntary Churn & Payment Failure Reality
+* **Industry Telemetry (Stripe, GoCardless, Butter Payments)**:
+  * Involuntary churn accounts for 20–40% of all subscription churn, driven by over **2,000 unique bank decline codes** across international and domestic rails.
+  * **Empirical Benchmarks**: Stripe Smart Retries recovers an average of **57%** of failed recurring card payments; GoCardless Success+ achieves **99.5%** SEPA direct debit success.
+  * **Practitioner Insight**: While heavily documented by payments infrastructure providers, this specific domain is historically underexplored in peer-reviewed computer science literature—creating a massive white-space opportunity for agentic recovery architectures.
+
+### 4. India-Specific Rails & Digital Infrastructure
+* **UPI Scale & Fairness**: A 2024 academic survey highlights that UPI serves over **350 million users across 550+ banks and 77 apps, processing $2.19 trillion in annual volume** ([arXiv:2601.02369](https://arxiv.org/abs/2601.02369)).
+* **Mandate Volatility**: Over **20 million UPI AutoPay mandates are revoked monthly** due to low balance at scheduled execution (*Business Standard*, Sept 2025). The Recovery Brain's `SmartLiquidityScheduler` targets this failure mode specifically by aligning re-tries with empirical salary and liquidity cycles.
+* **Agentic Verification Rails**:
+  * **RAILS Protocol** ([arXiv:2606.08790](https://arxiv.org/abs/2606.08790)): Verification-native clearing for agentic commerce and dispute proof generation.
+  * **PCAT Taxonomy** ([arXiv:2607.21824](https://arxiv.org/abs/2607.21824)): Protocol-level security defenses against prompt manipulation across commerce interfaces.
+  * **IFSHM Self-Healing Architecture** ([arXiv:2506.07411](https://arxiv.org/abs/2506.07411)): Multimodal fault detection and hierarchical recovery policy.
 
 ---
 

@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { API_BASE } from '../../api';
 
+const toTitleCase = (s: string): string =>
+  s.replace(/_/g, ' ').replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
 interface LeakCase {
   id: string;
   leak_type: string;
@@ -131,7 +134,7 @@ export const CrossLeakShowcase: React.FC = () => {
         </h2>
         
         <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
-          Competitors build point solutions for single funnels. The Vasool Brain unifies B2B Invoices, 
+          Competitors build point solutions for single funnels. Revenue Recovery Brain unifies B2B Invoices, 
           Subscription Mandates, Checkout Drops, and Payment Failures under one identity—preventing bot spam 
           and solving the ₹240k Section 43B(h) tax cliff first.
         </p>
@@ -185,7 +188,7 @@ export const CrossLeakShowcase: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Razorpay Vasool Unified Brain */}
+        {/* Right: Revenue Recovery Brain — Unified Cross-Leak OS */}
         <div className="rounded-2xl border border-emerald-500/25 bg-emerald-950/10 p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -193,7 +196,7 @@ export const CrossLeakShowcase: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                Razorpay Vasool: Cross-Leak Operating System
+                Revenue Recovery Brain: Cross-Leak Operating System
               </span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 Unified Orchestration
@@ -294,8 +297,8 @@ export const CrossLeakShowcase: React.FC = () => {
                   <Clock className="w-3.5 h-3.5 text-amber-400" />
                   Section 43B(h) Urgency
                 </span>
-                <div className="text-sm font-bold text-amber-300 mt-1">{data.tax_clock.days_remaining} Days Remaining</div>
-                <div className="text-[11px] text-amber-400/80 line-clamp-1">{data.tax_clock.cfo_lever_message}</div>
+                <div className="text-sm font-bold text-amber-300 mt-1">{data.tax_clock?.days_remaining ?? 7} Days Remaining</div>
+                <div className="text-[11px] text-amber-400/80 line-clamp-1">{data.tax_clock?.cfo_lever_message || 'Statutory MSME 45-day interest penalty risk'}</div>
               </div>
             </div>
 
@@ -321,10 +324,10 @@ export const CrossLeakShowcase: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <div className="text-sm font-bold text-white font-mono">₹{c.amount_at_risk.toLocaleString()}</div>
-                        <div className="text-[11px] text-emerald-400 font-mono">{c.chosen_intervention.replace('_', ' ')}</div>
+                        <div className="text-[11px] text-emerald-400 font-mono">{toTitleCase(c.chosen_intervention)}</div>
                       </div>
                       <div className="px-2.5 py-1 rounded text-[11px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        {c.status.toUpperCase()}
+                        {toTitleCase(c.status)}
                       </div>
                     </div>
                   </div>

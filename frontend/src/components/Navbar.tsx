@@ -10,10 +10,11 @@ import {
   FlaskConical,
   ChevronDown,
   ExternalLink,
+  Cpu,
 } from 'lucide-react';
 
 export type ViewMode = 'showcase' | 'console';
-export type ConsoleTab = 'overview' | 'cases' | 'voice' | 'compliance' | 'abtest' | 'webhook';
+export type ConsoleTab = 'overview' | 'cases' | 'voice' | 'compliance' | 'abtest' | 'webhook' | 'architecture';
 
 interface NavbarProps {
   viewMode: ViewMode;
@@ -51,16 +52,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0052cc] via-[#2b82fb] to-[#1d4ed8] flex items-center justify-center shadow-lg shadow-blue-500/25">
                 <span className="font-bold text-white tracking-tighter text-lg italic">R</span>
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-base text-white tracking-tight">Razorpay</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-[#2b82fb] border border-blue-500/30 flex items-center space-x-1">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    <span>Agent Studio</span>
-                  </span>
-                </div>
-                <span className="text-[10px] text-gray-400 font-mono tracking-wider uppercase">
-                  Revenue Recovery Brain
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-base text-white tracking-tight">Razorpay</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-[#2b82fb] border border-blue-500/30 flex items-center space-x-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  <span>Agent Studio</span>
                 </span>
               </div>
             </div>
@@ -183,13 +179,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <nav className="flex items-center space-x-1">
               <button
                 onClick={() => setConsoleTab('overview')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center space-x-1.5 ${
                   consoleTab === 'overview'
                     ? 'bg-white/10 text-white font-semibold'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Overview
+                <LayoutDashboard className="w-3 h-3" />
+                <span>Overview</span>
               </button>
               <button
                 onClick={() => setConsoleTab('cases')}
@@ -204,10 +201,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
               <button
                 onClick={() => setConsoleTab('voice')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer ${
                   consoleTab === 'voice'
-                    ? 'bg-purple-600/30 text-purple-300 font-semibold border border-purple-500/30'
-                    : 'text-gray-400 hover:text-purple-300'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <PhoneCall className="w-3 h-3" />
@@ -215,21 +212,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
               <button
                 onClick={() => setConsoleTab('compliance')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer ${
                   consoleTab === 'compliance'
-                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30'
-                    : 'text-gray-400 hover:text-emerald-300'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <ShieldCheck className="w-3 h-3" />
-                <span>RBI Compliance Center</span>
+                <span>RBI Compliance</span>
               </button>
               <button
                 onClick={() => setConsoleTab('abtest')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer ${
                   consoleTab === 'abtest'
-                    ? 'bg-violet-600/30 text-violet-300 font-semibold border border-violet-500/30'
-                    : 'text-gray-400 hover:text-violet-300'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <FlaskConical className="w-3 h-3" />
@@ -237,14 +234,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
               <button
                 onClick={() => setConsoleTab('webhook')}
-                className={`px-3 py-1 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer ${
                   consoleTab === 'webhook'
-                    ? 'bg-blue-600/30 text-blue-300 font-semibold border border-blue-500/30'
-                    : 'text-gray-400 hover:text-blue-300'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <Terminal className="w-3 h-3" />
                 <span>Webhook Sandbox</span>
+              </button>
+              <button
+                onClick={() => setConsoleTab('architecture')}
+                className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  consoleTab === 'architecture'
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Cpu className="w-3 h-3" />
+                <span>Decision Engine</span>
               </button>
             </nav>
 

@@ -24,6 +24,10 @@ import {
 import type { CaseItem } from '../types';
 import { API_BASE } from '../api';
 
+// Converts snake_case or SCREAMING_SNAKE to Title Case
+const toTitleCase = (s: string): string =>
+  s.replace(/_/g, ' ').replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
 interface CaseDetailModalProps {
   caseItem: CaseItem | null;
   onClose: () => void;
@@ -269,7 +273,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                     {formatCurrency(caseItem.amount_recovered)}
                   </div>
                   <span className="text-[10px] text-gray-400 font-mono">
-                    Status: {caseItem.status.toUpperCase()}
+                    Status: {toTitleCase(caseItem.status)}
                   </span>
                 </div>
 
@@ -348,7 +352,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                 <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-purple-300 uppercase tracking-wide">
-                      Chosen Action: {caseItem.chosen_intervention.toUpperCase()}
+                      Chosen Action: {toTitleCase(caseItem.chosen_intervention)}
                     </span>
                     <span className="text-[10px] font-mono text-purple-400">Single Best Route</span>
                   </div>
@@ -395,7 +399,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                         ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 animate-pulse'
                         : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                     }`}>
-                      URGENCY: {(caseItem.tax_clock?.urgency_level || 'ELEVATED').toUpperCase()}
+                      Urgency: {toTitleCase(caseItem.tax_clock?.urgency_level || 'elevated')}
                     </span>
                   </div>
 
@@ -536,7 +540,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                       : 'bg-red-500/10 text-red-400 border-red-500/30'
                   }`}>
-                    {caseItem.compliance_status.toUpperCase()}
+                    {toTitleCase(caseItem.compliance_status)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-300 leading-relaxed font-mono">

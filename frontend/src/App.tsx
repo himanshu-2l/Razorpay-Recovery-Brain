@@ -17,6 +17,7 @@ import { WebhookPlayground } from './components/WebhookPlayground';
 import { ImpactCounter } from './components/ImpactCounter';
 import { LiveEventTicker } from './components/LiveEventTicker';
 import { ABTestResults } from './components/ABTestResults';
+import { ArchitectureFlow } from './components/ArchitectureFlow';
 import type { BatchSummary, CaseItem } from './types';
 import { API_BASE } from './api';
 
@@ -213,6 +214,12 @@ export const App: React.FC = () => {
             {consoleTab === 'webhook' && (
               <div className="space-y-4">
                 <WebhookPlayground />
+              </div>
+            )}
+
+            {consoleTab === 'architecture' && (
+              <div className="space-y-4">
+                <ArchitectureFlow cases={cases} />
               </div>
             )}
 

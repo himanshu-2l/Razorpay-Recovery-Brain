@@ -10,6 +10,11 @@ Key Regulatory Mechanics:
    in the financial year incurred. Deduction is deferred to the year actually paid.
 3. Deferral Cost: Time value of deferred tax deduction = Amount * Corporate Tax Rate (25%) * Annual Discount Rate (12%).
 4. Negotiation Inversion: Transforms a dunning call into a consultative tax-saving conversation.
+
+Academic & Empirical Grounding:
+- "Optimize Cash Collection: Use Machine Learning to Predict Invoice Payment" (arXiv:1912.10828):
+  Provides theoretical foundation for predicting B2B invoice settlement probabilities and aging trajectories,
+  which the Tax Clock Engine unifies with statutory Section 43B(h) compliance pressure.
 """
 
 from dataclasses import dataclass

@@ -9,6 +9,11 @@ Guarantees:
 1. Zero futile retries into collapsed banking rails (prevents customer annoyance & wasted API compute).
 2. Dynamic auto-recovery: auto-resumes once rolling health metrics recover above 75%.
 3. Full telemetry exposed via REST API and SSE stream.
+
+Academic & Empirical Grounding:
+- Observer Research Foundation (ORF): "UPI at Scale: Outages and the Push for Resilient Systems"
+  Documents recurring infrastructure and switch-level outages across Indian UPI rails, providing
+  empirical grounding for technical decline (TD) isolation and automated circuit breaker trips.
 """
 
 import threading
