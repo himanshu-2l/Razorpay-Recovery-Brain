@@ -48,24 +48,52 @@ class IdempotencyMutex:
         self,
         key: str,
         event_type: str = "webhook",
-        trace_id: Optional[str] = None
+        trace_id: Optional[str] = None,
+        lease_ttl_seconds: float = 30.0
     ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         Atomically tries to acquire execution lock for an event key.
+        If a previous execution holding 'PENDING' has exceeded lease_ttl_seconds,
+        the zombie lease is atomically reclaimed to prevent stalled recovery flows.
         Returns:
             (acquired: bool, status: str, cached_response: Optional[dict])
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.isoformat()
         with self._mutex:
             try:
                 cursor = self.conn.cursor()
                 cursor.execute(
-                    "SELECT status, response_json, trace_id FROM idempotency_keys WHERE key = ?",
+                    "SELECT status, response_json, trace_id, created_at FROM idempotency_keys WHERE key = ?",
                     (key,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    status, resp_json, existing_trace = row
+                    status, resp_json, existing_trace, created_at_str = row
+                    if status == "PENDING" and lease_ttl_seconds > 0:
+                        try:
+                            # Parse UTC timestamp safely
+                            created_dt = datetime.fromisoformat(created_at_str)
+                            elapsed = (now_dt - created_dt).total_seconds()
+                            if elapsed > lease_ttl_seconds:
+                                # Reclaim the stale lease atomically
+                                cursor.execute(
+                                    """
+                                    UPDATE idempotency_keys
+                                    SET trace_id = ?, created_at = ?, status = 'PENDING'
+                                    WHERE key = ? AND status = 'PENDING'
+                                    """,
+                                    (trace_id or "", now, key)
+                                )
+                                self.conn.commit()
+                                return True, "STALE_LEASE_RECLAIMED", {
+                                    "cached_status": "PENDING",
+                                    "previous_trace_id": existing_trace,
+                                    "elapsed_seconds": elapsed,
+                                    "reclaimed_at": now
+                                }
+                        except Exception:
+                            pass
                     return False, status, {"cached_status": status, "trace_id": existing_trace}
 
                 cursor.execute(
@@ -81,6 +109,23 @@ class IdempotencyMutex:
                 return False, "DUPLICATE_RACE_BLOCKED", None
             except Exception as e:
                 return False, f"ERROR: {str(e)}", None
+
+    def release_lease(self, key: str, status: str = "FAILED", response_summary: str = ""):
+        """Release or fail a pending lock so subsequent executions can proceed or inspect outcome."""
+        now = datetime.now(timezone.utc).isoformat()
+        with self._mutex:
+            try:
+                self.conn.execute(
+                    """
+                    UPDATE idempotency_keys
+                    SET status = ?, completed_at = ?, response_json = ?
+                    WHERE key = ? AND status = 'PENDING'
+                    """,
+                    (status, now, response_summary, key)
+                )
+                self.conn.commit()
+            except Exception:
+                pass
 
     def mark_completed(self, key: str, response_summary: str = ""):
         """Mark an idempotency key as successfully executed."""
@@ -223,7 +268,19 @@ class RateLimitTracker:
         "razorpay": 100,
         "twilio": 50,
         "sendgrid": 100,
+        "chaos_test": 100,
     }
+
+    def reset(self, api_name: Optional[str] = None):
+        """Reset rate limit buckets (for test isolation)."""
+        with self._mutex:
+            try:
+                if api_name:
+                    self.conn.execute("DELETE FROM rate_limits WHERE api_name = ?", (api_name.lower(),))
+                else:
+                    self.conn.execute("DELETE FROM rate_limits")
+            except Exception:
+                pass
 
     def __new__(cls, db_path: Optional[str] = None):
         with cls._lock:
