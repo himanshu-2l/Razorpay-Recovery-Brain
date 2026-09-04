@@ -5,6 +5,7 @@ import { ShowcaseHero } from './components/showcase/ShowcaseHero';
 import { ProofRibbon } from './components/showcase/ProofRibbon';
 import { StickyStoryTour } from './components/showcase/StickyStoryTour';
 import { ThreePillarsSection } from './components/showcase/ThreePillarsSection';
+import { CrossLeakShowcase } from './components/showcase/CrossLeakShowcase';
 import { LiveSimulatorSandbox } from './components/showcase/LiveSimulatorSandbox';
 import { ComplianceTrustSeal } from './components/showcase/ComplianceTrustSeal';
 import { StatsGrid } from './components/StatsGrid';
@@ -150,6 +151,9 @@ export const App: React.FC = () => {
                 setConsoleTab('webhook');
               }}
             />
+
+            {/* Cross-Leak Identity Unification Moat */}
+            <CrossLeakShowcase />
 
             {/* Interactive Failure Scenario Simulator */}
             <LiveSimulatorSandbox />

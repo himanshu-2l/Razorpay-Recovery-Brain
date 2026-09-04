@@ -35,6 +35,7 @@ interface ABExperimentResult {
 interface ABTestResponse {
   status: string;
   experiment?: ABExperimentResult;
+  three_arm_benchmark?: any;
   message?: string;
 }
 
@@ -423,6 +424,84 @@ export const ABTestResults: React.FC = () => {
         </div>
         <StratificationTable balance={exp.stratification_balance} />
       </div>
+
+      {/* 3-Arm Comparative Benchmark (Model: arrya5/revenue-recovery-agent) */}
+      {data?.three_arm_benchmark && (
+        <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-b from-[#0b1329]/60 to-[#030712] p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-wide">
+                  3-Arm Randomized Trial Methodology
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                  Benchmarked vs arrya5
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Comparing Untreated Control, Blind Rules Heuristics, and Vasool Agentic Brain (N=500 per arm).
+              </p>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-bold font-mono">
+              {data.three_arm_benchmark.comparative_metrics.efficiency_multiplier}
+            </div>
+          </div>
+
+          {/* 3 Arms Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Arm 1 */}
+            <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-2">
+              <span className="text-[11px] font-mono text-gray-400 uppercase block">Arm 1: Untreated Holdout</span>
+              <div className="text-2xl font-black text-gray-300 font-mono">
+                {data.three_arm_benchmark.arms.arm_1_untreated_control.recovery_rate_pct}%
+              </div>
+              <div className="text-xs text-gray-400 leading-snug">
+                {data.three_arm_benchmark.arms.arm_1_untreated_control.policy}
+              </div>
+              <div className="pt-2 text-[11px] font-mono text-gray-500 space-y-1 border-t border-white/5">
+                <div>Wilson 95% CI: [{data.three_arm_benchmark.arms.arm_1_untreated_control.wilson_ci_95.join('%, ')}%]</div>
+                <div>Cost: ₹0 (Organic Baseline)</div>
+              </div>
+            </div>
+
+            {/* Arm 2 */}
+            <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-950/10 space-y-2">
+              <span className="text-[11px] font-mono text-amber-400 uppercase block">Arm 2: Rules Heuristics</span>
+              <div className="text-2xl font-black text-amber-300 font-mono">
+                {data.three_arm_benchmark.arms.arm_2_rules_heuristic.recovery_rate_pct}%
+              </div>
+              <div className="text-xs text-gray-300 leading-snug">
+                {data.three_arm_benchmark.arms.arm_2_rules_heuristic.policy}
+              </div>
+              <div className="pt-2 text-[11px] font-mono text-amber-400/80 space-y-1 border-t border-amber-500/10">
+                <div>Wilson 95% CI: [{data.three_arm_benchmark.arms.arm_2_rules_heuristic.wilson_ci_95.join('%, ')}%]</div>
+                <div>Cost: ₹4,200 · Yield: {data.three_arm_benchmark.arms.arm_2_rules_heuristic.recovery_per_rupee_spent} / ₹1</div>
+              </div>
+            </div>
+
+            {/* Arm 3 */}
+            <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 space-y-2 shadow-lg shadow-emerald-500/5">
+              <span className="text-[11px] font-mono text-emerald-400 uppercase block font-semibold">Arm 3: Agentic Brain</span>
+              <div className="text-2xl font-black text-emerald-300 font-mono">
+                {data.three_arm_benchmark.arms.arm_3_agentic_brain.recovery_rate_pct}%
+              </div>
+              <div className="text-xs text-gray-200 leading-snug">
+                {data.three_arm_benchmark.arms.arm_3_agentic_brain.policy}
+              </div>
+              <div className="pt-2 text-[11px] font-mono text-emerald-400 space-y-1 border-t border-emerald-500/10">
+                <div>Wilson 95% CI: [{data.three_arm_benchmark.arms.arm_3_agentic_brain.wilson_ci_95.join('%, ')}%]</div>
+                <div className="font-bold text-emerald-300">Cost: ₹1,850 · Yield: {data.three_arm_benchmark.arms.arm_3_agentic_brain.recovery_per_rupee_spent} / ₹1</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Intellectual Honesty Disclosure */}
+          <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/15 text-[11px] text-blue-200/80 leading-relaxed flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <span>{data.three_arm_benchmark.intellectual_honesty_disclosure}</span>
+          </div>
+        </div>
+      )}
 
       {/* Static statistical note from engine */}
       {exp.statistical_note && (

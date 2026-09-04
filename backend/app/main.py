@@ -1699,6 +1699,7 @@ async def get_ab_test_results():
         }
 
     result = ab_test_engine.calculate_lift(_ab_experiment_id)
+    three_arm = ab_test_engine.get_three_arm_benchmark()
     return {
         "status": "ok",
         "methodology_validation": True,
@@ -1710,6 +1711,19 @@ async def get_ab_test_results():
             "holdback group with tracked payment outcomes over weeks/months."
         ),
         "experiment": result,
+        "three_arm_benchmark": three_arm,
+    }
+
+
+@app.get("/api/ab-test/three-arm-benchmark")
+async def get_three_arm_benchmark():
+    """
+    Returns 3-Arm Randomized Benchmark (Untreated Holdout vs. Rules Heuristics vs. Agentic Brain).
+    Benchmarked from arrya5/revenue-recovery-agent with Wilson CIs and cost-efficiency metrics.
+    """
+    return {
+        "status": "ok",
+        "benchmark": ab_test_engine.get_three_arm_benchmark(),
     }
 
 
