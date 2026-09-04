@@ -181,3 +181,101 @@ def test_late_authorization_webhook_e2e():
     dup_data = dup_response.json()
     assert dup_data["status"] == "duplicate_rejected"
 
+
+def test_whatsapp_service_and_api_key_initialization():
+    """Verify WhatsApp outreach service and Twilio API key configuration."""
+    from app.services.whatsapp_service import send_whatsapp_recovery, build_whatsapp_message, is_whatsapp_configured
+    from app.services.twilio_caller import _get_twilio_client
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    # 1. Message building
+    msg = build_whatsapp_message("Rohit Mehta", 85000.0, "INV-2026-TEST", "https://rzp.io/i/test123")
+    assert "₹85,000.00" in msg
+    assert "https://rzp.io/i/test123" in msg
+    assert "PIN, OTP" in msg  # compliance security disclaimer
+
+    # 2. Simulated / fallback dispatch
+    res = send_whatsapp_recovery(
+        to_number="+919876543210",
+        customer_name="Rohit Mehta",
+        amount_inr=85000.0,
+        invoice_number="INV-2026-TEST",
+    )
+    assert res["status"] in ("sent", "simulated", "blocked")
+    assert res["to_number"] == "+919876543210"
+
+    # With daytime call_time (2 PM IST)
+    res_daytime = send_whatsapp_recovery(
+        to_number="+919876543210",
+        customer_name="Rohit Mehta",
+        amount_inr=85000.0,
+        invoice_number="INV-2026-TEST",
+        customer_meta={"call_time": 14.0},
+    )
+    assert res_daytime["status"] in ("sent", "simulated")
+
+    # 3. Web API endpoint test
+    client = TestClient(app)
+    api_res = client.post("/api/demo/trigger-real-whatsapp", json={
+        "to_number": "+919876543210",
+        "customer_name": "Rohit Mehta",
+        "amount_inr": 85000,
+        "invoice_number": "INV-2026-TEST",
+    })
+    assert api_res.status_code == 200
+    data = api_res.json()
+    assert "status" in data
+
+
+def test_bolna_telephony_service_and_status():
+    """Verify Bolna AI service integration, phone normalization, and telephony status endpoint."""
+    from app.services.bolna_caller import (
+        is_bolna_configured,
+        _normalize_phone_number,
+        trigger_bolna_call,
+    )
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    # 1. Configured check & phone normalization
+    assert is_bolna_configured() is True
+    assert _normalize_phone_number("9876543210") == "+919876543210"
+    assert _normalize_phone_number("+919876543210") == "+919876543210"
+
+    # 2. Compliance gating & call dispatch
+    res = trigger_bolna_call(
+        to_number="9876543210",
+        customer_name="Sanjay Singhania",
+        amount_inr=125000.0,
+        invoice_number="INV-BOLNA-TEST",
+        customer_meta={"name": "Sanjay Singhania", "phone": "+919876543210", "call_time": 14.0}, # 2 PM IST is inside RBI allowed window
+    )
+    # Since agent_id is not yet created on Bolna dashboard, it should cleanly return needs_agent_setup with verified wallet
+    assert res["status"] in ("ready_for_agent", "dispatched", "simulated", "blocked")
+    assert res["to_number"] == "+919876543210"
+    assert res["provider"] == "bolna_ai"
+
+    # 3. Telephony status endpoint
+    client = TestClient(app)
+    status_res = client.get("/api/demo/telephony-status")
+    assert status_res.status_code == 200
+    status_data = status_res.json()
+    assert "twilio" in status_data
+    assert "bolna" in status_data
+    assert "whatsapp" in status_data
+    assert status_data["bolna"]["configured"] is True
+
+    # 4. Outbound call routing endpoint with provider="bolna"
+    call_res = client.post("/api/demo/trigger-real-call", json={
+        "to_number": "+919876543210",
+        "customer_name": "Sanjay Singhania",
+        "amount_inr": 125000,
+        "invoice_number": "INV-BOLNA-TEST",
+        "provider": "bolna",
+    })
+    assert call_res.status_code == 200
+    call_data = call_res.json()
+    assert call_data["provider"] == "bolna_ai"
+
+

@@ -126,7 +126,14 @@ class VoiceSafetyFilter:
 
         # 2. RBI Fair Practices Code contact window check (8 AM - 7 PM IST)
         effective_time = call_time or customer.get("call_time") or datetime.now(pytz.utc)
-        now_ist = effective_time.astimezone(IST)
+        if isinstance(effective_time, (int, float)):
+            now_ist = datetime.now(IST).replace(hour=int(effective_time), minute=int((effective_time % 1) * 60))
+        elif hasattr(effective_time, "astimezone"):
+            if effective_time.tzinfo is None:
+                effective_time = pytz.utc.localize(effective_time)
+            now_ist = effective_time.astimezone(IST)
+        else:
+            now_ist = datetime.now(IST)
         hour = now_ist.hour
         minute = now_ist.minute
         time_minutes = hour * 60 + minute

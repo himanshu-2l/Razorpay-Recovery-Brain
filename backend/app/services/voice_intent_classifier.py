@@ -1,7 +1,7 @@
 """
 Voice Intent Classifier & Telephony Strategy Engine.
 Implements structured turn-level intent extraction, multi-persona collection strategies,
-and sub-800ms telephony latency budget waterfall tracking.
+and reference turn latency budget waterfall modeling.
 """
 
 import time
@@ -88,7 +88,7 @@ PERSONA_CONFIGS = {
 
 
 class VoiceIntentClassifier:
-    """Classifies spoken utterance intent and computes sub-800ms latency metrics."""
+    """Classifies spoken utterance intent and models theoretical turn latency target budgets."""
 
     @staticmethod
     def classify_utterance(text: str) -> Dict[str, Any]:
@@ -141,11 +141,16 @@ class VoiceIntentClassifier:
     @staticmethod
     def compute_turn_latency_waterfall(base_ms: float = 480.0) -> Dict[str, Any]:
         """
-        Calibrated target telephony component budget breakdown profiled against
-        the standard 800ms human conversational turn perception limit
-        (Silero VAD ~65ms + Deepgram STT ~120ms + Context Cache ~4.2ms + vLLM TTFT ~210ms + Cartesia TTS ~130ms + Network ~42ms).
+        Target/reference numbers from third-party published benchmarks (Silero VAD,
+        Deepgram STT, vLLM, Cartesia TTS) for components not yet integrated in this
+        codebase, not an empirical measurement of this system.
+
+        Provided as an architectural reference budget against the standard 800ms
+        human conversational turn perception limit.
         """
         return {
+            "is_reference_target_only": True,
+            "disclaimer": "Target/reference numbers from third-party published benchmarks for unintegrated components, not a live measurement of this system.",
             "vad_ms": 65.0,
             "stt_ms": 120.0,
             "context_cache_ms": 4.2,
