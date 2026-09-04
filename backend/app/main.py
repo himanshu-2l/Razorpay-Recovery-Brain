@@ -147,6 +147,16 @@ async def root():
     }
 
 
+@app.get("/health")
+async def health_check():
+    """Liveness and health check endpoint for Render and Docker."""
+    return {
+        "status": "healthy",
+        "service": "revenue-recovery-api",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ─── Batch Processing ────────────────────────────────────────────────────
 
 @app.post("/api/batch/generate")
