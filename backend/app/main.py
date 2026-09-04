@@ -46,13 +46,25 @@ batch_results = None
 
 @app.on_event("startup")
 async def reload_ledger_on_startup():
-    """Reload audit ledger from SQLite so history survives process restarts."""
+    """Reload audit ledger from SQLite so history survives process restarts and auto-seed initial batch."""
     from app.core.audit_ledger import audit_ledger
     reloaded = audit_ledger.reload_from_db()
     if reloaded > 0:
         print(f"[Startup] Audit ledger reloaded: {reloaded} blocks from audit_ledger.db")
     else:
         print("[Startup] Audit ledger: fresh start (no persisted history found)")
+
+    # Auto-seed batch_results so frontend dashboard has immediate data
+    global pipeline, current_batch, batch_results
+    if batch_results is None:
+        try:
+            pipeline = RecoveryPipeline()
+            current_batch = generate_full_batch()
+            batch_results = pipeline.process_full_batch(current_batch)
+            print(f"[Startup] Initial batch auto-seeded: {batch_results['total_cases']} cases with RAILS clearing.")
+        except Exception as e:
+            print(f"[Startup] Error auto-seeding batch: {e}")
+
 
 
 

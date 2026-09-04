@@ -17,13 +17,15 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from app.core.audit_ledger import audit_ledger
+from app.services.rails_clearing import rails_clearing
 
 
 class DecisionReceiptService:
     @staticmethod
     def generate_receipt(case: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generate a sealed Decision Receipt for a processed recovery case.
+        Generate a sealed Decision Receipt for a processed recovery case,
+        grounded in the RAILS Verification-Native Clearing protocol (arXiv:2606.08790).
         """
         case_id = case.get("id", str(uuid.uuid4()))
         receipt_id = f"rcpt_{uuid.uuid4().hex[:14]}"
@@ -38,7 +40,12 @@ class DecisionReceiptService:
             "requires_human_approval": False,
         }
 
-        # Structure receipt payload
+        # 1. Compile RAILS Obligation Contract (O) & Evidence Envelope (E)
+        obligation = rails_clearing.compile_obligation(case)
+        envelope = rails_clearing.assemble_evidence_envelope(case, obligation)
+        clearing_eval = rails_clearing.evaluate_clearing(case, obligation, envelope)
+
+        # 2. Structure receipt payload with RAILS clearing attributes
         receipt_payload = {
             "receipt_id": receipt_id,
             "case_id": case_id,
@@ -72,21 +79,33 @@ class DecisionReceiptService:
                 "status": case.get("compliance_status", "allowed"),
                 "rule_cited": case.get("compliance_rule", "Responsible Collections Policy (RBI FPC Principles) — Contact window & frequency verified"),
             },
+            # RAILS Verification-Native Clearing Attributes (arXiv:2606.08790)
+            "rails_clearing": clearing_eval,
         }
 
-        # Canonical string for cryptographic seal
+        # 3. Canonical string for cryptographic seal
         canonical_str = json.dumps(receipt_payload, sort_keys=True, separators=(",", ":"))
         sha256_seal = hashlib.sha256(canonical_str.encode("utf-8")).hexdigest()
         receipt_payload["sha256_seal"] = sha256_seal
 
-        # Append to cryptographic audit ledger
+        # 4. Append to cryptographic audit ledger
         audit_ledger.record_event(
             event_type="DECISION_RECEIPT_ISSUED",
             case_id=case_id,
-            payload={"receipt_id": receipt_id, "seal": sha256_seal, "action": case.get("chosen_intervention")}
+            payload={
+                "receipt_id": receipt_id,
+                "seal": sha256_seal,
+                "action": case.get("chosen_intervention"),
+                "obligation_hash": clearing_eval["obligation_hash"],
+                "envelope_hash": clearing_eval["envelope_hash"],
+                "admissibility_class": clearing_eval["admissibility_class"],
+                "soundness_verified": clearing_eval["soundness_verified"],
+                "finality_status": clearing_eval["finality_status"],
+            }
         )
 
         return receipt_payload
 
 
 receipt_service = DecisionReceiptService()
+

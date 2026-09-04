@@ -54,6 +54,20 @@ class PromiseToPay:
         self.webhook_verified: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
+        # Determine RAILS Admissibility Class & Finality
+        if self.status == "FULFILLED" and self.webhook_verified:
+            admissibility_class = "REC"
+            finality_status = "FINAL"
+            soundness_satisfied = True
+        elif self.status == "BROKEN_ESCALATED":
+            admissibility_class = "SIGN"
+            finality_status = "ABORTED"
+            soundness_satisfied = False
+        else:
+            admissibility_class = "WIT" if self.channel == "voice_call" else "SIGN"
+            finality_status = "PROVISIONAL"
+            soundness_satisfied = False
+
         return {
             "promise_id": self.promise_id,
             "case_id": self.case_id,
@@ -70,7 +84,13 @@ class PromiseToPay:
             "webhook_verified": self.webhook_verified,
             "created_at": self.created_at,
             "fulfilled_at": self.fulfilled_at,
+            # RAILS Clearing Parameters (arXiv:2606.08790)
+            "rails_admissibility": admissibility_class,
+            "rails_finality": finality_status,
+            "soundness_floor": "REC",
+            "soundness_satisfied": soundness_satisfied,
         }
+
 
 
 class PTPTracker:

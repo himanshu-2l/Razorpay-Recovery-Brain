@@ -118,6 +118,33 @@ export interface CaseItem {
       status: string;
       rule_cited: string;
     };
+    rails_clearing?: {
+      obligation_id: string;
+      obligation_hash: string;
+      envelope_hash: string;
+      admissibility_class: 'SELF' | 'SIGN' | 'WIT' | 'REC' | 'ATT' | 'PROOF';
+      admissibility_floor: 'SELF' | 'SIGN' | 'WIT' | 'REC' | 'ATT' | 'PROOF';
+      soundness_verified: boolean;
+      finality_status: 'PROVISIONAL' | 'FINAL' | 'POLICY_VETOED' | 'ABORTED';
+      soundness_statement: string;
+      evidence_envelope: {
+        obligation_hash: string;
+        envelope_hash: string;
+        aggregate_admissibility: string;
+        timestamp: string;
+        evidence_count: number;
+        evidence_items: Array<{
+          id: string;
+          source: string;
+          evidence_type: string;
+          admissibility: 'SELF' | 'SIGN' | 'WIT' | 'REC' | 'ATT' | 'PROOF';
+          hash: string;
+          verified: boolean;
+          timestamp: string;
+          preview?: any;
+        }>;
+      };
+    };
   };
   stages?: Array<{
     stage_number: number;
