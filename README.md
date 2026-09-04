@@ -49,7 +49,7 @@ flowchart TD
         R1["Smart Retry / Alternate Rail Routing"]
         R2["1-Click WhatsApp Self-Service Link"]
         R3["Automated 24h Pre-Debit Push Flow"]
-        R4["Hinglish Conversational Voice Agent"]
+        R4["Compliant Automated Notification Call<br/>& Offline Dialogue Simulator"]
         ESC["Human Review Escalation Queue"]
     end
 
@@ -88,7 +88,7 @@ To objectively evaluate our engineering contributions against other Razorpay Bui
 | **Audit Trail & Non-Repudiation** | Plain text logs / console prints | Unchained SQLite table row | SQLite WAL execution log | **Cryptographically Chained SHA-256 Merkle Ledger**: Verifiable offline via zero-dependency `verify_ledger.py` CLI tool. |
 | **Agentic Verification Rails** | None | None | None | **RAILS Protocol Integration** ([arXiv:2606.08790](https://arxiv.org/abs/2606.08790)): Zero-knowledge proof tokens, signed state transitions, and dispute defense packages. |
 | **Regulatory Compliance** | None | 9am–9pm window check only | None | **Full Statutory Stack**: RBI Fair Practices Code (curfew + contact caps) + Section 43B(h) MSME 45-day tax clock + DPDP Act 2023 (PII masking & Right to Erasure). |
-| **Vernacular Telephony** | Hardcoded English prompts | Generic Twilio/Bolna dry-run | None | **Sub-600ms Hinglish Voice Agent**: Deterministic vernacular time-phrase parser ("parso", "agle hafte") + PTP 3-phase commitment tracker. |
+| **Vernacular Telephony** | Hardcoded English prompts | Generic Twilio/Bolna dry-run | None | **Compliant Automated Notification Call & Offline Dialogue Simulator (800ms Reference Target SLA)**: Deterministic vernacular time-phrase parser ("parso", "agle hafte") + PTP 3-phase commitment tracker. |
 | **Automated Test Suite** | 0–5 basic tests | 5 script tests | ~15 tests | **50 Comprehensive Tests (100% Passing)**: Idempotency race conditions, statistical uplift z-tests, RAILS proofs, DPDP erasure, and webhook intercepts. |
 | **Operator Experience** | Basic or none | CLI script (`run_pipeline.py`) | Simple 1-page form | **Production-Grade Studio**: Vite 8 + React 19 + Tailwind dashboard with live SSE streaming, A/B lift analytics, RAILS inspector, and interactive Webhook Playground. |
 

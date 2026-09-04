@@ -20,7 +20,7 @@ A **Grand Unified Autonomous Revenue Recovery Brain** with:
 2. **At-Most-Once Idempotency Core** (Composite SHA-256 temporal keys with 7-day TTL rejecting duplicate webhook retries).
 3. **Cryptographic Decision Receipts** (every recovery decision signed with SHA-256 hash chaining).
 4. **Calendar-Aligned Payday & Month-End Smart Scheduler** (scheduling retries during corporate payroll windows: 1st–5th of month).
-5. **Sub-800ms Latency Multi-Persona Hinglish Telephony Engine** (4 negotiation personas + structured intent extraction).
+5. **Compliant Automated Notification Call & Offline Hinglish Dialogue Simulator (LLM-generated, not live)** (RBI FPC gated outbound notification + 4 offline simulation personas with structured intent extraction).
 6. **Strict RBI Voice Credential Shield** (`VoiceSafetyFilter` rejecting any voice solicitation of UPI PIN / OTP / CVV, routing to secure links).
 7. **DPDP Act 2023 Compliance & Consent Architecture** (explicit opt-in tracking, statutory retention schedules, automated erasure).
 8. **Section 43B(h) MSME 45-Day Tax Urgency Engine** (consultative CFO tax-deductibility leverage).
@@ -75,10 +75,10 @@ A **Grand Unified Autonomous Revenue Recovery Brain** with:
                         ┌──────────────────────┴──────────────────────┐
                         ▼                                             ▼
        ┌─────────────────────────────────┐           ┌─────────────────────────────────┐
-       │ 5a. B2B Voice Telephony Studio  │           │ 5b. Razorpay API Execution      │
-       │     - 4 Collection Personas     │           │     - Dynamic Payment Links     │
-       │     - Turn Intent Extraction    │           │     - UPI Mandate Re-auth       │
-       │     - Sub-800ms Latency Bar     │           │     - WhatsApp/Email Nudges     │
+       │ 5a. Voice & Telephony Suite     │           │ 5b. Razorpay API Execution      │
+       │     - Compliant Auto Notif Call │           │     - Dynamic Payment Links     │
+       │     - Offline Dialogue Simulator│           │     - UPI Mandate Re-auth       │
+       │     - 800ms Reference Target SLA│           │     - WhatsApp/Email Nudges     │
        │     - Consultative Link Delivery│           │     - Bank Gateway Fallbacks    │
        └────────────────┬────────────────┘           └────────────────┬────────────────┘
                         │                                             │
@@ -120,9 +120,11 @@ Generates 5 deterministic candidate retry windows:
 4. `plus_3_days_midday`: $+3\text{d}$ 12:00 PM IST (secondary dunning fallback).
 5. `month_end_window`: 28th–31st of month 11:00 AM IST (business monthly closing liquidity).
 
-### D. Voice Credential Prohibition & Intent Waterfall (`voice_safety.py`, `voice_intent_classifier.py`)
+### D. Voice Credential Prohibition & Telephony Architecture (`voice_safety.py`, `voice_intent_classifier.py`)
 * **Strict RBI Credential Ban**: Regular expressions reject scripts soliciting "PIN", "OTP", "CVV", or passwords; substitutes with safe WhatsApp payment link messaging.
-* **Sub-800ms Latency Waterfall**: VAD ($65\text{ms}$) + STT ($120\text{ms}$) + Context ($4.2\text{ms}$) + LLM TTFT ($210\text{ms}$) + TTS ($130\text{ms}$) = **$571.2\text{ms} < 800\text{ms}$ budget**.
+* **Compliant Automated Notification Call**: Gated outbound reminder phone call via Twilio `<Say>` broadcast / Bolna AI with strict 8 AM - 7 PM IST curfew enforcement.
+* **Offline Hinglish Dialogue Simulator**: 6-turn synthetic negotiation script generator (Ollama Llama-3-8B / heuristic template, offline, not live telephony).
+* **Turn Latency Reference Target SLA**: Architectural design target budget for future streaming components (Silero VAD $65\text{ms}$ + Deepgram STT $120\text{ms}$ + Context $4.2\text{ms}$ + vLLM TTFT $210\text{ms}$ + Cartesia TTS $130\text{ms}$ = **$571.2\text{ms} < 800\text{ms}$ target SLA**; disclosed as reference benchmark for unintegrated stack, not live system telemetry).
 
 ### E. Section 43B(h) MSME Tax Clock Engine (`tax_clock_engine.py`)
 * Under the MSMED Act Section 15 and Income Tax Act Section 43B(h), dues unpaid after 45 days face income tax disallowance ($30\% \times \text{Penal Interest}$).

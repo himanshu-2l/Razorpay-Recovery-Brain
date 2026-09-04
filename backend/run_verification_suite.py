@@ -846,7 +846,9 @@ def write_voice_latency_report(v_res: Dict[str, Any], filepath: str):
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.write("# Voice Pipeline End-to-End Latency & Telephony Report\n\n")
-        f.write("> **Measurement Transparency Disclosure:** The numbers below distinguish explicitly between **live measured CPU benchmarks** (measured in real time using `time.perf_counter()` over 500 iterations) and **calibrated target component SLAs** (profiled against standard production telephony model APIs: Silero VAD, Deepgram Nova-2 STT, vLLM quantized Mistral, Cartesia Sonic TTS).\n\n")
+        f.write("> **Measurement Transparency Disclosure:** The numbers below distinguish explicitly between:\n")
+        f.write("> 1. **Live measured local CPU benchmarks** (measured in real time using `time.perf_counter()` over 500 iterations for local intent classification and heuristic flow generation).\n")
+        f.write("> 2. **Architectural Target SLAs for unintegrated third-party streaming components** (Silero VAD, Deepgram Nova-2 STT, vLLM TTFT, Cartesia Sonic TTS). These figures represent design target budget allocations for future live telephony integration and are NOT live measured telemetry from an active streaming pipeline.\n\n")
         
         f.write("## 1. Live Measured Local Pipeline Telemetry\n\n")
         f.write("| Local Component | Live Measured Latency | Benchmark Methodology |\n")
@@ -855,16 +857,16 @@ def write_voice_latency_report(v_res: Dict[str, Any], filepath: str):
         f.write(f"| **Persona Dialogue Generation** | `{v_res['measured_flow_generation_ms']:.3f} ms` | `time.perf_counter()` over {v_res['measured_iterations']} calls |\n")
         f.write(f"| **Context Cache Lookup** | `4.2 ms` | In-memory token state retrieval |\n\n")
 
-        f.write("## 2. Telephony Turn Latency Waterfall (Target Budget: 800ms)\n\n")
+        f.write("## 2. Telephony Turn Latency Waterfall (Target Budget: 800ms SLA)\n\n")
         f.write("| Stage | Component | Profiled Budget (ms) | Status | Telephony Role |\n")
         f.write("| :--- | :--- | :---: | :---: | :--- |\n")
-        f.write(f"| Stage 1 | Voice Activity Detection (Silero VAD) | `{wf['vad_ms']:.1f} ms` | Measured Target | Speech boundary detection |\n")
-        f.write(f"| Stage 2 | Speech-to-Text (Deepgram Nova-2) | `{wf['stt_ms']:.1f} ms` | Measured Target | Hinglish audio transcription |\n")
+        f.write(f"| Stage 1 | Voice Activity Detection (Silero VAD) | `{wf['vad_ms']:.1f} ms` | Reference Target SLA | Speech boundary detection (Unintegrated) |\n")
+        f.write(f"| Stage 2 | Speech-to-Text (Deepgram Nova-2) | `{wf['stt_ms']:.1f} ms` | Reference Target SLA | Hinglish audio transcription (Unintegrated) |\n")
         f.write(f"| Stage 3 | Local Context Retrieval | `{wf['context_cache_ms']:.1f} ms` | Live Measured | Invoice + PTP history lookup |\n")
-        f.write(f"| Stage 4 | LLM Time-to-First-Token (vLLM) | `{wf['llm_ttft_ms']:.1f} ms` | Profiled SLA | Streaming first token generation |\n")
-        f.write(f"| Stage 5 | TTS Audio Synthesis (Cartesia) | `{wf['tts_synthesis_ms']:.1f} ms` | Profiled SLA | Streaming voice chunk generation |\n")
-        f.write(f"| Stage 6 | WebSocket / Network RTT | `{wf['network_ms']:.1f} ms` | Network Target | Edge WebSocket packet round-trip |\n")
-        f.write(f"| **Total** | **End-to-End Conversational Turn** | **`{wf['total_turn_latency_ms']:.1f} ms`** | **PASS** | **Headroom: {wf['budget_headroom_ms']:.1f} ms below 800ms** |\n\n")
+        f.write(f"| Stage 4 | LLM Time-to-First-Token (vLLM) | `{wf['llm_ttft_ms']:.1f} ms` | Reference Target SLA | Streaming first token generation (Unintegrated) |\n")
+        f.write(f"| Stage 5 | TTS Audio Synthesis (Cartesia) | `{wf['tts_synthesis_ms']:.1f} ms` | Reference Target SLA | Streaming voice chunk generation (Unintegrated) |\n")
+        f.write(f"| Stage 6 | WebSocket / Network RTT | `{wf['network_ms']:.1f} ms` | Reference Target SLA | Edge WebSocket packet round-trip |\n")
+        f.write(f"| **Total** | **Target Conversational Turn SLA** | **`{wf['total_turn_latency_ms']:.1f} ms`** | **REFERENCE TARGET SLA** | **Theoretical Headroom: {wf['budget_headroom_ms']:.1f} ms below 800ms** |\n\n")
 
 
 def write_guardrail_report(g_res: Dict[str, Any], filepath: str):
@@ -900,25 +902,28 @@ if __name__ == "__main__":
     print("  REVENUE RECOVERY BRAIN -- VERIFICATION & REPORTING PIPELINE")
     print("=================================================================")
 
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "reports")
+    os.makedirs(docs_dir, exist_ok=True)
+
     # 1. Run Task 1
     batch_res = run_full_batch_evaluation()
-    write_batch_results_report(batch_res, "batch_results_report.md")
-    print("  -> Generated batch_results_report.md")
+    write_batch_results_report(batch_res, os.path.join(docs_dir, "batch_results_report.md"))
+    print("  -> Generated docs/reports/batch_results_report.md")
 
     # 2. Run Task 2
     clf_res = run_classifier_heldout_evaluation()
-    write_classifier_report(clf_res, "classifier_validation_report.md")
-    print("  -> Generated classifier_validation_report.md")
+    write_classifier_report(clf_res, os.path.join(docs_dir, "classifier_validation_report.md"))
+    print("  -> Generated docs/reports/classifier_validation_report.md")
 
     # 3. Run Task 3
     v_res = run_voice_latency_check()
-    write_voice_latency_report(v_res, "voice_latency_report.md")
-    print("  -> Generated voice_latency_report.md")
+    write_voice_latency_report(v_res, os.path.join(docs_dir, "voice_latency_report.md"))
+    print("  -> Generated docs/reports/voice_latency_report.md")
 
     # 4. Run Task 4
     g_res = run_adversarial_guardrails()
-    write_guardrail_report(g_res, "guardrail_verification_report.md")
-    print("  -> Generated guardrail_verification_report.md")
+    write_guardrail_report(g_res, os.path.join(docs_dir, "guardrail_verification_report.md"))
+    print("  -> Generated docs/reports/guardrail_verification_report.md")
 
     print("\n=================================================================")
     print("  ALL 4 VERIFICATION REPORTS SUCCESSFULLY GENERATED (100%)")
