@@ -1982,6 +1982,46 @@ async def get_ab_variant(invoice_id: str, risk_score: float = 0.5):
     }
 
 
+# ─── Adversarial Chaos & Failure Injection Engine Endpoints ──────────────────
+
+@app.get("/api/failure-injection/scenarios")
+async def get_failure_injection_scenarios():
+    """Returns catalog of executable adversarial failure injection scenarios."""
+    from app.services.failure_injection import failure_injection_engine
+    return {
+        "status": "ok",
+        "scenarios": failure_injection_engine.get_available_scenarios(),
+        "storage_engine": "SQLite WAL Mutex + Cryptographic Audit Ledger",
+    }
+
+
+@app.post("/api/failure-injection/run/{scenario_key}")
+async def run_failure_injection_scenario(scenario_key: str):
+    """
+    Executes a live adversarial stress test against production components.
+    Supported scenarios:
+    - concurrent_webhooks
+    - stale_lease_recovery
+    - double_dispatch_interception
+    - curfew_regulatory_breach
+    - multi_worker_rate_limit_burst
+    """
+    from app.services.failure_injection import failure_injection_engine
+    try:
+        result = failure_injection_engine.run_scenario(scenario_key)
+        await _broadcast_event("chaos_scenario_executed", {
+            "scenario": scenario_key,
+            "success": result.get("success"),
+            "duration_ms": result.get("duration_ms"),
+            "explanation": result.get("explanation"),
+        })
+        return {"status": "ok", "result": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chaos execution error: {str(e)}")
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
