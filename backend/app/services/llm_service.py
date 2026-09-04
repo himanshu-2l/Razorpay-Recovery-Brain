@@ -220,15 +220,17 @@ Rules:
 - Exactly 6 exchanges (3 agent, 3 debtor)
 - Each line MUST have a translation
 
-Respond ONLY with valid JSON array:
-[
-  {{"step": 1, "speaker": "agent", "text": "<Hinglish text>", "translation": "<English translation>"}},
-  {{"step": 2, "speaker": "debtor", "text": "<Hinglish response>", "translation": "<English translation>"}},
-  {{"step": 3, "speaker": "agent", "text": "<Hinglish>", "translation": "<English>"}},
-  {{"step": 4, "speaker": "debtor", "text": "<Hinglish>", "translation": "<English>"}},
-  {{"step": 5, "speaker": "agent", "text": "<Hinglish>", "translation": "<English>"}},
-  {{"step": 6, "speaker": "debtor", "text": "<Hinglish PTP commitment>", "translation": "<English>"}}
-]"""
+Respond ONLY with a valid JSON object:
+{{
+  "dialogue": [
+    {{"step": 1, "speaker": "agent", "text": "<Hinglish text>", "translation": "<English translation>"}},
+    {{"step": 2, "speaker": "debtor", "text": "<Hinglish response>", "translation": "<English translation>"}},
+    {{"step": 3, "speaker": "agent", "text": "<Hinglish>", "translation": "<English>"}},
+    {{"step": 4, "speaker": "debtor", "text": "<Hinglish>", "translation": "<English>"}},
+    {{"step": 5, "speaker": "agent", "text": "<Hinglish>", "translation": "<English>"}},
+    {{"step": 6, "speaker": "debtor", "text": "<Hinglish PTP commitment>", "translation": "<English>"}}
+  ]
+}}"""
 
     try:
         client = _get_client()
@@ -246,10 +248,21 @@ Respond ONLY with valid JSON array:
             return None
 
         raw = resp.json().get("response", "")
-        flow = json.loads(raw)
+        parsed = json.loads(raw)
 
-        if not isinstance(flow, list) or len(flow) < 4:
-            logger.warning(f"LLM dialogue returned invalid structure: {flow}")
+        flow = None
+        if isinstance(parsed, list):
+            flow = parsed
+        elif isinstance(parsed, dict):
+            for k in ("dialogue", "conversation", "steps", "flow", "exchanges"):
+                if k in parsed and isinstance(parsed[k], list):
+                    flow = parsed[k]
+                    break
+            if flow is None and "step" in parsed:
+                flow = [parsed]
+
+        if not isinstance(flow, list) or len(flow) < 2:
+            logger.warning(f"LLM dialogue returned invalid structure: {parsed}")
             return None
 
         logger.info(
