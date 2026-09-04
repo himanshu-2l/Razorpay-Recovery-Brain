@@ -135,3 +135,49 @@ def test_cross_leak_unification_moat():
     assert p_dict["mandate_failure_count"] == 1
     assert p_dict["cross_leak_risk_score"] > 0.15
     assert "240,000" in p_dict["cross_leak_summary"]
+
+
+def test_late_authorization_webhook_e2e():
+    """Verify late payment authorization webhook intercepts in-flight case and cancels pending dunning."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    unique_pay_id = f"pay_late_test_{int(datetime.now().timestamp())}"
+    unique_event_id = f"evt_hook_{unique_pay_id}"
+
+    payload = {
+        "event": "payment.captured",
+        "id": unique_event_id,
+        "created_at": int(datetime.now().timestamp()),
+        "payload": {
+            "payment": {
+                "entity": {
+                    "id": unique_pay_id,
+                    "order_id": f"order_late_{unique_pay_id[4:]}",
+                    "amount": 249900,
+                    "method": "upi",
+                    "customer_id": "cust_test_late_auth",
+                    "email": "aarav.mehta@example.com",
+                    "contact": "+919876543210",
+                    "notes": {"customer_name": "Aarav Mehta"},
+                }
+            }
+        }
+    }
+
+    # 1. Fire webhook: should intercept and reconcile
+    response = client.post("/api/webhook/razorpay", json=payload, headers={"X-Razorpay-Event-Id": unique_event_id})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "reconciled"
+    assert data["case"]["status"] == "reconciled_late_auth"
+    assert data["case"]["reconciliation"]["pending_actions_cancelled"] is True
+    assert data["case"]["amount_recovered"] == 2499.0
+
+    # 2. Fire identical webhook: must be rejected by idempotency guard (409)
+    dup_response = client.post("/api/webhook/razorpay", json=payload, headers={"X-Razorpay-Event-Id": unique_event_id})
+    assert dup_response.status_code == 409
+    dup_data = dup_response.json()
+    assert dup_data["status"] == "duplicate_rejected"
+

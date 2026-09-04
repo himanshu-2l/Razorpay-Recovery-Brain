@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Zap, Code2, Send, CheckCircle2, XCircle, Loader2, Terminal } from 'lucide-react';
+import { Zap, Code2, Send, CheckCircle2, XCircle, Loader2, Terminal, ShieldCheck } from 'lucide-react';
 import { API_BASE } from '../api';
 
-type WebhookEvent = 'payment.failed.bank_timeout' | 'payment.failed.insufficient_funds' | 'subscription.halted' | 'invoice.overdue' | 'order.abandoned';
+type WebhookEvent = 'payment.failed.bank_timeout' | 'payment.failed.insufficient_funds' | 'subscription.halted' | 'invoice.overdue' | 'order.abandoned' | 'payment.captured.late_auth';
 
 interface ScenarioPreset {
   id: WebhookEvent;
@@ -153,6 +153,32 @@ const SCENARIOS: ScenarioPreset[] = [
       },
     },
   },
+  {
+    id: 'payment.captured.late_auth',
+    label: 'Late Authorization · Intercept & Invalidate',
+    description: 'Asynchronous bank success arrives after failure. Sub-5ms intercept halts pending calls/SMS.',
+    color: 'bg-teal-950/30',
+    borderColor: 'border-teal-500/40',
+    tagColor: 'text-teal-300',
+    leakType: 'LATE_AUTH',
+    payload: {
+      event: 'payment.captured',
+      payload: {
+        payment: {
+          entity: {
+            id: 'pay_demo_timeout_001',
+            order_id: 'order_demo_001',
+            method: 'upi',
+            amount: 249900,
+            customer_id: 'cust_demo_001',
+            email: 'aarav.mehta@example.com',
+            contact: '+919876543210',
+            notes: { customer_name: 'Aarav Mehta' },
+          },
+        },
+      },
+    },
+  },
 ];
 
 interface WebhookResponse {
@@ -160,6 +186,8 @@ interface WebhookResponse {
   event: string;
   trace_id: string;
   latency_ms: number;
+  message?: string;
+  idempotency_key?: string;
   case?: {
     id: string;
     leak_type: string;
@@ -171,6 +199,14 @@ interface WebhookResponse {
     compliance_status: string;
     compliance_rule: string;
     amount_at_risk: number;
+    amount_recovered?: number;
+    reconciliation?: {
+      reconciled_at: string;
+      trigger_event: string;
+      event_id: string;
+      previous_status: string;
+      pending_actions_cancelled: boolean;
+    };
     alternatives_rejected?: Array<{ action: string; rejected_because: string }>;
   };
 }
@@ -403,6 +439,48 @@ export const WebhookPlayground: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Late Authorization Intercept Banner */}
+              {response.case?.reconciliation && (
+                <div className="glass-panel p-5 rounded-2xl border border-teal-500/40 bg-teal-950/20 space-y-3 glow-teal">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-2 rounded-xl bg-teal-500/20 border border-teal-500/30 text-teal-300">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-mono font-bold uppercase tracking-wider text-teal-400">
+                        Late Authorization Intercepted · Outreach Halted
+                      </div>
+                      <div className="text-[11px] text-gray-300 font-mono">
+                        Asynchronous bank payment arrived after initial failure. All in-flight calls and SMS cancelled in &lt;5ms.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                      <div className="text-[9px] font-mono text-gray-400 uppercase">Status</div>
+                      <div className="text-xs font-bold text-teal-300 font-mono">RECONCILED</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                      <div className="text-[9px] font-mono text-gray-400 uppercase">Recovered</div>
+                      <div className="text-xs font-bold text-white font-mono">
+                        ₹{response.case.amount_recovered?.toLocaleString('en-IN') || response.case.amount_at_risk?.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                      <div className="text-[9px] font-mono text-gray-400 uppercase">Pending Outreach</div>
+                      <div className="text-xs font-bold text-emerald-400 font-mono">CANCELLED (SAFE)</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                      <div className="text-[9px] font-mono text-gray-400 uppercase">Audit Ledger</div>
+                      <div className="text-xs font-bold text-teal-300 font-mono truncate" title={response.case.reconciliation.event_id}>
+                        {response.case.reconciliation.event_id}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {response.case && (
                 <>
