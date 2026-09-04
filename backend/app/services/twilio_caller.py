@@ -26,12 +26,33 @@ logger = logging.getLogger(__name__)
 from app.core.config import (
     TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN,
+    TWILIO_API_KEY,
+    TWILIO_API_SECRET,
     TWILIO_FROM_NUMBER,
 )
 
 
+def _get_twilio_client():
+    """
+    Initialize Twilio Client using either:
+    1) API Key SID (SK...) + API Key Secret + Account SID (AC...)
+    2) Account SID (AC...) + Auth Token
+    """
+    try:
+        from twilio.rest import Client
+        if TWILIO_API_KEY and TWILIO_API_SECRET and TWILIO_ACCOUNT_SID:
+            return Client(TWILIO_API_KEY, TWILIO_API_SECRET, account_sid=TWILIO_ACCOUNT_SID)
+        elif TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+            return Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        return None
+    except ImportError:
+        logger.error("twilio package not installed. Run: pip install twilio")
+        return None
+
+
 def _is_twilio_configured() -> bool:
-    return bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER)
+    has_creds = bool((TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN) or (TWILIO_API_KEY and TWILIO_API_SECRET and TWILIO_ACCOUNT_SID))
+    return bool(has_creds and TWILIO_FROM_NUMBER)
 
 
 def _build_twiml(customer_name: str, amount_inr: float, invoice_number: str) -> str:
@@ -113,6 +134,7 @@ def trigger_real_call(
         )
         logger.warning(f"Outbound voice call blocked by VoiceSafetyFilter: {check['reason']}")
         return {
+            "feature": "Compliant Automated Notification Call",
             "mode": "blocked_compliance",
             "call_sid": None,
             "status": "blocked",
@@ -132,6 +154,7 @@ def trigger_real_call(
             "TWILIO_FROM_NUMBER). Returning simulated call result."
         )
         return {
+            "feature": "Compliant Automated Notification Call",
             "mode": "simulated_fallback",
             "call_sid": f"CA_sim_{os.urandom(8).hex()}",
             "status": "simulated",
@@ -147,9 +170,16 @@ def trigger_real_call(
         }
 
     try:
-        from twilio.rest import Client  # type: ignore
-
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        client = _get_twilio_client()
+        if not client:
+            return {
+                "feature": "Compliant Automated Notification Call",
+                "mode": "error",
+                "call_sid": None,
+                "status": "error",
+                "to_number": to_number,
+                "message": "Unable to initialize Twilio client. Please check credentials.",
+            }
         twiml_content = _build_twiml(customer_name, amount_inr, invoice_number)
 
         call = client.calls.create(
@@ -166,6 +196,7 @@ def trigger_real_call(
         )
 
         return {
+            "feature": "Compliant Automated Notification Call",
             "mode": "live_twilio",
             "call_sid": call.sid,
             "status": call.status,
@@ -184,6 +215,7 @@ def trigger_real_call(
     except ImportError:
         logger.error("twilio package not installed. Run: pip install twilio")
         return {
+            "feature": "Compliant Automated Notification Call",
             "mode": "error",
             "call_sid": None,
             "status": "error",
@@ -193,6 +225,7 @@ def trigger_real_call(
     except Exception as e:
         logger.error(f"Twilio call failed: {e}")
         return {
+            "feature": "Compliant Automated Notification Call",
             "mode": "error",
             "call_sid": None,
             "status": "error",

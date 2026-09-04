@@ -627,9 +627,9 @@ async def classify_voice_turn(request: Request):
 @app.post("/api/demo/voice-call")
 async def demo_voice_call(request: Request):
     """
-    Trigger a Hinglish voice recovery call.
+    Offline Hinglish Dialogue Simulator (LLM-generated or heuristic script, not live telephony).
     Accepts persona: first_time_miss / repeat_delinquent / dispute_pending / broken_ptp.
-    Dynamically binds debtor details, extracts turn intents, and tracks sub-800ms latency waterfall.
+    Dynamically binds debtor details, extracts turn intents, and references an 800ms SLA target budget.
     """
     from app.services.voice_intent_classifier import VoiceIntentClassifier, VoicePersona
 
@@ -659,6 +659,7 @@ async def demo_voice_call(request: Request):
     )
 
     return {
+        "feature": "Offline Hinglish Dialogue Simulator (not live)",
         "status": "demo_call_completed",
         "phone_number": phone_number,
         "persona": persona.value,
@@ -1470,9 +1471,8 @@ async def scan_stale_cases():
 @app.post("/api/demo/trigger-real-call")
 async def trigger_real_call(request: Request):
     """
-    Initiate a real outbound Twilio call to a provided phone number.
-    This is the 'unfakeable' demo moment — a real Indian phone rings on camera
-    with a Hinglish recovery script.
+    Compliant Automated Notification Call (Outbound Phone Reminder via Twilio <Say> broadcast / Bolna AI).
+    Initiates an outbound phone call with strict RBI Fair Practices Code curfew and credential safety checks.
 
     Body: {
       "to_number": "+919876543210",
@@ -1482,16 +1482,25 @@ async def trigger_real_call(request: Request):
     }
 
     Works in two modes:
-    - LIVE: If TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER env vars are set → real call
-    - DEMO: If not configured → returns simulated response with clear label
+    - LIVE: If TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER env vars are set → outbound automated notification call
+    - DEMO: If not configured → returns simulated fallback response with clear label
     """
     from app.services.twilio_caller import trigger_real_call as _call
+    from app.services.bolna_caller import trigger_bolna_call as _bolna_call, is_bolna_configured
 
     body = await request.json()
     to_number = body.get("to_number", "")
     customer_name = body.get("customer_name", "Valued Customer")
     amount_inr = float(body.get("amount_inr", 85000))
     invoice_number = body.get("invoice_number", "INV-DEMO-001")
+    provider = body.get("provider", "auto").lower()  # "auto", "twilio", or "bolna"
+    call_time = body.get("call_time", 14.0 if body.get("demo_mode") else None)
+    customer_meta = {
+        "name": customer_name,
+        "phone": to_number,
+        "id": f"cust_{invoice_number}",
+        "call_time": call_time,
+    }
 
     if not to_number:
         raise HTTPException(status_code=400, detail="to_number is required (e.g. +919876543210)")
@@ -1505,20 +1514,122 @@ async def trigger_real_call(request: Request):
             "customer_name": customer_name,
             "amount_inr": amount_inr,
             "invoice_number": invoice_number,
+            "provider": provider,
         }
     )
+
+    # Route according to provider selection or fallback
+    if provider == "bolna":
+        return _bolna_call(
+            to_number=to_number,
+            customer_name=customer_name,
+            amount_inr=amount_inr,
+            invoice_number=invoice_number,
+            customer_meta=customer_meta,
+        )
 
     result = _call(
         to_number=to_number,
         customer_name=customer_name,
         amount_inr=amount_inr,
         invoice_number=invoice_number,
+        customer_meta=customer_meta,
     )
+
+    # If provider is "auto" and Twilio fell back to simulation but Bolna is available, note backup readiness
+    if provider == "auto" and result.get("mode") == "simulated_fallback" and is_bolna_configured():
+        result["backup_provider"] = "bolna_ai"
+        result["backup_ready"] = True
 
     return result
 
 
+@app.post("/api/demo/trigger-bolna-call")
+async def trigger_bolna_call_endpoint(request: Request):
+    """
+    Directly initiate an outbound conversational AI call via Bolna.dev.
+    """
+    from app.services.bolna_caller import trigger_bolna_call
+
+    body = await request.json()
+    to_number = body.get("to_number", "")
+    customer_name = body.get("customer_name", "Valued Customer")
+    amount_inr = float(body.get("amount_inr", 85000))
+    invoice_number = body.get("invoice_number", "INV-DEMO-001")
+    agent_id = body.get("agent_id")
+
+    if not to_number:
+        raise HTTPException(status_code=400, detail="to_number is required (e.g. +919876543210)")
+
+    return trigger_bolna_call(
+        to_number=to_number,
+        customer_name=customer_name,
+        amount_inr=amount_inr,
+        invoice_number=invoice_number,
+        agent_id=agent_id,
+    )
+
+
+@app.get("/api/demo/telephony-status")
+async def get_telephony_status():
+    """
+    Inspect live configuration and credentials status for Twilio, Bolna AI, and WhatsApp.
+    """
+    from app.services.twilio_caller import _is_twilio_configured
+    from app.services.bolna_caller import is_bolna_configured, get_bolna_account_info, list_bolna_agents
+    from app.services.whatsapp_service import is_whatsapp_configured
+
+    bolna_info = get_bolna_account_info() if is_bolna_configured() else {"configured": False}
+    bolna_agents = list_bolna_agents() if is_bolna_configured() else []
+
+    return {
+        "twilio": {
+            "configured": _is_twilio_configured(),
+            "status": "ready" if _is_twilio_configured() else "needs_account_sid_and_number",
+        },
+        "bolna": {
+            "configured": is_bolna_configured(),
+            "status": bolna_info.get("status", "not_configured"),
+            "wallet_balance": bolna_info.get("wallet_balance", 0.0),
+            "agents_count": len(bolna_agents),
+            "agents": bolna_agents,
+        },
+        "whatsapp": {
+            "configured": is_whatsapp_configured(),
+            "status": "ready" if is_whatsapp_configured() else "simulated",
+        },
+    }
+
+
+@app.post("/api/demo/trigger-real-whatsapp")
+async def trigger_real_whatsapp(request: Request):
+    """
+    Dispatch a recovery WhatsApp message with Razorpay payment link.
+    Supports Twilio WhatsApp Sandbox / production sender, with simulated fallback.
+    """
+    from app.services.whatsapp_service import send_whatsapp_recovery
+
+    body = await request.json()
+    to_number = body.get("to_number", "")
+    customer_name = body.get("customer_name", "Valued Customer")
+    amount_inr = float(body.get("amount_inr", 85000))
+    invoice_number = body.get("invoice_number", "INV-DEMO-001")
+    payment_link = body.get("payment_link")
+
+    if not to_number:
+        raise HTTPException(status_code=400, detail="to_number is required (e.g. +919876543210)")
+
+    return send_whatsapp_recovery(
+        to_number=to_number,
+        customer_name=customer_name,
+        amount_inr=amount_inr,
+        invoice_number=invoice_number,
+        payment_link=payment_link,
+    )
+
+
 # ─── Unified Cross-Leak Demo ───────────────────────────────────────────────
+
 
 @app.get("/api/demo/unified-recovery-scenario")
 async def unified_recovery_scenario():

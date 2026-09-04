@@ -44,10 +44,21 @@ RAZORPAY_API_BASE: str = os.getenv("RAZORPAY_API_BASE", "https://api.razorpay.co
 # ==============================================================================
 TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_API_KEY: str = os.getenv("TWILIO_API_KEY", "")
+TWILIO_API_SECRET: str = os.getenv("TWILIO_API_SECRET", "")
 TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "")
+TWILIO_WHATSAPP_FROM: str = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+
+WHATSAPP_PHONE_NUMBER_ID: str = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+WHATSAPP_ACCESS_TOKEN: str = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
 
 VAPI_API_KEY: str = os.getenv("VAPI_API_KEY", "")
 VAPI_PHONE_NUMBER_ID: str = os.getenv("VAPI_PHONE_NUMBER_ID", "")
+
+# Bolna AI Telephony & Indian Conversational Voice Gateway
+BOLNA_API_KEY: str = os.getenv("BOLNA_API_KEY", "")
+BOLNA_AGENT_ID: str = os.getenv("BOLNA_AGENT_ID", "")
+BOLNA_API_BASE: str = os.getenv("BOLNA_API_BASE", "https://api.bolna.dev")
 
 # ==============================================================================
 # LLM & Local Inference Gateway (Ollama / Anthropic)
