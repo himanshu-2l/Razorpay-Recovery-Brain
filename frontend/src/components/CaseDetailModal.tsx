@@ -20,6 +20,7 @@ import {
   Check,
   Binary,
   Cpu,
+  Trophy,
 } from 'lucide-react';
 import type { CaseItem } from '../types';
 import { API_BASE } from '../api';
@@ -124,7 +125,12 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
     requires_human_approval: caseItem.amount_at_risk > 50000,
   };
 
-  const isPendingApproval = caseItem.status === 'awaiting_response' || caseItem.requires_human_approval || approvalStatus !== 'none';
+  const isPendingApproval =
+    caseItem.status === 'approval_pending' ||
+    caseItem.status === 'awaiting_response' ||
+    caseItem.requires_human_approval ||
+    caseItem.hitl_quarantine?.is_quarantined ||
+    approvalStatus !== 'none';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -138,15 +144,25 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-bold text-white tracking-tight">
-                  Recovery Case Forensics & Decision Proof
-                </h3>
-                <span className={`text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${badge.color}`}>
+                <h3 className="text-lg font-bold text-white tracking-tight">Case Intelligence Inspector</h3>
+                <span className="px-2 py-0.5 text-xs font-mono rounded bg-white/10 text-gray-300">
+                  {caseItem.id}
+                </span>
+                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${badge.color}`}>
                   {badge.label}
                 </span>
+                <span className={`px-2 py-0.5 text-xs font-mono rounded border ${
+                  caseItem.status === 'approval_pending'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                    : caseItem.status === 'recovered'
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : 'bg-white/10 text-gray-300 border-white/20'
+                }`}>
+                  {caseItem.status === 'approval_pending' ? '⏳ NEEDS OPERATOR APPROVAL' : caseItem.status.toUpperCase()}
+                </span>
               </div>
-              <p className="text-xs text-gray-400 font-mono">
-                Case ID: {caseItem.id} · {caseItem.customer_name} {caseItem.customer_company ? `(${caseItem.customer_company})` : ''}
+              <p className="text-xs text-gray-400 mt-0.5">
+                {caseItem.customer_company || caseItem.customer_name} · {formatCurrency(caseItem.amount_at_risk)} at risk
               </p>
             </div>
           </div>
@@ -187,7 +203,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
         </div>
 
         {/* Pending Operator Approval Banner */}
-        {isPendingApproval && caseItem.status === 'awaiting_response' && approvalStatus === 'none' && (
+        {isPendingApproval && (caseItem.status === 'approval_pending' || caseItem.status === 'awaiting_response') && approvalStatus === 'none' && (
           <div className="p-4 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between px-6">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
@@ -195,10 +211,10 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
               </div>
               <div>
                 <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wide">
-                  Human-In-The-Loop Approval Gate Triggered
+                  Zero-I/O Human-In-The-Loop Quarantine Gate Triggered
                 </h4>
-                <p className="text-[11px] text-amber-200/80">
-                  High-stakes intervention ({formatCurrency(caseItem.amount_at_risk)}) held for operator consent before execution.
+                <p className="text-[11px] text-amber-200/80 font-mono">
+                  {caseItem.hitl_quarantine?.quarantine_reason || `High-stakes intervention (${formatCurrency(caseItem.amount_at_risk)}) held for operator consent before execution.`}
                 </p>
               </div>
             </div>
@@ -218,7 +234,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                 className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition-all"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>1-Click Approve</span>
+                <span>1-Click Authorize</span>
               </button>
             </div>
           </div>
@@ -570,6 +586,8 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
             /* RAILS Verification-Native Clearinghouse Inspector (arXiv:2606.08790) */
             <div className="space-y-6">
               {(() => {
+                const tournament = caseItem.strategy_tournament || caseItem.receipt?.strategy_tournament || [];
+                const quarantine = caseItem.hitl_quarantine || caseItem.receipt?.hitl_quarantine || null;
                 const rails = caseItem.receipt?.rails_clearing || {
                   obligation_id: `obl_${caseItem.id.slice(0, 10)}`,
                   obligation_hash: caseItem.receipt?.sha256_seal ? `obl_${caseItem.receipt.sha256_seal.slice(0, 32)}` : 'a9f148b20c98f12a3d4e5f60718293a4b5c6d7e8f90123456789abcdef012345',
@@ -897,6 +915,104 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({ caseItem, onCl
                         </div>
                       </div>
                     </div>
+
+                    {/* Zero-I/O High-Value HITL Quarantine Audit Card (If applicable) */}
+                    {quarantine && quarantine.is_quarantined && (
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                            <UserCheck className="w-4 h-4 text-amber-400" />
+                            <span>Zero-I/O HITL Quarantine Audit Record</span>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            {quarantine.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-200/90 font-mono">
+                          {quarantine.quarantine_reason}
+                        </p>
+                        <div className="flex items-center space-x-4 text-[10px] font-mono text-gray-400 pt-1 border-t border-amber-500/20">
+                          <span>Amount Ceiling: ₹{quarantine.threshold_inr?.toLocaleString('en-IN') || '50,000'}</span>
+                          <span>·</span>
+                          <span>Effective Value: ₹{quarantine.effective_amount_inr?.toLocaleString('en-IN') || caseItem.amount_at_risk.toLocaleString('en-IN')}</span>
+                          <span>·</span>
+                          <span>Autonomy State: {quarantine.autonomy_envelope_state || 'GUARDED'}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ranked Strategy Tournament Matrix (Counterfactual Evaluation) */}
+                    {tournament.length > 0 && (
+                      <div className="p-5 rounded-2xl bg-white/[0.02] border border-purple-500/30 space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2 text-xs font-bold text-purple-300 uppercase tracking-wider">
+                            <Trophy className="w-4 h-4 text-amber-400" />
+                            <span>Ranked Strategy Tournament Matrix · Counterfactual CATE Evaluation</span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            {tournament.length} Candidates Evaluated
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-gray-300 leading-relaxed font-mono">
+                          Each candidate strategy is evaluated under Conditional Average Treatment Effects (CATE), subtracting direct channel dispatch cost, customer churn risk, and natural payment recovery baseline.
+                        </p>
+
+                        <div className="overflow-x-auto rounded-xl border border-white/10">
+                          <table className="w-full text-left text-xs font-mono border-collapse">
+                            <thead>
+                              <tr className="bg-white/5 border-b border-white/10 text-[10px] text-gray-400 uppercase tracking-wider">
+                                <th className="py-2.5 px-3">Rank</th>
+                                <th className="py-2.5 px-3">Strategy</th>
+                                <th className="py-2.5 px-3">P(Success)</th>
+                                <th className="py-2.5 px-3">CATE Lift</th>
+                                <th className="py-2.5 px-3">Cost + Churn</th>
+                                <th className="py-2.5 px-3">Net ENRV</th>
+                                <th className="py-2.5 px-3">Outcome</th>
+                                <th className="py-2.5 px-3">Decision Rationale</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 bg-black/40">
+                              {tournament.map((t: any, idx: number) => {
+                                const isWinner = t.status === 'SELECTED';
+                                return (
+                                  <tr key={idx} className={isWinner ? 'bg-purple-950/30 text-white' : 'text-gray-400 hover:text-gray-300'}>
+                                    <td className="py-2.5 px-3 font-bold">
+                                      {isWinner ? <span className="text-amber-400 font-bold">#1 ★</span> : `#${t.rank || idx + 1}`}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <span className={`font-semibold ${isWinner ? 'text-purple-200' : 'text-gray-300'}`}>
+                                        {t.label || t.strategy}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 font-mono">{Math.round((t.success_probability || 0) * 100)}%</td>
+                                    <td className="py-2.5 px-3 text-blue-400 font-mono">+{t.incremental_lift_pct}%</td>
+                                    <td className="py-2.5 px-3 text-red-400/80 font-mono">
+                                      ₹{t.operational_cost_inr} + ₹{t.churn_penalty_inr}
+                                    </td>
+                                    <td className="py-2.5 px-3 font-bold text-emerald-400 font-mono">
+                                      {formatCurrency(t.expected_net_recovery_inr)}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                        isWinner
+                                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                          : 'bg-white/5 text-gray-500 border border-white/10'
+                                      }`}>
+                                        {t.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-[10px] text-gray-400 max-w-xs truncate" title={t.rejection_reason}>
+                                      {isWinner ? 'Highest net ENRV yield satisfying policy bounds' : t.rejection_reason}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Master Cryptographic Seal */}
                     <div className="p-4 rounded-xl bg-black/80 border border-emerald-500/30 space-y-2 text-xs">

@@ -54,6 +54,8 @@ export const CaseTable: React.FC<CaseTableProps> = ({ cases, onSelectCase }) => 
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'approval_pending':
+        return 'bg-amber-500/15 text-amber-400 border-amber-500/40 animate-pulse font-bold';
       case 'recovered':
         return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
       case 'partially_recovered':
@@ -181,9 +183,16 @@ export const CaseTable: React.FC<CaseTableProps> = ({ cases, onSelectCase }) => 
 
                     {/* Intervention */}
                     <td className="py-3 px-4">
-                      <span className="font-mono text-white text-[11px] font-medium">
-                        {toTitleCase(c.chosen_intervention)}
-                      </span>
+                      {c.chosen_intervention === 'discount_nudge' ? (
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                          <span>🏷️</span>
+                          <span>8% Margin Concession</span>
+                        </span>
+                      ) : (
+                        <span className="font-mono text-white text-[11px] font-medium">
+                          {toTitleCase(c.chosen_intervention)}
+                        </span>
+                      )}
                     </td>
 
                     {/* At Risk */}
@@ -199,7 +208,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({ cases, onSelectCase }) => 
                     {/* Status */}
                     <td className="py-3 px-4 text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono border font-semibold ${statusColor}`}>
-                        {toTitleCase(c.status)}
+                        {c.status === 'approval_pending' ? '⏳ Needs Approval' : toTitleCase(c.status)}
                       </span>
                     </td>
 

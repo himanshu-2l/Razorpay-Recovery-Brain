@@ -40,7 +40,7 @@ export interface CaseItem {
   compliance_rule: string;
   compliance_details: string;
   rescheduled_to?: string | null;
-  status: 'open' | 'diagnosing' | 'intervening' | 'awaiting_response' | 'recovered' | 'partially_recovered' | 'failed' | 'escalated' | 'stopped' | 'reconciled_late_auth';
+  status: 'open' | 'diagnosing' | 'intervening' | 'awaiting_response' | 'approval_pending' | 'recovered' | 'partially_recovered' | 'failed' | 'escalated' | 'stopped' | 'reconciled_late_auth';
   nudge_content?: {
     whatsapp?: string;
     email_subject?: string;
@@ -92,6 +92,27 @@ export interface CaseItem {
     }>;
   };
   requires_human_approval?: boolean;
+  strategy_tournament?: Array<{
+    rank?: number;
+    strategy: string;
+    label: string;
+    success_probability: number;
+    incremental_lift_pct: number;
+    operational_cost_inr: number;
+    churn_penalty_inr: number;
+    expected_net_recovery_inr: number;
+    status: 'SELECTED' | 'REJECTED';
+    rejection_reason: string;
+  }>;
+  hitl_quarantine?: {
+    is_quarantined: boolean;
+    status: string;
+    quarantine_reason?: string;
+    threshold_inr?: number;
+    effective_amount_inr?: number;
+    can_auto_execute?: boolean;
+    autonomy_envelope_state?: string;
+  };
   operator_approval?: {
     status: 'approved' | 'rejected';
     approved_at?: string;
@@ -117,6 +138,27 @@ export interface CaseItem {
     compliance_citations: {
       status: string;
       rule_cited: string;
+    };
+    strategy_tournament?: Array<{
+      rank?: number;
+      strategy: string;
+      label: string;
+      success_probability: number;
+      incremental_lift_pct: number;
+      operational_cost_inr: number;
+      churn_penalty_inr: number;
+      expected_net_recovery_inr: number;
+      status: 'SELECTED' | 'REJECTED';
+      rejection_reason: string;
+    }>;
+    hitl_quarantine?: {
+      is_quarantined: boolean;
+      status: string;
+      quarantine_reason?: string;
+      threshold_inr?: number;
+      effective_amount_inr?: number;
+      can_auto_execute?: boolean;
+      autonomy_envelope_state?: string;
     };
     rails_clearing?: {
       obligation_id: string;
