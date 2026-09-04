@@ -32,7 +32,7 @@ export const StickyStoryTour: React.FC = () => {
         'Standard retry systems blindly bombard customer cards with repetitive charges, triggering bank fraud blocks. Razorpay Recovery Brain intercepts transaction errors in <800ms, categorizing the failure across 5 structural leak archetypes.',
       bullets: [
         'Classifies temporary gateway blips vs permanent card cancellations',
-        'Calculates Expected Net Recovery Value (ENRV) before initiating actions',
+        'Calculates CATE-discounted ENRV (Abe et al. KDD 2010) with Sleeping Dogs defense',
         'Protects customer relationship by filtering non-retryable fraud alerts'
       ],
       metricLabel: 'Diagnostic Accuracy',
