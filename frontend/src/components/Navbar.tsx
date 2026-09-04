@@ -11,10 +11,11 @@ import {
   ChevronDown,
   ExternalLink,
   Cpu,
+  Zap,
 } from 'lucide-react';
 
 export type ViewMode = 'showcase' | 'console';
-export type ConsoleTab = 'overview' | 'cases' | 'voice' | 'compliance' | 'abtest' | 'webhook' | 'architecture';
+export type ConsoleTab = 'overview' | 'cases' | 'voice' | 'compliance' | 'abtest' | 'webhook' | 'architecture' | 'chaos';
 
 interface NavbarProps {
   viewMode: ViewMode;
@@ -253,6 +254,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Cpu className="w-3 h-3" />
                 <span>Decision Engine</span>
+              </button>
+              <button
+                onClick={() => setConsoleTab('chaos')}
+                className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  consoleTab === 'chaos'
+                    ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40 font-semibold shadow-sm'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>Adversarial Chaos</span>
               </button>
             </nav>
 

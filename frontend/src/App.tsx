@@ -18,6 +18,7 @@ import { ImpactCounter } from './components/ImpactCounter';
 import { LiveEventTicker } from './components/LiveEventTicker';
 import { ABTestResults } from './components/ABTestResults';
 import { ArchitectureFlow } from './components/ArchitectureFlow';
+import { FailureInjectionPanel } from './components/FailureInjectionPanel';
 import type { BatchSummary, CaseItem } from './types';
 import { API_BASE } from './api';
 
@@ -220,6 +221,12 @@ export const App: React.FC = () => {
             {consoleTab === 'architecture' && (
               <div className="space-y-4">
                 <ArchitectureFlow cases={cases} />
+              </div>
+            )}
+
+            {consoleTab === 'chaos' && (
+              <div className="space-y-4">
+                <FailureInjectionPanel />
               </div>
             )}
 
