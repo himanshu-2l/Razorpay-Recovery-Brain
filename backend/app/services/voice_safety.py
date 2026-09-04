@@ -20,19 +20,51 @@ logger = logging.getLogger(__name__)
 
 IST = pytz.timezone("Asia/Kolkata")
 
-# Exact forbidden credential terms under RBI security guidelines
+# Exact forbidden credential terms under RBI Digital Payment Security Guidelines
+# Supports English, Hinglish, transliterated variants, and Devanagari equivalents
 FORBIDDEN_KEYWORDS = [
+    # English & Transliterated Core Credentials
     "pin",
     "otp",
     "password",
+    "passcode",
+    "pass code",
     "cvv",
+    "cvc",
     "upi pin",
+    "upipin",
     "enter code",
     "card number",
+    "cardnumber",
     "expiry date",
+    "expirydate",
     "mpin",
     "atm pin",
-    "passcode",
+    "atmpin",
+    "security code",
+    "securitycode",
+    "one time password",
+    "onetimepassword",
+    # Hindi / Devanagari Credential Terms
+    "पिन",
+    "ओटीपी",
+    "पासवर्ड",
+    "पासकोड",
+    "सीवीवी",
+    "सीवीसी",
+    "यूपीआई पिन",
+    "यूपीआईपिन",
+    "एमपिन",
+    "एटीएम पिन",
+    "एटीएमपिन",
+    "कार्ड नंबर",
+    "कार्ड संख्या",
+    "एक्सपायरी डेट",
+    "समाप्ति तिथि",
+    "गुप्त कोड",
+    "गोपनीय कोड",
+    "सुरक्षा कोड",
+    "वन टाइम पासवर्ड",
 ]
 
 SAFE_FALLBACK_TEXT = (
@@ -54,25 +86,87 @@ class VoiceSafetyFilter:
     """
 
     @classmethod
+    def normalize_script(cls, script: str) -> str:
+        """
+        Normalizes script by stripping evasive punctuation and collapsing
+        spaced-out letters (e.g. 'o.t.p.' -> 'otp', 'p-i-n' -> 'pin', 'p i n' -> 'pin').
+        """
+        if not script:
+            return ""
+
+        text = script.lower()
+
+        # 1. Strip non-word punctuation symbols that break word boundaries
+        cleaned = re.sub(r"[\.\-\_\,\;\:\/\*\#\@\+\=\~\|\^\(\)\[\]\{\}\<\>\?\"\'\!]", "", text)
+
+        # 2. Collapse spaced-out single Latin letters (e.g. "o t p" -> "otp", "p i n" -> "pin", "p a s s w o r d" -> "password")
+        collapsed = re.sub(r"(?<=\b[a-zA-Z])\s+(?=[a-zA-Z]\b)", "", cleaned)
+        while True:
+            nxt = re.sub(r"(?<=\b[a-zA-Z])\s+(?=[a-zA-Z]\b)", "", collapsed)
+            if nxt == collapsed:
+                break
+            collapsed = nxt
+
+        # 3. Collapse common spaced-out Devanagari credential terms (e.g. "ओ टी पी" -> "ओटीपी", "सी वी वी" -> "सीवीवी")
+        devanagari_spaced = [
+            (r"ओ\s+टी\s+पी", "ओटीपी"),
+            (r"सी\s+वी\s+वी", "सीवीवी"),
+            (r"यू\s+पी\s+आई", "यूपीआई"),
+            (r"पि\s+न|प\s+िन|प\s+ि\s+न", "पिन"),
+            (r"पा\s+स\s+व\s+र्ड|पास\s+वर्ड", "पासवर्ड"),
+        ]
+        for pattern, repl in devanagari_spaced:
+            collapsed = re.sub(pattern, repl, collapsed)
+
+        return collapsed
+
+    @classmethod
     def validate_script(cls, script: str) -> bool:
         """
         Returns True if the script is strictly clean of any forbidden credential requests.
-        Returns False if any forbidden keyword is found.
+        Returns False if any forbidden keyword is found in original or normalized script.
         """
         if not script:
             return True
 
-        text_lower = script.lower()
-        for keyword in FORBIDDEN_KEYWORDS:
-            # Word boundary regex to avoid false positives on words like "spin" or "pine"
-            pattern = rf"\b{re.escape(keyword)}\b"
-            if re.search(pattern, text_lower):
-                logger.warning(
-                    f"VoiceSafetyFilter VIOLATION: Forbidden keyword '{keyword}' detected in script."
-                )
-                return False
+        normalized = cls.normalize_script(script)
+        targets = [script.lower(), normalized]
+
+        for target in targets:
+            for keyword in FORBIDDEN_KEYWORDS:
+                # Boundary regex compatible with both Latin and Unicode/Devanagari characters
+                pattern = rf"(?:^|[^\w\u0900-\u097F]){re.escape(keyword)}(?:$|[^\w\u0900-\u097F])"
+                if re.search(pattern, target):
+                    logger.warning(
+                        f"VoiceSafetyFilter VIOLATION: Forbidden keyword '{keyword}' detected in script."
+                    )
+                    return False
 
         return True
+
+    @classmethod
+    def validate_turn(cls, text: str, speaker: str = "agent") -> bool:
+        """
+        Per-turn conversational guardrail: validates an individual dialogue turn.
+        Enforces that agent turns never request sensitive credentials.
+        """
+        if speaker.lower() == "agent":
+            return cls.validate_script(text)
+        return True
+
+    @classmethod
+    def sanitize_turn(cls, text: str, speaker: str = "agent") -> str:
+        """
+        Sanitizes an individual conversational turn if it contains forbidden credential terms.
+        """
+        if speaker.lower() == "agent" and not cls.validate_script(text):
+            logger.info("VoiceSafetyFilter: Sanitizing agent conversational turn.")
+            return (
+                "Aapko ek secure payment link bheja gaya hai WhatsApp pe. "
+                "Kripya us link par click karke payment karein. "
+                "Koi bhi sensitive jankari phone par share nahi karein."
+            )
+        return text
 
     @classmethod
     def sanitize_script(cls, script: str) -> str:

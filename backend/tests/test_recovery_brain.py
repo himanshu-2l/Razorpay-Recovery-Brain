@@ -768,12 +768,16 @@ def test_22_voice_safety_filter_and_rbi_credential_prohibition():
     # 1. Script Credential Validation
     dirty_script_1 = "Namaste, verification ke liye apna UPI PIN bataiye."
     dirty_script_2 = "Aapke phone par ek OTP aaya hoga, enter code karein."
+    dirty_script_devanagari = "कृपया वेरिफिकेशन के लिए अपना ओटीपी बताएं।"
+    dirty_script_evasion = "Verification ke liye apna o.t.p. aur p-i-n batayein."
     clean_script = "Namaste Sharma ji, aapka ₹85,000 ka invoice pending hai. Kya aaj payment schedule ho sakta hai?"
 
     assert VoiceSafetyFilter.validate_script(dirty_script_1) is False
     assert VoiceSafetyFilter.validate_script(dirty_script_2) is False
+    assert VoiceSafetyFilter.validate_script(dirty_script_devanagari) is False
+    assert VoiceSafetyFilter.validate_script(dirty_script_evasion) is False
     assert VoiceSafetyFilter.validate_script(clean_script) is True
-    print("  -> Credential Solicitations (PIN / OTP) Accurately Blocked: True")
+    print("  -> Credential Solicitations (PIN / OTP / Devanagari / Evasion) Accurately Blocked: True")
 
     # 2. Script Sanitization
     sanitized = VoiceSafetyFilter.sanitize_script(dirty_script_1)

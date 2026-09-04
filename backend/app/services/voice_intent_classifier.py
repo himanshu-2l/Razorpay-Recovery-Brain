@@ -10,6 +10,8 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 from enum import Enum
 
+from app.services.voice_safety import VoiceSafetyFilter
+
 
 class VoicePersona(str, Enum):
     FIRST_TIME_MISS = "first_time_miss"
@@ -183,6 +185,11 @@ class VoiceIntentClassifier:
                 amount=amount,
                 days_overdue=days_overdue,
             )
+            # Per-turn RBI credential safety guardrail on generated agent utterances
+            if step["speaker"] == "agent":
+                if not VoiceSafetyFilter.validate_turn(formatted_text, speaker="agent"):
+                    formatted_text = VoiceSafetyFilter.sanitize_turn(formatted_text, speaker="agent")
+
             intent_meta = cls.classify_utterance(formatted_text) if step["speaker"] == "debtor" else {"intent": step["intent"].value}
             flow.append({
                 "step": step["step"],
