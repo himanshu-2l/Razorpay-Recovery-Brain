@@ -400,4 +400,60 @@ def test_zero_io_hitl_quarantine_and_1click_action():
     assert reject_res.json()["status"] == "rejected"
 
 
+def test_enrv_time_value_discounting_expected_days_vs_days_overdue():
+    """
+    Verify ENRV time-value discounting uses forward-looking expected_days_to_recovery
+    rather than backward-looking historical days_overdue.
+    """
+    from app.services.intervention_router import InterventionRouter
+    from app.models.database import RootCause, LeakType, InterventionType
+
+    router = InterventionRouter()
+
+    # Case A: B2B invoice with 30 days overdue
+    route_30d = router.route(
+        root_cause=RootCause.RECV_CASH_FLOW,
+        leak_type=LeakType.B2B_RECEIVABLE,
+        data={"amount": 85000.0, "days_overdue": 30, "tenure_months": 24},
+        amount_inr=85000.0,
+    )
+
+    # Case B: B2B invoice with 120 days overdue (same root cause and amount)
+    route_120d = router.route(
+        root_cause=RootCause.RECV_CASH_FLOW,
+        leak_type=LeakType.B2B_RECEIVABLE,
+        data={"amount": 85000.0, "days_overdue": 120, "tenure_months": 24},
+        amount_inr=85000.0,
+    )
+
+    cf_30 = route_30d["counterfactual"]
+    cf_120 = route_120d["counterfactual"]
+
+    # Both are B2B voice calls with expected PTP horizon of 14 days
+    assert cf_30["expected_days_to_recovery"] == 14.0
+    assert cf_120["expected_days_to_recovery"] == 14.0
+
+    # The time-value discount factor MUST be identical because the expected future wait
+    # from call to cash collection is the same (14 days), regardless of historical age!
+    assert cf_30["time_value_discount_factor"] == cf_120["time_value_discount_factor"]
+    # 1.0 / (1.18 ** (14/365)) ≈ 0.9937
+    assert round(cf_30["time_value_discount_factor"], 4) == 0.9937
+
+    # However, historical days_overdue correctly feeds the tax clock urgency
+    assert route_30d["tax_clock"]["days_overdue"] == 30
+    assert route_120d["tax_clock"]["days_overdue"] == 120
+
+    # And B2C immediate retry should have shorter horizon (1 day -> ~0.9996)
+    route_b2c = router.route(
+        root_cause=RootCause.TD_BANK_DOWN,
+        leak_type=LeakType.PAYMENT_FAILURE,
+        data={"amount": 2500.0},
+        amount_inr=2500.0,
+    )
+    cf_b2c = route_b2c["counterfactual"]
+    assert cf_b2c["expected_days_to_recovery"] == 1.0
+    assert cf_b2c["time_value_discount_factor"] > cf_30["time_value_discount_factor"]
+
+
+
 

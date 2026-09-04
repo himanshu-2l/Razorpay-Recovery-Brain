@@ -223,6 +223,62 @@ class InterventionRouter:
         "FROZEN_ACCOUNT",
     }
 
+    # ── EXPECTED DAYS TO CASH RECOVERY (FORWARD-LOOKING TIME HORIZON) ─────────
+    # Forward-looking estimated days from intervention dispatch until cash is collected.
+    # CRITICAL: This is distinct from historical `days_overdue` (time elapsed since invoice due date).
+    # - Immediate digital auto-retries/reauth: 1–2 days
+    # - Digital WhatsApp/Email nudges: 3–5 days
+    # - B2B Voice-negotiated Promise-to-Pay (PTP): 14 days
+    # - Human collection desk / legal escalation: 21–28 days
+    EXPECTED_DAYS_TO_RECOVERY = {
+        InterventionType.RETRY: 1.0,
+        InterventionType.REAUTH: 2.0,
+        InterventionType.DISCOUNT_NUDGE: 1.0,
+        InterventionType.WHATSAPP_NUDGE: 3.0,
+        InterventionType.EMAIL_NUDGE: 5.0,
+        InterventionType.VOICE_CALL: 14.0,       # 14-day voice PTP commitment
+        InterventionType.ESCALATE_HUMAN: 21.0,   # Human desk escalation
+        InterventionType.STOP: 30.0,
+        InterventionType.NONE: 30.0,
+    }
+
+    def get_expected_days_to_recovery(
+        self,
+        intervention: InterventionType,
+        leak_type: LeakType,
+        root_cause: Optional[RootCause] = None,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> float:
+        """
+        Estimates forward-looking expected days until cash realization.
+
+        CRITICAL ARCHITECTURAL DISTINCTION:
+        `expected_days_to_recovery` measures the FUTURE wait from intervention execution
+        until cash arrives (forward-looking horizon for time-value discounting).
+        In contrast, `days_overdue` measures the PAST elapsed period since the invoice
+        due date (historical period for churn risk, relationship decay, and Section 43B(h) urgency).
+        Discounting should discount future cash-in delay, never historical overdue age.
+        """
+        if data and "expected_days_to_recovery" in data:
+            return float(data["expected_days_to_recovery"])
+
+        # Root-cause specific overrides
+        if root_cause == RootCause.RECV_CHRONIC:
+            return 30.0
+        if root_cause == RootCause.RECV_DISPUTE:
+            return 28.0
+
+        # Segment-specific adjustments
+        if leak_type == LeakType.B2B_RECEIVABLE:
+            if intervention == InterventionType.VOICE_CALL:
+                return 14.0  # 14-day voice-negotiated PTP commitment
+            elif intervention in (InterventionType.WHATSAPP_NUDGE, InterventionType.EMAIL_NUDGE):
+                return 7.0   # B2B digital reminder turnaround
+            elif intervention == InterventionType.ESCALATE_HUMAN:
+                return 28.0  # Complex commercial escalation
+
+        return self.EXPECTED_DAYS_TO_RECOVERY.get(intervention, 3.0)
+
     def route(
         self,
         root_cause: RootCause,
@@ -383,9 +439,21 @@ class InterventionRouter:
             churn_penalty_inr = p_churn * customer_ltv * 0.10
 
         # ── TIME-VALUE OF MONEY DISCOUNTING ────────────────────────────────────
+        # CRITICAL DISTINCTION:
+        # Time-value discounting applies strictly to `expected_days_to_recovery` (the forward-looking
+        # expected future wait from intervention execution until cash is collected),
+        # NOT `days_overdue` (the backward-looking historical period elapsed since the invoice
+        # became due). Using historical `days_overdue` here erroneously penalized older invoices
+        # with excessive discounting as if they took 90+ additional days to recover.
+        # `days_overdue` is correctly preserved for churn risk, relationship decay, and Section 43B(h).
         wacc_r = 0.18
-        days_to_recovery = float(data.get("days_overdue", 1) if leak_type == LeakType.B2B_RECEIVABLE else 1.0)
-        time_discount_factor = 1.0 / ((1.0 + wacc_r) ** (days_to_recovery / 365.0))
+        expected_days_to_recovery = self.get_expected_days_to_recovery(
+            intervention=intervention,
+            leak_type=leak_type,
+            root_cause=root_cause,
+            data=data,
+        )
+        time_discount_factor = 1.0 / ((1.0 + wacc_r) ** (expected_days_to_recovery / 365.0))
 
         # ── CONDITIONAL AVERAGE TREATMENT EFFECT (CATE / ITE) ─────────────────
         incremental_prob = max(0.0, p_action - p_natural)
@@ -504,6 +572,7 @@ class InterventionRouter:
                 "intervention_cost_inr": round(cost_inr, 2),
                 "churn_penalty_inr": round(churn_penalty_inr, 2),
                 "wacc_annual_rate": wacc_r,
+                "expected_days_to_recovery": round(expected_days_to_recovery, 1),
                 "time_value_discount_factor": round(time_discount_factor, 4),
                 "expected_net_recovery_inr": round(enrv_inr, 2),
                 "revenue_bounds_inr": revenue_bounds_inr,
@@ -652,7 +721,9 @@ class InterventionRouter:
             # CATE Incremental Lift & Net ENRV
             incremental_lift = max(0.0, p_action - p_natural)
             raw_enrv = (incremental_lift * effective_amount) - cost - churn_penalty
-            enrv = max(0.0, raw_enrv * time_discount_factor)
+            cand_days = self.get_expected_days_to_recovery(candidate, leak_type, root_cause, data)
+            cand_discount = 1.0 / ((1.0 + 0.18) ** (cand_days / 365.0))
+            enrv = max(0.0, raw_enrv * cand_discount)
 
             # Rejection or Selection Rationale
             is_selected = (candidate == chosen_intervention)
