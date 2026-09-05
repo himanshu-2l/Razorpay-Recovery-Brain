@@ -705,6 +705,7 @@ export const RecoveryFlow3D: React.FC<RecoveryFlow3DProps> = ({
                 </span>
               </div>
             </div>
+          </div>
 
           {/* Selected Agent Detailed Telemetry Strip */}
           <div className="mt-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

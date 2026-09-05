@@ -236,7 +236,6 @@ const DEFAULT_EXPERIMENT: ABExperimentResult = {
 
 export const ABTestResults: React.FC = () => {
   const [data, setData] = useState<ABTestResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [reseeding, setReseeding] = useState(false);
 
   const fetchResults = useCallback(async () => {
