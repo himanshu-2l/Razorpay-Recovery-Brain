@@ -1,8 +1,9 @@
 /**
  * Central API base URL.
  * In local dev: http://localhost:8000
- * In production: set VITE_API_BASE_URL env var in Vercel dashboard
- *                to your Render backend URL (e.g. https://revenue-recovery-brain.onrender.com)
+ * In production: automatically handles VITE_API_BASE_URL with or without protocol prefix
  */
-export const API_BASE =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
+const rawUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '');
+export const API_BASE = rawUrl
+  ? (rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`)
+  : 'http://localhost:8000';
