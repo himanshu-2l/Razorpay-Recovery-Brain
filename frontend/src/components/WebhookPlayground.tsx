@@ -261,13 +261,13 @@ export const WebhookPlayground: React.FC = () => {
     try {
       const res = await fetch(`${API_BASE}/api/webhook/razorpay`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Razorpay-Event-Id': `evt_demo_${Date.now()}_${Math.floor(Math.random() * 1000)}` },
         body: JSON.stringify(parsedPayload),
       });
       const data: WebhookResponse = await res.json();
       setResponse(data);
     } catch {
-      setError('Backend unreachable — make sure the FastAPI server is running on port 8000.');
+      setError('Error reaching backend. Check server connection.');
     } finally {
       setIsLoading(false);
     }

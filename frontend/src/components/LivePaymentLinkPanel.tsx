@@ -131,7 +131,7 @@ export const LivePaymentLinkPanel: React.FC = () => {
       status: 'awaiting_reply',
       reason: selectedReasonObj.label,
       payment_link_id: `plink_${linkHash}`,
-      payment_link_url: `https://rzp.io/i/${linkHash}`,
+      payment_link_url: `/pay?order_id=order_sim_${linkHash}&amount=${numAmount}&customer=${encodeURIComponent(customerName || 'Moon Enterprises')}`,
       payment_link_status: 'created',
       created_at: nowIso,
       mode: 'live_razorpay_test',

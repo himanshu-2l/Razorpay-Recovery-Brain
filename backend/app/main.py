@@ -349,7 +349,7 @@ async def razorpay_webhook(request: Request):
     elif event in ["subscription.halted", "subscription.pending"]:
         sub = payload.get("subscription", {}).get("entity", {})
         cust = payload.get("customer", {}).get("entity", {})
-        case = pipeline.process_subscription_churn(
+        case = pipeline.process_subscription_failure(
             subscription={
                 "razorpay_sub_id": sub.get("id", f"sub_test_{uuid.uuid4().hex[:8]}"),
                 "amount": float(sub.get("charge_amount", 199900)) / 100.0 if float(sub.get("charge_amount", 1999)) > 10000 else float(sub.get("charge_amount", 1999)),
@@ -384,7 +384,7 @@ async def razorpay_webhook(request: Request):
 
     elif event in ["invoice.overdue", "invoice.unpaid"]:
         inv = payload.get("invoice", {}).get("entity", {})
-        case = pipeline.process_invoice_receivable(
+        case = pipeline.process_overdue_invoice(
             invoice={
                 "invoice_number": inv.get("invoice_number", f"INV-{uuid.uuid4().hex[:6].upper()}"),
                 "amount": float(inv.get("amount", 125000)),
@@ -418,7 +418,7 @@ async def razorpay_webhook(request: Request):
 
     elif event in ["order.abandoned", "cart.abandoned"]:
         order = payload.get("order", {}).get("entity", {})
-        case = pipeline.process_cart_abandonment(
+        case = pipeline.process_checkout_abandonment(
             cart={
                 "razorpay_order_id": order.get("id", f"order_test_{uuid.uuid4().hex[:8]}"),
                 "cart_value": float(order.get("amount", 450000)) / 100.0 if float(order.get("amount", 4500)) > 10000 else float(order.get("amount", 4500)),

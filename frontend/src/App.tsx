@@ -1,3 +1,4 @@
+import { PayHostedPage } from './components/PayHostedPage';
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
@@ -329,6 +330,12 @@ const MainLayout: React.FC = () => {
 };
 
 export const App: React.FC = () => {
+  const isPayRoute = window.location.pathname.startsWith('/pay') || window.location.search.includes('order_id=');
+
+  if (isPayRoute) {
+    return <PayHostedPage />;
+  }
+
   return (
     <ThemeProvider>
       <MainLayout />

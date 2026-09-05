@@ -1,3 +1,26 @@
+const playAudioTone = (freq = 520, duration = 0.15) => {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.warn('AudioContext error:', e);
+  }
+};
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   PhoneCall,
@@ -143,46 +166,56 @@ export const VoiceStudio: React.FC = () => {
   }, []);
 
   const speakText = (text: string, speaker: 'agent' | 'debtor') => {
-    if (!audioEnabled || !synthRef.current) return;
+    if (!audioEnabled) return;
 
-    try {
-      synthRef.current.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = synthRef.current.getVoices();
-      const hindiOrIndianVoice = voices.find(
-        (v) => v.lang.includes('hi') || v.lang.includes('IN') || v.name.includes('India')
-      );
+    // Trigger Web Audio tone for guaranteed audible feedback
+    playAudioTone(speaker === 'agent' ? 640 : 480, 0.15);
 
-      if (hindiOrIndianVoice) {
-        utterance.voice = hindiOrIndianVoice;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        const synth = window.speechSynthesis;
+        synth.resume();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = synth.getVoices();
+        const bestVoice = voices.find(
+          (v) => v.lang.includes('hi') || v.lang.includes('IN') || v.name.includes('India') || v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Female')
+        ) || voices[0];
+
+        if (bestVoice) {
+          utterance.voice = bestVoice;
+        }
+
+        if (speaker === 'agent') {
+          utterance.pitch = 1.15;
+          utterance.rate = 1.0;
+          utterance.volume = 1.0;
+        } else {
+          utterance.pitch = 0.9;
+          utterance.rate = 0.95;
+          utterance.volume = 1.0;
+        }
+
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          setCurrentSpeaker(speaker);
+        };
+
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          setCurrentSpeaker(null);
+        };
+
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+          setCurrentSpeaker(null);
+        };
+
+        synth.speak(utterance);
+        synth.resume();
+      } catch (e) {
+        console.warn('Speech synthesis error:', e);
       }
-
-      if (speaker === 'agent') {
-        utterance.pitch = 1.1;
-        utterance.rate = 1.0;
-      } else {
-        utterance.pitch = 0.9;
-        utterance.rate = 0.95;
-      }
-
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-        setCurrentSpeaker(speaker);
-      };
-
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        setCurrentSpeaker(null);
-      };
-
-      utterance.onerror = () => {
-        setIsSpeaking(false);
-        setCurrentSpeaker(null);
-      };
-
-      synthRef.current.speak(utterance);
-    } catch (e) {
-      console.warn('Speech synthesis error:', e);
     }
   };
 
@@ -197,6 +230,11 @@ export const VoiceStudio: React.FC = () => {
 
   const triggerCall = async () => {
     stopCall();
+    setAudioEnabled(true);
+    playAudioTone(720, 0.12);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+    }
     setIsCalling(true);
     setActiveStep(0);
 

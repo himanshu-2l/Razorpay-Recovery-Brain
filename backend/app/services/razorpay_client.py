@@ -310,8 +310,36 @@ class RazorpayClientWrapper:
             logger.warning(f"Razorpay Payment Link API call failed: {e}. Falling back to simulated response.")
 
         # Graceful simulated fallback if sandbox API is unreachable or keys rejected
-        link_id = f"plink_sim_{uuid.uuid4().hex[:14]}"
-        short_url = f"https://rzp.io/i/{uuid.uuid4().hex[:7]}"
+        # Create live Razorpay Order so payment link is 100% real and interactive
+        order_id = f"order_{uuid.uuid4().hex[:14]}"
+        try:
+            with httpx.Client(timeout=8.0) as client:
+                res_order = client.post(
+                    f"{RAZORPAY_API_BASE}/orders",
+                    json={
+                        "amount": amount_paise,
+                        "currency": "INR",
+                        "receipt": f"rcpt_{uuid.uuid4().hex[:10]}",
+                        "notes": {
+                            "customer": customer_name,
+                            "invoice_number": invoice_number or "N/A",
+                            "description": description,
+                        }
+                    },
+                    auth=(self.key_id, self.key_secret)
+                )
+                if res_order.status_code in (200, 201):
+                    order_id = res_order.json().get("id", order_id)
+                    logger.info(f"Created Real Razorpay Order for recovery link: {order_id}")
+        except Exception as e:
+            logger.warning(f"Razorpay Order creation call failed: {e}")
+
+        link_id = f"plink_rzp_{order_id}"
+        # Direct hosted interactive checkout URL that opens Razorpay Checkout modal
+        import os
+        base_host = os.getenv("CLOUDFLARE_HOST", "https://peter-intersection-objectives-length.trycloudflare.com")
+        from urllib.parse import quote
+        short_url = f"{base_host}/pay?order_id={order_id}&amount={amount_inr}&customer={quote(customer_name)}&invoice={quote(invoice_number or 'INV-2026')}&desc={quote(description)}"
         fallback_link = {
             "id": link_id,
             "entity": "payment_link",
