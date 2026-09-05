@@ -27,7 +27,6 @@ services:
   - type: web
     name: revenue-recovery-frontend
     runtime: static
-    region: singapore
     plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
