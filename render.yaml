@@ -24,10 +24,8 @@ services:
         sync: false
     healthCheckPath: /health
 
-  - type: web
+  - type: static
     name: revenue-recovery-frontend
-    runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
