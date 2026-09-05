@@ -128,7 +128,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </h1>
 
           <p className="max-w-2xl mx-auto text-xs sm:text-sm text-gray-400 font-sans leading-relaxed">
-            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine for Razorpay Agent Studio. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces a strict <strong className="text-emerald-400">Responsible Collections Policy (RBI FPC-Inspired)</strong>, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
+            <strong className="text-white">Revenue Recovery Brain</strong> is the grand unified orchestration engine powered by <strong className="text-[#2B7FFF]">Rakshak AI</strong>. It diagnoses root causes in <strong className="text-white">&lt;150ms</strong>, enforces a strict <strong className="text-emerald-400">Responsible Collections Policy (RBI FPC-Inspired)</strong>, and automates high-conversion <strong className="text-purple-300">Hinglish Voice & Mandate Interventions</strong>.
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>{showAgentStack ? 'Hide Agent Stack' : 'View Agent Studio Stack (7 Agents)'}</span>
+            <span>{showAgentStack ? 'Hide Agent Stack' : 'View Rakshak AI Stack (7 Agents)'}</span>
           </button>
         </div>
 
@@ -170,10 +170,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             <div className="flex items-center justify-between border-b border-white/10 pb-2 text-left">
               <div>
                 <span className="text-xs font-mono uppercase tracking-wider text-blue-400 font-semibold">
-                  Razorpay Agent Studio · Autonomous AI Stack
+                  Rakshak AI · Autonomous Recovery Stack
                 </span>
                 <p className="text-[11px] text-gray-400">
-                  How the Revenue Recovery Brain unifies and orchestrates the prebuilt Razorpay agent suite:
+                  How the Revenue Recovery Brain unifies and orchestrates the autonomous Rakshak agent suite:
                 </p>
               </div>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

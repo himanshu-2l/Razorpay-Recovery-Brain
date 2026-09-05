@@ -71,7 +71,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (filterAgent === 'prevent') return c.leak_type === 'payment_failure';
     if (filterAgent === 'rescue') return c.leak_type === 'checkout_abandonment';
     if (filterAgent === 'renew') return c.leak_type === 'subscription_failure';
-    if (filterAgent === 'vasool') return c.leak_type === 'b2b_receivable';
+    if (filterAgent === 'rakshak' || filterAgent === 'vasool') return c.leak_type === 'b2b_receivable';
     return true;
   });
 
@@ -218,7 +218,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {/* Filter Bar */}
           <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-black/40 border border-white/10 text-xs">
-            {['all', 'prevent', 'rescue', 'renew', 'vasool'].map((agent) => (
+            {['all', 'prevent', 'rescue', 'renew', 'rakshak'].map((agent) => (
               <button
                 key={agent}
                 onClick={() => setFilterAgent(agent)}
@@ -257,7 +257,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     ? { name: 'RESCUE', color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' }
                     : c.leak_type === 'subscription_failure'
                     ? { name: 'RENEW', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' }
-                    : { name: 'VASOOL', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+                    : { name: 'RAKSHAK', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
 
                 return (
                   <tr

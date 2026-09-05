@@ -12,10 +12,23 @@ import {
   Zap,
   Activity,
   ArrowRight,
+  CreditCard,
+  ShieldAlert,
 } from 'lucide-react';
 
 export type ViewMode = 'showcase' | 'console';
-export type ConsoleTab = 'overview' | 'recovery_flow' | 'cases' | 'voice' | 'compliance' | 'abtest' | 'webhook' | 'architecture' | 'chaos';
+export type ConsoleTab =
+  | 'overview'
+  | 'live_link'
+  | 'stopped_cases'
+  | 'recovery_flow'
+  | 'cases'
+  | 'voice'
+  | 'compliance'
+  | 'abtest'
+  | 'webhook'
+  | 'architecture'
+  | 'chaos';
 
 interface NavbarProps {
   viewMode: ViewMode;
@@ -90,7 +103,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Right: Actions & Chain Status Pill */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            {/* Direct Payment Link CTA Button */}
+            <button
+              onClick={() => {
+                setViewMode('console');
+                setConsoleTab('live_link');
+              }}
+              className="text-xs px-3 py-1.5 rounded-full font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all flex items-center space-x-1.5 cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Generate Payment Link</span>
+              <span className="sm:hidden">Pay Link</span>
+            </button>
+
             {/* Status Pill Badge */}
             <div className="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-[#202a3e] border border-[#305EFF]/40 text-xs font-mono text-[#305EFF]">
               <span className="w-2 h-2 rounded-full bg-[#305EFF] animate-ping" />
@@ -126,6 +152,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             <nav className="flex items-center space-x-1">
               {[
                 { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+                { id: 'live_link', label: 'Live Payment Link', icon: CreditCard },
+                { id: 'stopped_cases', label: 'Where We Stopped', icon: ShieldAlert },
                 { id: 'recovery_flow', label: 'Recovery Flow (3D)', icon: Activity },
                 { id: 'cases', label: 'Case Ledger', icon: Layers },
                 { id: 'voice', label: 'Hinglish Voice', icon: PhoneCall },
@@ -143,8 +171,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => setConsoleTab(tab.id as ConsoleTab)}
                     className={`px-3 py-1.5 text-xs font-mono rounded-full transition-all cursor-pointer flex items-center space-x-1.5 ${
                       isActive
-                        ? 'bg-[#305EFF]/15 text-[#305EFF] border border-[#305EFF]/40 font-semibold'
-                        : 'text-[#cdd0d6] hover:text-[#ffffff] hover:bg-white/[0.04]'
+                        ? 'bg-[#305EFF] text-white border border-[#305EFF] font-semibold shadow-sm'
+                        : 'text-gray-300 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />

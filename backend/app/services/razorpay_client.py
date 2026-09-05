@@ -123,6 +123,92 @@ class RazorpayClientWrapper:
             logger.warning(f"Failed to cancel Razorpay payment link {link_id}: {e}")
             return False
 
+    def fetch_payment_link(self, link_id: str) -> Dict[str, Any]:
+        """
+        Fetch the current status and payment outcome of a Razorpay Payment Link.
+        Calls Razorpay's live Test-Mode API (GET /v1/payment_links/{link_id}) or SDK.
+        Returns dictionary containing:
+          - id: str
+          - status: "created" | "partially_paid" | "paid" | "cancelled" | "expired"
+          - amount: int (paise)
+          - amount_paid: int (paise)
+          - payments: list
+          - paid_at: Optional[int] (unix timestamp)
+        """
+        if not link_id:
+            return {"status": "unknown", "error": "missing_link_id"}
+
+        # 1. Native Razorpay SDK 2.0.1 call
+        if self.sdk_client and not link_id.startswith("plink_sim_"):
+            try:
+                res = self.sdk_client.payment_link.fetch(link_id)
+                payments = res.get("payments") or []
+                paid_at = None
+                if payments and len(payments) > 0:
+                    paid_at = payments[0].get("created_at")
+                return {
+                    "id": res.get("id"),
+                    "status": res.get("status"),
+                    "amount": res.get("amount", 0),
+                    "amount_paid": res.get("amount_paid", 0),
+                    "short_url": res.get("short_url"),
+                    "payments": payments,
+                    "paid_at": paid_at,
+                    "mode": "live_razorpay_test"
+                }
+            except Exception as e:
+                logger.warning(f"Razorpay SDK payment_link.fetch({link_id}) failed: {e}. Trying HTTP client fallback.")
+
+        # 2. HTTP Fallback
+        if not link_id.startswith("plink_sim_"):
+            try:
+                with httpx.Client(timeout=6.0) as client:
+                    res = client.get(
+                        f"{RAZORPAY_API_BASE}/payment_links/{link_id}",
+                        auth=(self.key_id, self.key_secret)
+                    )
+                    if res.status_code == 200:
+                        data = res.json()
+                        payments = data.get("payments") or []
+                        paid_at = payments[0].get("created_at") if payments else None
+                        return {
+                            "id": data.get("id"),
+                            "status": data.get("status"),
+                            "amount": data.get("amount", 0),
+                            "amount_paid": data.get("amount_paid", 0),
+                            "short_url": data.get("short_url"),
+                            "payments": payments,
+                            "paid_at": paid_at,
+                            "mode": "live_razorpay_test"
+                        }
+            except Exception as e:
+                logger.warning(f"Failed to fetch payment link {link_id} via HTTP: {e}")
+
+        # 3. Simulated fallback response for mock/offline testing
+        for inv, link in self._active_links_by_invoice.items():
+            if link.get("id") == link_id:
+                return {
+                    "id": link_id,
+                    "status": link.get("status", "created"),
+                    "amount": link.get("amount", 0),
+                    "amount_paid": link.get("amount_paid", 0),
+                    "short_url": link.get("short_url"),
+                    "payments": [],
+                    "paid_at": link.get("paid_at"),
+                    "mode": link.get("mode", "simulated_fallback")
+                }
+
+        return {
+            "id": link_id,
+            "status": "created",
+            "amount": 0,
+            "amount_paid": 0,
+            "short_url": f"https://rzp.io/i/{link_id[-7:]}",
+            "payments": [],
+            "paid_at": None,
+            "mode": "simulated_fallback"
+        }
+
     def create_recovery_payment_link(
         self,
         amount_inr: float,
@@ -176,7 +262,7 @@ class RazorpayClientWrapper:
             },
             "reminder_enable": True,
             "notes": {
-                "recovery_agent": "Vasool AI",
+                "recovery_agent": "Rakshak AI",
                 "invoice_number": invoice_number or "N/A",
                 "trace_origin": "revenue_recovery_brain",
                 "lifecycle_safety": "single_active_link_enforced",
@@ -244,7 +330,7 @@ class RazorpayClientWrapper:
             "reminder_enable": True,
             "invalidated_previous_link_id": invalidated_link_id,
             "notes": {
-                "recovery_agent": "Vasool AI",
+                "recovery_agent": "Rakshak AI",
                 "invoice_number": invoice_number or "N/A",
                 "trace_origin": "revenue_recovery_brain",
                 "lifecycle_safety": "single_active_link_enforced",

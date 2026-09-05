@@ -115,3 +115,67 @@ def test_razorpay_sdk_payment_link_invalidation():
         assert res2["id"] == "plink_second_002"
         assert res2["invalidated_previous_link_id"] == "plink_first_001"
         assert mock_cancel.called
+
+
+def test_razorpay_sdk_fetch_payment_link():
+    """Verify that fetch_payment_link queries the SDK and extracts paid status and timestamps."""
+    client = RazorpayClientWrapper()
+    client.key_id = "rzp_test_real_key_mock"
+
+    mock_fetch_response = {
+        "id": "plink_test_fetch_777",
+        "status": "paid",
+        "amount": 49900,
+        "amount_paid": 49900,
+        "short_url": "https://rzp.io/i/paid777",
+        "payments": [{"id": "pay_test_payment_999", "created_at": 1757077200, "status": "captured"}],
+    }
+
+    with patch.object(client.sdk_client.payment_link, "fetch", return_value=mock_fetch_response):
+        data = client.fetch_payment_link("plink_test_fetch_777")
+        assert data["id"] == "plink_test_fetch_777"
+        assert data["status"] == "paid"
+        assert data["amount"] == 49900
+        assert data["amount_paid"] == 49900
+        assert data["paid_at"] == 1757077200
+        assert len(data["payments"]) == 1
+
+
+def test_live_payment_link_endpoints_and_status_check():
+    """Verify POST /api/live/payment-link and POST /api/live/payment-link/{id}/check endpoints."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+
+    # 1. Create live payment link
+    resp = client.post(
+        "/api/live/payment-link",
+        json={
+            "customer_name": "Rohan Sharma",
+            "amount": 2499.0,
+            "reason": "expired_card",
+            "phone": "+919876543210",
+            "email": "rohan@example.com"
+        }
+    )
+    assert resp.status_code == 200
+    res_data = resp.json()
+    assert res_data["status"] == "success"
+    assert "case" in res_data
+    assert "link" in res_data
+    link_id = res_data["link"]["id"]
+
+    # 2. Check payment link status (unpaid)
+    check_resp = client.post(f"/api/live/payment-link/{link_id}/check")
+    assert check_resp.status_code == 200
+    check_data = check_resp.json()
+    assert check_data["status"] == "success"
+    assert "payment_status" in check_data
+
+    # 3. Check compliance stopped cases
+    stopped_resp = client.get("/api/compliance/stopped-cases")
+    assert stopped_resp.status_code == 200
+    stopped_data = stopped_resp.json()
+    assert stopped_data["status"] == "success"
+    assert isinstance(stopped_data["stopped_cases"], list)

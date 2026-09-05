@@ -112,7 +112,7 @@ export const RecoveryFlow3D: React.FC<RecoveryFlow3DProps> = ({
         latency: '1.2h',
       },
       vasool: {
-        name: 'VASOOL',
+        name: 'RAKSHAK',
         title: 'B2B Debt & 43B(h) Voice AI',
         recovered: 2140000,
         casesCount: 35,
@@ -534,7 +534,7 @@ export const RecoveryFlow3D: React.FC<RecoveryFlow3DProps> = ({
 
             {/* Central 3D Canvas Stage */}
             <div
-              className="relative w-full max-w-2xl h-[380px] flex items-center justify-center transition-transform duration-300 ease-out"
+              className="relative w-full max-w-3xl h-[460px] sm:h-[480px] flex items-center justify-center transition-transform duration-300 ease-out my-2"
               style={{
                 transform: is3DMode
                   ? `rotateX(${15 - mousePos.y * 18}deg) rotateY(${mousePos.x * 22}deg) translateZ(10px)`
@@ -545,78 +545,78 @@ export const RecoveryFlow3D: React.FC<RecoveryFlow3DProps> = ({
               {/* Dynamic SVG Directed Edges & Pulsing Particles */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                 <defs>
-                  <linearGradient id="edge-prevent" x1="50%" y1="50%" x2="50%" y2="15%">
+                  <linearGradient id="edge-prevent" x1="50%" y1="50%" x2="50%" y2="10%">
                     <stop offset="0%" stopColor="#2b82fb" stopOpacity="0.8" />
                     <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.3" />
                   </linearGradient>
-                  <linearGradient id="edge-rescue" x1="50%" y1="50%" x2="85%" y2="50%">
+                  <linearGradient id="edge-rescue" x1="50%" y1="50%" x2="90%" y2="50%">
                     <stop offset="0%" stopColor="#2b82fb" stopOpacity="0.8" />
                     <stop offset="100%" stopColor="#a855f7" stopOpacity="0.3" />
                   </linearGradient>
-                  <linearGradient id="edge-renew" x1="50%" y1="50%" x2="50%" y2="85%">
+                  <linearGradient id="edge-renew" x1="50%" y1="50%" x2="50%" y2="90%">
                     <stop offset="0%" stopColor="#2b82fb" stopOpacity="0.8" />
                     <stop offset="100%" stopColor="#10b981" stopOpacity="0.3" />
                   </linearGradient>
-                  <linearGradient id="edge-vasool" x1="50%" y1="50%" x2="15%" y2="50%">
+                  <linearGradient id="edge-vasool" x1="50%" y1="50%" x2="10%" y2="50%">
                     <stop offset="0%" stopColor="#2b82fb" stopOpacity="0.8" />
                     <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.3" />
                   </linearGradient>
                 </defs>
 
                 {/* Hub Spoke Lines */}
-                <line x1="50%" y1="50%" x2="50%" y2="16%" stroke="url(#edge-prevent)" strokeWidth="2" strokeDasharray="4 4" />
-                <line x1="50%" y1="50%" x2="84%" y2="50%" stroke="url(#edge-rescue)" strokeWidth="2" strokeDasharray="4 4" />
-                <line x1="50%" y1="50%" x2="50%" y2="84%" stroke="url(#edge-renew)" strokeWidth="2" strokeDasharray="4 4" />
-                <line x1="50%" y1="50%" x2="16%" y2="50%" stroke="url(#edge-vasool)" strokeWidth="2" strokeDasharray="4 4" />
+                <line x1="50%" y1="50%" x2="50%" y2="14%" stroke="url(#edge-prevent)" strokeWidth="2" strokeDasharray="4 4" />
+                <line x1="50%" y1="50%" x2="86%" y2="50%" stroke="url(#edge-rescue)" strokeWidth="2" strokeDasharray="4 4" />
+                <line x1="50%" y1="50%" x2="50%" y2="86%" stroke="url(#edge-renew)" strokeWidth="2" strokeDasharray="4 4" />
+                <line x1="50%" y1="50%" x2="14%" y2="50%" stroke="url(#edge-vasool)" strokeWidth="2" strokeDasharray="4 4" />
 
                 {/* Cross-Agent Flow Ring */}
-                <circle cx="50%" cy="50%" r="35%" fill="none" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1.5" strokeDasharray="6 6" />
+                <circle cx="50%" cy="50%" r="36%" fill="none" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="1.5" strokeDasharray="6 6" />
 
                 {/* Traveling Capital Particles (Animated via CSS) */}
-                <circle cx="50%" cy="32%" r="4" fill="#06b6d4" className="animate-ping opacity-75" />
-                <circle cx="68%" cy="50%" r="4" fill="#a855f7" className="animate-ping opacity-75" />
-                <circle cx="50%" cy="68%" r="4" fill="#10b981" className="animate-ping opacity-75" />
-                <circle cx="32%" cy="50%" r="4" fill="#f59e0b" className="animate-ping opacity-75" />
+                <circle cx="50%" cy="30%" r="4" fill="#06b6d4" className="animate-ping opacity-75" />
+                <circle cx="70%" cy="50%" r="4" fill="#a855f7" className="animate-ping opacity-75" />
+                <circle cx="50%" cy="70%" r="4" fill="#10b981" className="animate-ping opacity-75" />
+                <circle cx="30%" cy="50%" r="4" fill="#f59e0b" className="animate-ping opacity-75" />
               </svg>
 
               {/* Central Hub: Autonomous Recovery Brain Core */}
               <div
-                className="absolute z-20 flex flex-col items-center justify-center w-28 h-28 rounded-full bg-gradient-to-br from-[#0052cc] via-[#1d4ed8] to-[#0a1b4d] border-2 border-blue-400 shadow-2xl shadow-blue-600/50 cursor-pointer transition-transform hover:scale-110"
+                className="absolute z-20 flex flex-col items-center justify-center w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-[#0052cc] via-[#1d4ed8] to-[#0a1b4d] border-2 border-blue-400 shadow-2xl shadow-blue-600/50 cursor-pointer transition-transform hover:scale-110"
                 style={{
                   transform: is3DMode ? 'translateZ(30px)' : 'none',
                 }}
               >
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-[11px] font-bold text-white tracking-wider mt-1">RECOVERY</span>
-                <span className="text-[9px] font-mono text-cyan-300 font-semibold">BRAIN CORE</span>
+                <span className="text-[10px] sm:text-[11px] font-bold text-white tracking-wider mt-1">RECOVERY</span>
+                <span className="text-[8px] sm:text-[9px] font-mono text-cyan-300 font-semibold">BRAIN CORE</span>
               </div>
 
               {/* Agent Node 1: PREVENT (Top - North) */}
               <div
                 onClick={() => setSelectedAgent('prevent')}
-                className={`absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center p-3 rounded-xl glass-panel border transition-all cursor-pointer ${
+                className={`absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center p-3 rounded-2xl bg-[#0a1122]/90 backdrop-blur-md border transition-all cursor-pointer shadow-xl ${
                   selectedAgent === 'prevent'
-                    ? 'border-cyan-400 ring-2 ring-cyan-500/40 scale-105 shadow-xl shadow-cyan-500/30'
-                    : 'border-white/10 hover:border-cyan-500/40'
+                    ? 'border-cyan-400 ring-2 ring-cyan-500/40 scale-105 shadow-cyan-500/30'
+                    : 'border-white/10 hover:border-cyan-500/40 hover:scale-102'
                 }`}
                 style={{
                   transform: is3DMode ? 'translateZ(20px)' : 'none',
-                  minWidth: '150px',
+                  minWidth: '160px',
                 }}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                  <span className="text-xs font-bold text-white font-mono">PREVENT</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">PREVENT</span>
                 </div>
-                <div className="text-[13px] font-bold text-cyan-300 mt-1">
+                <div className="text-sm font-extrabold text-cyan-300 mt-1 font-mono">
                   {formatLakhs(agentStats.prevent.recovered)}
                 </div>
                 <div className="text-[10px] text-gray-400 font-mono mt-0.5">
                   {agentStats.prevent.casesCount} Failures Mitigated
                 </div>
-                <span className="mt-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                <span className="mt-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
                   {agentStats.prevent.successRate}% Success
                 </span>
               </div>
@@ -624,27 +624,27 @@ export const RecoveryFlow3D: React.FC<RecoveryFlow3DProps> = ({
               {/* Agent Node 2: RESCUE (Right - East) */}
               <div
                 onClick={() => setSelectedAgent('rescue')}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center p-3 rounded-xl glass-panel border transition-all cursor-pointer ${
+                className={`absolute right-1 sm:right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center p-3 rounded-2xl bg-[#0a1122]/90 backdrop-blur-md border transition-all cursor-pointer shadow-xl ${
                   selectedAgent === 'rescue'
-                    ? 'border-purple-400 ring-2 ring-purple-500/40 scale-105 shadow-xl shadow-purple-500/30'
-                    : 'border-white/10 hover:border-purple-500/40'
+                    ? 'border-purple-400 ring-2 ring-purple-500/40 scale-105 shadow-purple-500/30'
+                    : 'border-white/10 hover:border-purple-500/40 hover:scale-102'
                 }`}
                 style={{
                   transform: is3DMode ? 'translateZ(20px)' : 'none',
-                  minWidth: '150px',
+                  minWidth: '160px',
                 }}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-                  <span className="text-xs font-bold text-white font-mono">RESCUE</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">RESCUE</span>
                 </div>
-                <div className="text-[13px] font-bold text-purple-300 mt-1">
+                <div className="text-sm font-extrabold text-purple-300 mt-1 font-mono">
                   {formatLakhs(agentStats.rescue.recovered)}
                 </div>
                 <div className="text-[10px] text-gray-400 font-mono mt-0.5">
                   {agentStats.rescue.casesCount} Carts Rescued
                 </div>
-                <span className="mt-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                <span className="mt-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">
                   {agentStats.rescue.successRate}% Success
                 </span>
               </div>
@@ -652,60 +652,59 @@ export const RecoveryFlow3D: React.FC<RecoveryFlow3DProps> = ({
               {/* Agent Node 3: RENEW (Bottom - South) */}
               <div
                 onClick={() => setSelectedAgent('renew')}
-                className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center p-3 rounded-xl glass-panel border transition-all cursor-pointer ${
+                className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center p-3 rounded-2xl bg-[#0a1122]/90 backdrop-blur-md border transition-all cursor-pointer shadow-xl ${
                   selectedAgent === 'renew'
-                    ? 'border-emerald-400 ring-2 ring-emerald-500/40 scale-105 shadow-xl shadow-emerald-500/30'
-                    : 'border-white/10 hover:border-emerald-500/40'
+                    ? 'border-emerald-400 ring-2 ring-emerald-500/40 scale-105 shadow-emerald-500/30'
+                    : 'border-white/10 hover:border-emerald-500/40 hover:scale-102'
                 }`}
                 style={{
                   transform: is3DMode ? 'translateZ(20px)' : 'none',
-                  minWidth: '150px',
+                  minWidth: '160px',
                 }}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-bold text-white font-mono">RENEW</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">RENEW</span>
                 </div>
-                <div className="text-[13px] font-bold text-emerald-300 mt-1">
+                <div className="text-sm font-extrabold text-emerald-300 mt-1 font-mono">
                   {formatLakhs(agentStats.renew.recovered)}
                 </div>
                 <div className="text-[10px] text-gray-400 font-mono mt-0.5">
                   {agentStats.renew.casesCount} Subscriptions Kept
                 </div>
-                <span className="mt-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="mt-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
                   {agentStats.renew.successRate}% Success
                 </span>
               </div>
 
-              {/* Agent Node 4: VASOOL (Left - West) */}
+              {/* Agent Node 4: RESOLVE / B2B VOICE (Left - West) */}
               <div
                 onClick={() => setSelectedAgent('vasool')}
-                className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center p-3 rounded-xl glass-panel border transition-all cursor-pointer ${
+                className={`absolute left-1 sm:left-4 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center p-3 rounded-2xl bg-[#0a1122]/90 backdrop-blur-md border transition-all cursor-pointer shadow-xl ${
                   selectedAgent === 'vasool'
-                    ? 'border-amber-400 ring-2 ring-amber-500/40 scale-105 shadow-xl shadow-amber-500/30'
-                    : 'border-white/10 hover:border-amber-500/40'
+                    ? 'border-amber-400 ring-2 ring-amber-500/40 scale-105 shadow-amber-500/30'
+                    : 'border-white/10 hover:border-amber-500/40 hover:scale-102'
                 }`}
                 style={{
                   transform: is3DMode ? 'translateZ(20px)' : 'none',
-                  minWidth: '150px',
+                  minWidth: '160px',
                 }}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                  <span className="text-xs font-bold text-white font-mono">VASOOL</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">RESOLVE</span>
                 </div>
-                <div className="text-[13px] font-bold text-amber-300 mt-1">
+                <div className="text-sm font-extrabold text-amber-300 mt-1 font-mono">
                   {formatLakhs(agentStats.vasool.recovered)}
                 </div>
                 <div className="text-[10px] text-gray-400 font-mono mt-0.5">
                   {agentStats.vasool.casesCount} Invoices Collected
                 </div>
-                <span className="mt-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="mt-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
                   {agentStats.vasool.successRate}% Success
                 </span>
               </div>
             </div>
-          </div>
 
           {/* Selected Agent Detailed Telemetry Strip */}
           <div className="mt-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

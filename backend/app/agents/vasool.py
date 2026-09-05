@@ -1,5 +1,5 @@
 """
-Vasool Recovery Agent — DPDP Consent & Compliance Gate
+Rakshak Recovery Agent — DPDP Consent & Compliance Gate
 ======================================================
 Coordinates autonomous B2B and B2C collection outreach with mandatory DPDP Act 2023
 consent verification and RBI Fair Practices Code enforcement.
@@ -16,7 +16,7 @@ from app.services.voice_safety import VoiceSafetyFilter
 logger = logging.getLogger(__name__)
 
 
-class VasoolRecoveryAgent:
+class RakshakRecoveryAgent:
     """
     Autonomous collection agent enforcing:
     1. DPDP Act 2023 Consent verification before ANY outreach.
@@ -87,4 +87,7 @@ class VasoolRecoveryAgent:
         }
 
 
-vasool_agent = VasoolRecoveryAgent()
+rakshak_agent = RakshakRecoveryAgent()
+# Backward-compatibility aliases
+vasool_agent = rakshak_agent
+VasoolRecoveryAgent = RakshakRecoveryAgent

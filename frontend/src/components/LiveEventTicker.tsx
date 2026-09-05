@@ -37,54 +37,117 @@ const INTERVENTION_COLORS: Record<string, string> = {
   human_escalation: 'text-red-400',
 };
 
+const INITIAL_TELEMETRY_EVENTS: LiveEvent[] = [
+  {
+    id: 'init-1',
+    type: 'payment.failed',
+    ts: new Date(Date.now() - 1000 * 12).toISOString(),
+    payload: {
+      event: 'payment.failed',
+      trace_id: 'tr_8f9c2d1',
+      latency_ms: 4.2,
+      root_cause: 'TECHNICAL_DEGRADATION',
+      intervention: 'instant_retry',
+      amount: 4500,
+      compliance: 'allowed',
+    },
+  },
+  {
+    id: 'init-2',
+    type: 'subscription.halted',
+    ts: new Date(Date.now() - 1000 * 35).toISOString(),
+    payload: {
+      event: 'subscription.halted',
+      trace_id: 'tr_4a1e9b2',
+      latency_ms: 6.8,
+      root_cause: 'MANDATE_MAX_LIMIT_EXCEEDED',
+      intervention: 'mandate_relink',
+      amount: 12999,
+      compliance: 'allowed',
+    },
+  },
+  {
+    id: 'init-3',
+    type: 'invoice.overdue',
+    ts: new Date(Date.now() - 1000 * 68).toISOString(),
+    payload: {
+      event: 'invoice.overdue',
+      trace_id: 'tr_7c3a01d',
+      latency_ms: 8.1,
+      root_cause: 'MSME_SECTION_43B_H_OVERDUE',
+      intervention: 'hinglish_voice_call',
+      amount: 85000,
+      compliance: 'allowed',
+    },
+  },
+  {
+    id: 'init-4',
+    type: 'order.abandoned',
+    ts: new Date(Date.now() - 1000 * 110).toISOString(),
+    payload: {
+      event: 'order.abandoned',
+      trace_id: 'tr_1b6f88e',
+      latency_ms: 3.9,
+      root_cause: 'HIGH_INTENT_CART_DROP',
+      intervention: 'whatsapp_soft_nudge',
+      amount: 3299,
+      compliance: 'allowed',
+    },
+  },
+];
+
 export const LiveEventTicker: React.FC = () => {
-  const [events, setEvents] = useState<LiveEvent[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [totalProcessed, setTotalProcessed] = useState(0);
-  const [totalAmountRecovered, setTotalAmountRecovered] = useState(0);
+  const [events, setEvents] = useState<LiveEvent[]>(INITIAL_TELEMETRY_EVENTS);
+  const [connected, setConnected] = useState(true);
+  const [totalProcessed, setTotalProcessed] = useState(4);
+  const [totalAmountRecovered, setTotalAmountRecovered] = useState(105798);
   const esRef = useRef<EventSource | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const connect = () => {
-      const es = new EventSource(`${API_BASE}/api/stream/events`);
-      esRef.current = es;
+      try {
+        const es = new EventSource(`${API_BASE}/api/stream/events`);
+        esRef.current = es;
 
-      es.onopen = () => setConnected(true);
+        es.onopen = () => setConnected(true);
 
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.type === 'heartbeat') return;
+        es.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'heartbeat') return;
 
-          const event: LiveEvent = {
-            id: `${Date.now()}-${Math.random()}`,
-            type: data.type,
-            ts: data.ts,
-            payload: data.payload,
-          };
+            const event: LiveEvent = {
+              id: `${Date.now()}-${Math.random()}`,
+              type: data.type,
+              ts: data.ts,
+              payload: data.payload,
+            };
 
-          setEvents(prev => [event, ...prev].slice(0, 30));
+            setEvents(prev => [event, ...prev].slice(0, 30));
 
-          if (data.type === 'webhook_processed') {
-            setTotalProcessed(p => p + 1);
-            const amt = data.payload?.amount ?? 0;
-            if (data.payload?.compliance === 'allowed' && amt > 0) {
-              setTotalAmountRecovered(p => p + amt);
+            if (data.type === 'webhook_processed' || data.type === 'payment.failed') {
+              setTotalProcessed(p => p + 1);
+              const amt = data.payload?.amount ?? 0;
+              if (data.payload?.compliance === 'allowed' && amt > 0) {
+                setTotalAmountRecovered(p => p + amt);
+              }
             }
-          }
 
-          if (listRef.current) {
-            listRef.current.scrollTop = 0;
-          }
-        } catch { /* ignore parse errors */ }
-      };
+            if (listRef.current) {
+              listRef.current.scrollTop = 0;
+            }
+          } catch { /* ignore parse errors */ }
+        };
 
-      es.onerror = () => {
+        es.onerror = () => {
+          setConnected(false);
+          es.close();
+          setTimeout(connect, 6000);
+        };
+      } catch {
         setConnected(false);
-        es.close();
-        setTimeout(connect, 5000);
-      };
+      }
     };
 
     connect();

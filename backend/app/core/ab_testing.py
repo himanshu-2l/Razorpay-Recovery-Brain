@@ -402,27 +402,32 @@ ab_test_engine = ABTestEngine()
 
 # ── Pre-registered production experiment ──────────────────────────────────────
 # This is the main experiment tracked across all batch evaluations.
+RAKSHAK_LIFT_EXPERIMENT_ID: Optional[str] = None
 VASOOL_LIFT_EXPERIMENT_ID: Optional[str] = None
 
-def initialize_vasool_experiment() -> str:
+def initialize_rakshak_experiment() -> str:
     """
-    Register the primary Vasool vs. Baseline A/B experiment.
+    Register the primary Rakshak AI vs. Baseline A/B experiment.
     Called at application startup in main.py.
     Idempotent — returns existing ID if already registered.
     """
-    global VASOOL_LIFT_EXPERIMENT_ID
-    if VASOOL_LIFT_EXPERIMENT_ID is not None:
-        return VASOOL_LIFT_EXPERIMENT_ID
+    global RAKSHAK_LIFT_EXPERIMENT_ID, VASOOL_LIFT_EXPERIMENT_ID
+    if RAKSHAK_LIFT_EXPERIMENT_ID is not None:
+        return RAKSHAK_LIFT_EXPERIMENT_ID
 
     experiment_id = ab_test_engine.create_experiment(
-        name="vasool_vs_razorpay_baseline",
+        name="rakshak_vs_razorpay_baseline",
         control_ratio=0.5,
         treatment_ratio=0.5,
         description=(
             "Control: Razorpay default 3 SMS/email reminders. "
-            "Treatment: Full Vasool agent (WhatsApp → Hinglish Voice → PTP → Escalation). "
+            "Treatment: Full Rakshak AI agent (WhatsApp → Hinglish Voice → PTP → Escalation). "
             "Primary metric: binary recovery within 7 days."
         ),
     )
+    RAKSHAK_LIFT_EXPERIMENT_ID = experiment_id
     VASOOL_LIFT_EXPERIMENT_ID = experiment_id
     return experiment_id
+
+# Backward-compatibility alias
+initialize_vasool_experiment = initialize_rakshak_experiment

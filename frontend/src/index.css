@@ -89,7 +89,7 @@
 
 /* ── Horizon Glow Radial Background ──────────────────────────────────────────── */
 .horizon-glow {
-  background-image: radial-gradient(circle at 50% -10%, rgb(18, 48, 175) 0%, rgb(48, 94, 255) 25%, transparent 60%);
+  background-image: radial-gradient(circle at 50% -20%, rgba(48, 94, 255, 0.12) 0%, rgba(18, 48, 175, 0.04) 45%, transparent 70%);
 }
 
 .paper-grid, .razorpay-grid {

@@ -29,6 +29,8 @@ import { ArchitectureFlow } from './components/ArchitectureFlow';
 import { FailureInjectionPanel } from './components/FailureInjectionPanel';
 import { RecoveryFlow3D } from './components/RecoveryFlow3D';
 import { Dashboard } from './pages/Dashboard';
+import { LivePaymentLinkPanel } from './components/LivePaymentLinkPanel';
+import { ComplianceStopsPanel } from './components/ComplianceStopsPanel';
 import type { BatchSummary, CaseItem } from './types';
 import { API_BASE } from './api';
 
@@ -117,7 +119,7 @@ const MainLayout: React.FC = () => {
       className="min-h-screen font-body flex flex-col justify-between bg-[#17202e] text-[#ffffff] selection:bg-[#305EFF]/20 selection:text-[#305EFF] relative overflow-x-hidden"
     >
       {/* Deep-Sea Horizon Glow */}
-      <div className="absolute top-0 inset-x-0 h-[650px] pointer-events-none horizon-glow opacity-80" />
+      <div className="absolute top-0 inset-x-0 h-[650px] pointer-events-none horizon-glow opacity-30" />
       
       {/* Universal Dual-Mode Navbar with Theme Toggle */}
       <Navbar
@@ -230,6 +232,18 @@ const MainLayout: React.FC = () => {
 
                 {/* Clean Case Ledger */}
                 <CaseTable cases={cases} onSelectCase={handleSelectCase} />
+              </div>
+            )}
+
+            {consoleTab === 'live_link' && (
+              <div className="space-y-4">
+                <LivePaymentLinkPanel />
+              </div>
+            )}
+
+            {consoleTab === 'stopped_cases' && (
+              <div className="space-y-4">
+                <ComplianceStopsPanel />
               </div>
             )}
 

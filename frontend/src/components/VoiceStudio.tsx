@@ -359,41 +359,46 @@ export const VoiceStudio: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setGpuMode(!gpuMode)}
-              disabled={gpuStatus !== 'online' || isCalling}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-mono font-semibold border transition-all ${
-                gpuMode && gpuStatus === 'online'
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                  : gpuStatus !== 'online'
-                  ? 'bg-white/[0.02] border-white/5 text-gray-600 cursor-not-allowed'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-              }`}
-            >
-              {gpuMode && gpuStatus === 'online' ? '🧠 Llama-3-8B LIVE' : '📄 Strategy Engine'}
-            </button>
+          {/* Header Action Controls */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+            
+            {/* Audio Toggle & Model Mode */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setGpuMode(!gpuMode)}
+                disabled={gpuStatus !== 'online' || isCalling}
+                className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold border transition-all ${
+                  gpuMode && gpuStatus === 'online'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                    : gpuStatus !== 'online'
+                    ? 'bg-white/[0.02] border-white/5 text-gray-600 cursor-not-allowed'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                }`}
+              >
+                {gpuMode && gpuStatus === 'online' ? '🧠 Llama-3-8B' : '📄 Strategy Engine'}
+              </button>
 
-            <button
-              onClick={() => {
-                if (isCalling && synthRef.current) synthRef.current.cancel();
-                setAudioEnabled(!audioEnabled);
-              }}
-              className={`p-3 rounded-full border transition-all ${
-                audioEnabled
-                  ? 'bg-purple-600/20 text-purple-300 border-purple-500/30 hover:bg-purple-600/30'
-                  : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
-              }`}
-              title={audioEnabled ? 'Audio Speech Synthesis ON' : 'Audio Muted'}
-            >
-              {audioEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
-            </button>
+              <button
+                onClick={() => {
+                  if (isCalling && synthRef.current) synthRef.current.cancel();
+                  setAudioEnabled(!audioEnabled);
+                }}
+                className={`p-2.5 rounded-xl border transition-all ${
+                  audioEnabled
+                    ? 'bg-purple-600/20 text-purple-300 border-purple-500/30 hover:bg-purple-600/30'
+                    : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+                }`}
+                title={audioEnabled ? 'Audio Speech Synthesis ON' : 'Audio Muted'}
+              >
+                {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
+              </button>
+            </div>
 
             {/* Telephony Provider Selector */}
-            <div className="flex items-center bg-black/40 border border-white/10 rounded-full p-1 text-xs">
+            <div className="flex items-center bg-black/40 border border-white/10 rounded-xl p-1 text-xs">
               <button
                 onClick={() => setTelephonyProvider('twilio')}
-                className={`px-3 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-2.5 py-1.5 rounded-lg font-medium transition-all ${
                   telephonyProvider === 'twilio'
                     ? 'bg-blue-600/30 border border-blue-500/50 text-blue-200'
                     : 'text-gray-400 hover:text-gray-200'
@@ -404,72 +409,73 @@ export const VoiceStudio: React.FC = () => {
               </button>
               <button
                 onClick={() => setTelephonyProvider('bolna')}
-                className={`px-3 py-1.5 rounded-full font-medium transition-all flex items-center space-x-1.5 ${
+                className={`px-2.5 py-1.5 rounded-lg font-medium transition-all flex items-center space-x-1 ${
                   telephonyProvider === 'bolna'
                     ? 'bg-purple-600/30 border border-purple-500/50 text-purple-200'
                     : 'text-gray-400 hover:text-gray-200'
                 }`}
-                title="Bolna AI Indian Conversational Backup"
+                title="Bolna AI Indian Conversational Voice"
               >
                 <span>Bolna AI</span>
                 {telephonyMeta?.bolna?.configured && (
-                  <span className="text-[10px] bg-purple-500/30 text-purple-200 px-1.5 py-0.5 rounded-full font-mono">
+                  <span className="text-[9px] bg-purple-500/30 text-purple-200 px-1 py-0.2 rounded font-mono">
                     ₹{telephonyMeta.bolna.wallet_balance?.toFixed(0) ?? 500}
                   </span>
                 )}
               </button>
             </div>
 
-            <button
-              onClick={handleTriggerRealCall}
-              disabled={isTwilioCalling}
-              className={`px-5 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 text-white disabled:opacity-50 ${
-                telephonyProvider === 'bolna'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30'
-                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/30'
-              }`}
-              title={telephonyProvider === 'bolna' ? 'Dial phone using Bolna AI Conversational Agent' : 'Dial phone using Twilio Programmable Voice'}
-            >
-              <Radio className={`w-4 h-4 ${isTwilioCalling ? 'animate-pulse' : ''}`} />
-              <span>
-                {isTwilioCalling
-                  ? 'Connecting...'
-                  : telephonyProvider === 'bolna'
-                  ? 'Call (Bolna AI)'
-                  : 'Call (Twilio Voice)'}
-              </span>
-            </button>
+            {/* Action CTAs */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleTriggerRealCall}
+                disabled={isTwilioCalling}
+                className={`px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center space-x-1.5 transition-all shadow-md active:scale-95 text-white disabled:opacity-50 border ${
+                  telephonyProvider === 'bolna'
+                    ? 'bg-purple-900/40 border-purple-500/40 hover:bg-purple-800/50 text-purple-200'
+                    : 'bg-emerald-900/40 border-emerald-500/40 hover:bg-emerald-800/50 text-emerald-200'
+                }`}
+              >
+                <Radio className={`w-3.5 h-3.5 ${isTwilioCalling ? 'animate-pulse' : ''}`} />
+                <span>
+                  {isTwilioCalling
+                    ? 'Dialing...'
+                    : telephonyProvider === 'bolna'
+                    ? 'Call (Bolna AI)'
+                    : 'Call (Twilio)'}
+                </span>
+              </button>
 
-            <button
-              onClick={handleTriggerRealWhatsApp}
-              disabled={isWhatsAppSending}
-              className="px-5 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 text-white shadow-green-600/30 disabled:opacity-50"
-              title="Send real WhatsApp message with Razorpay payment link"
-            >
-              <MessageSquare className={`w-4 h-4 ${isWhatsAppSending ? 'animate-pulse' : ''}`} />
-              <span>{isWhatsAppSending ? 'Sending WhatsApp...' : 'Send WhatsApp (Razorpay Link)'}</span>
-            </button>
+              <button
+                onClick={handleTriggerRealWhatsApp}
+                disabled={isWhatsAppSending}
+                className="px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center space-x-1.5 transition-all shadow-md active:scale-95 bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-900/50 text-emerald-300 disabled:opacity-50"
+              >
+                <MessageSquare className={`w-3.5 h-3.5 ${isWhatsAppSending ? 'animate-pulse' : ''}`} />
+                <span>{isWhatsAppSending ? 'Sending...' : 'WhatsApp Link'}</span>
+              </button>
 
-            <button
-              onClick={isCalling ? stopCall : triggerCall}
-              className={`px-6 py-3 rounded-full font-semibold text-sm flex items-center space-x-2 transition-all shadow-xl active:scale-95 ${
-                isCalling
-                  ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                  : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-purple-600/30'
-              }`}
-            >
-              {isCalling ? (
-                <>
-                  <PhoneOff className="w-4 h-4" />
-                  <span>End Dialogue Simulator</span>
-                </>
-              ) : (
-                <>
-                  <PhoneCall className="w-4 h-4" />
-                  <span>Run Dialogue Simulator (Offline)</span>
-                </>
-              )}
-            </button>
+              <button
+                onClick={isCalling ? stopCall : triggerCall}
+                className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all shadow-lg active:scale-95 border ${
+                  isCalling
+                    ? 'bg-red-600 hover:bg-red-500 text-white border-red-400 animate-pulse'
+                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-400/40 shadow-purple-500/20'
+                }`}
+              >
+                {isCalling ? (
+                  <>
+                    <PhoneOff className="w-3.5 h-3.5" />
+                    <span>Stop Simulator</span>
+                  </>
+                ) : (
+                  <>
+                    <PhoneCall className="w-3.5 h-3.5" />
+                    <span>Run Dialogue Simulator</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -747,7 +753,7 @@ export const VoiceStudio: React.FC = () => {
                   >
                     <div className="flex items-center justify-between text-[10px] font-mono">
                       <span className={msg.speaker === 'agent' ? 'text-purple-300 font-bold uppercase' : 'text-blue-300 font-bold uppercase'}>
-                        {msg.speaker === 'agent' ? '🤖 AI Voice Agent (Simulated Dialogue)' : `👤 ${debtorName}`}
+                        {msg.speaker === 'agent' ? '🤖 Rakshak AI Voice Agent' : `👤 ${debtorName}`}
                       </span>
 
                       {/* Structured Intent Tag */}
