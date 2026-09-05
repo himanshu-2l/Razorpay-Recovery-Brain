@@ -133,6 +133,8 @@ def test_decision_receipt_contains_rails_clearing():
     Test that DecisionReceiptService embeds the full RAILS clearing payload
     into the sealed receipt.
     """
+    from app.core.audit_ledger import audit_ledger
+
     case = {
         "id": "case_full_receipt_test",
         "amount_at_risk": 12000.0,
@@ -142,6 +144,12 @@ def test_decision_receipt_contains_rails_clearing():
         "status": "recovered",
         "compliance_status": "allowed",
     }
+
+    audit_ledger.record_event(
+        event_type="ACTION_INTENT",
+        case_id=case["id"],
+        payload={"root_cause": case["root_cause"], "amount": case["amount_at_risk"]}
+    )
 
     receipt = receipt_service.generate_receipt(case)
 
@@ -165,3 +173,86 @@ def test_decision_receipt_contains_rails_clearing():
     assert "RecoveryBrainClassifier" in sources
     assert "RazorpayPaymentGatewayWebhook" in sources
     assert "TamperResistantAuditLedger" in sources
+
+
+def test_distinct_merkle_anchors_across_cases_no_hardcoded_fallback():
+    """
+    Regression Test: Ensure that assemble_evidence_envelope:
+    1. Returns NO PROOF-class item if a case has no audit ledger records (honest fallback).
+    2. Returns distinct, real SHA-256 hash-chain heads when cases have ledger entries.
+    3. Never falls back to the deprecated static 'c1fd6cfa023e19803bd' string.
+    """
+    from app.core.audit_ledger import audit_ledger
+
+    # Case A: No ledger records yet -> should have NO PROOF item
+    case_empty = {
+        "id": "case_unrecorded_ledger_test",
+        "merchant_id": "mid_test",
+        "customer_id": "cust_empty",
+        "amount_at_risk": 5000.0,
+    }
+    obl_empty = rails_clearing.compile_obligation(case_empty)
+    env_empty = rails_clearing.assemble_evidence_envelope(case_empty, obl_empty)
+    proof_items_empty = [
+        item for item in env_empty.evidence_items
+        if item.admissibility == AdmissibilityClass.PROOF
+    ]
+    assert len(proof_items_empty) == 0, "Unrecorded case must NOT emit a fabricated PROOF-class item"
+
+    # Case 1: Record event in ledger
+    case_1 = {
+        "id": "case_crypto_anchor_001",
+        "merchant_id": "mid_test_1",
+        "customer_id": "cust_001",
+        "amount_at_risk": 25000.0,
+        "root_cause": "td_bank_down",
+        "chosen_intervention": "smart_retry",
+    }
+    rec_1 = audit_ledger.record_event(
+        event_type="ACTION_INTENT",
+        case_id=case_1["id"],
+        payload={"step": "diagnosis", "amount": 25000.0}
+    )
+    obl_1 = rails_clearing.compile_obligation(case_1)
+    env_1 = rails_clearing.assemble_evidence_envelope(case_1, obl_1)
+
+    # Case 2: Record event in ledger
+    case_2 = {
+        "id": "case_crypto_anchor_002",
+        "merchant_id": "mid_test_2",
+        "customer_id": "cust_002",
+        "amount_at_risk": 75000.0,
+        "root_cause": "insufficient_funds",
+        "chosen_intervention": "whatsapp",
+    }
+    rec_2 = audit_ledger.record_event(
+        event_type="ACTION_INTENT",
+        case_id=case_2["id"],
+        payload={"step": "diagnosis", "amount": 75000.0}
+    )
+    obl_2 = rails_clearing.compile_obligation(case_2)
+    env_2 = rails_clearing.assemble_evidence_envelope(case_2, obl_2)
+
+    # Extract PROOF items
+    proof_1 = [i for i in env_1.evidence_items if i.admissibility == AdmissibilityClass.PROOF]
+    proof_2 = [i for i in env_2.evidence_items if i.admissibility == AdmissibilityClass.PROOF]
+
+    assert len(proof_1) == 1, "Case 1 must have exactly 1 PROOF item"
+    assert len(proof_2) == 1, "Case 2 must have exactly 1 PROOF item"
+
+    anchor_1 = proof_1[0].payload_data.get("merkle_anchor")
+    anchor_2 = proof_2[0].payload_data.get("merkle_anchor")
+
+    # Assertions
+    assert anchor_1 is not None and anchor_2 is not None
+    assert len(anchor_1) == 64, "merkle_anchor must be a 64-char hex SHA-256 string"
+    assert len(anchor_2) == 64, "merkle_anchor must be a 64-char hex SHA-256 string"
+    assert anchor_1 == rec_1.content_hash, "Case 1 anchor must equal Case 1 audit record hash"
+    assert anchor_2 == rec_2.content_hash, "Case 2 anchor must equal Case 2 audit record hash"
+
+    # CRITICAL: anchors must NOT be equal across different cases
+    assert anchor_1 != anchor_2, "Two different cases must NOT have identical merkle_anchor values"
+
+    # Regression defense: neither anchor is the old hardcoded string
+    assert anchor_1 != "c1fd6cfa023e19803bd"
+    assert anchor_2 != "c1fd6cfa023e19803bd"

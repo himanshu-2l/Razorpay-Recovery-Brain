@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, Any, List, Optional, Tuple
 
+from app.core.audit_ledger import audit_ledger
+
 
 class AdmissibilityClass(str, Enum):
     """
@@ -31,7 +33,7 @@ class AdmissibilityClass(str, Enum):
     WIT = "WIT"      # Third-party witness signature (telephony CDR, audio transcript hash, human supervisor)
     REC = "REC"      # Signed receipt from uninterested external financial system (Razorpay HMAC webhook)
     ATT = "ATT"      # TEE hardware attestation (Intel SGX / AWS Nitro)
-    PROOF = "PROOF"  # Cryptographic validity proof (Merkle ledger inclusion proof, zk-SNARK)
+    PROOF = "PROOF"  # Cryptographically-chained audit proof (SHA-256 Merkle-style ledger inclusion)
 
 
 # Explicit Partial Order rules for Poset Λ
@@ -275,7 +277,7 @@ class RAILSClearingEngine:
         - INTENT_SIGN (SIGN): Customer payment link or digital consent
         - WITNESS (WIT): Voice call transcript / telephony carrier acknowledgment
         - PAYMENT_RECEIPT (REC): Signed Razorpay webhook confirmation
-        - AUDIT_PROOF (PROOF): Cryptographic SQLite Merkle Ledger anchor
+        - AUDIT_PROOF (PROOF): Cryptographically-chained SHA-256 Merkle ledger inclusion anchor
         """
         items: List[EvidenceItem] = []
 
@@ -351,22 +353,27 @@ class RAILSClearingEngine:
                 )
             )
 
-        # 5. Cryptographic Merkle Audit Inclusion (Class: PROOF)
-        items.append(
-            EvidenceItem(
-                evidence_id=f"ev_proof_{uuid.uuid4().hex[:8]}",
-                source="TamperResistantAuditLedger",
-                evidence_type="MERKLE_INCLUSION_PROOF",
-                admissibility=AdmissibilityClass.PROOF,
-                payload_data={
-                    "ledger_type": "CRYPTOGRAPHIC_BLOCKCHAIN_DAG",
-                    "hash_algorithm": "SHA-256",
-                    "prev_hash_linked": True,
-                    "merkle_anchor": merkle_root or "c1fd6cfa023e19803bd",
-                },
-                verified=True,
+        # 5. Cryptographically-Chained Merkle Audit Inclusion (Class: PROOF)
+        # Only emit PROOF-class evidence if a real chain head hash exists for this case.
+        case_id = case.get("id") or obligation.case_id
+        active_merkle_root = merkle_root or audit_ledger.get_chain_head_hash(case_id)
+
+        if active_merkle_root:
+            items.append(
+                EvidenceItem(
+                    evidence_id=f"ev_proof_{uuid.uuid4().hex[:8]}",
+                    source="TamperResistantAuditLedger",
+                    evidence_type="MERKLE_INCLUSION_PROOF",
+                    admissibility=AdmissibilityClass.PROOF,
+                    payload_data={
+                        "ledger_type": "CRYPTOGRAPHIC_BLOCKCHAIN_DAG",
+                        "hash_algorithm": "SHA-256",
+                        "prev_hash_linked": True,
+                        "merkle_anchor": active_merkle_root,
+                    },
+                    verified=True,
+                )
             )
-        )
 
         return EvidenceEnvelope(
             obligation_hash=obligation.hash_anchor,

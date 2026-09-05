@@ -2,7 +2,7 @@
 ### **Track 03 — AI Revenue Recovery | Razorpay AI Buildathon 2026**
 *Author: Himanshu | High-Performance Multi-Modal Revenue Recovery Grid*
 
-[![Test Suite](https://img.shields.io/badge/Architectural_Tests-75%2F75_Passing_(100%25)-10B981.svg?style=for-the-badge&logo=pytest&logoColor=white)](backend/tests/)
+[![Test Suite](https://img.shields.io/badge/Architectural_Tests-76%2F76_Passing_(100%25)-10B981.svg?style=for-the-badge&logo=pytest&logoColor=white)](backend/tests/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-19.2-61DAFB.svg?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
 [![Vite](https://img.shields.io/badge/Vite-8.2-646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
@@ -86,10 +86,10 @@ To objectively evaluate our engineering contributions against other Razorpay Bui
 | **Trust Boundary Architecture** | None (LLM mutates state) | 2-Stage (rule table -> dispatch) | 3-Stage (LLM diagnosis -> Policy Engine -> Executor) | **4-Boundary Gated Isolation**: Bouncer (idempotency) $\rightarrow$ Investigator (read-only LLM) $\rightarrow$ Police Chief (TRAI/RBI curfew & circuit breaker) $\rightarrow$ Auditor (Merkle ledger). |
 | **Late Authorization Intercept (Gap-Payment)** | None (double-charges customer) | Double-check rule in CLI script | None (At-most-once retry lock only) | **Sub-5ms Real-Time Webhook Intercept**: Catches asynchronous `payment.captured` / `payment.authorized` events, invalidates in-flight calls/SMS, and cryptographically records reconciliation. |
 | **Audit Trail & Non-Repudiation** | Plain text logs / console prints | Unchained SQLite table row | SQLite WAL execution log | **Cryptographically Chained SHA-256 Merkle Ledger**: Verifiable offline via zero-dependency `verify_ledger.py` CLI tool. |
-| **Agentic Verification Rails** | None | None | None | **RAILS Protocol Integration** ([arXiv:2606.08790](https://arxiv.org/abs/2606.08790)): Zero-knowledge proof tokens, signed state transitions, and dispute defense packages. |
+| **Agentic Verification Rails** | None | None | None | **RAILS Protocol Integration** ([arXiv:2606.08790](https://arxiv.org/abs/2606.08790)): Cryptographically-chained audit proof (SHA-256 Merkle-style ledger inclusion), signed state transitions, and dispute defense packages. |
 | **Regulatory Compliance** | None | 9am–9pm window check only | None | **Full Statutory Stack**: RBI Fair Practices Code (curfew + contact caps) + Section 43B(h) MSME 45-day tax clock + DPDP Act 2023 (PII masking & Right to Erasure). |
 | **Vernacular Telephony** | Hardcoded English prompts | Generic Twilio/Bolna dry-run | None | **Compliant Automated Notification Call & Offline Dialogue Simulator (800ms Reference Target SLA)**: Deterministic vernacular time-phrase parser ("parso", "agle hafte") + PTP 3-phase commitment tracker. |
-| **Automated Test Suite** | 0–5 basic tests | 56 tests (`test_agent.py`) | ~15 tests | **75 Comprehensive Tests (100% Passing)**: Idempotency race conditions, statistical uplift z-tests, failure injection chaos, RAILS proofs, DPDP erasure, Bolna phone normalization, and webhook intercepts. |
+| **Automated Test Suite** | 0–5 basic tests | 56 tests (`test_agent.py`) | ~15 tests | **76 Comprehensive Tests (100% Passing)**: Idempotency race conditions, statistical uplift z-tests, failure injection chaos, RAILS proofs, DPDP erasure, Bolna phone normalization, dynamic Merkle chain heads, and webhook intercepts. |
 | **Operator Experience** | Basic or none | CLI script (`run_pipeline.py`) | Simple 1-page form | **Production-Grade Studio**: Vite 8 + React 19 + Tailwind dashboard with live SSE streaming, A/B lift analytics, RAILS inspector, and interactive Webhook Playground. |
 
 ---
@@ -110,7 +110,7 @@ To objectively evaluate our engineering contributions against other Razorpay Bui
 │   │   ├── models/           # Pydantic schemas and database models
 │   │   ├── services/         # Domain intelligence (diagnosis, ENRV, compliance, voice)
 │   │   └── main.py           # FastAPI entrypoint and lifecycle events
-│   ├── tests/                # Complete automated test suite (75 tests, 100% passing)
+│   ├── tests/                # Complete automated test suite (76 tests, 100% passing)
 │   │   ├── conftest.py                      # Pytest environment setup
 │   │   ├── test_recovery_brain.py           # 29 architectural core tests
 │   │   ├── test_competitive_enhancements.py # 12 competitive breakthrough & vernacular tests
@@ -118,7 +118,7 @@ To objectively evaluate our engineering contributions against other Razorpay Bui
 │   │   ├── test_ab_testing.py               # 8 statistical A/B tests
 │   │   ├── test_voice_safety.py             # 6 credential evasion & privacy guardrail tests
 │   │   ├── test_webhook_idempotency.py      # 5 concurrency & race tests
-│   │   ├── test_rails_clearing.py           # 4 RAILS verification-native clearing tests
+│   │   ├── test_rails_clearing.py           # 5 RAILS verification-native clearing tests
 │   │   └── test_razorpay_sdk.py             # 4 official Razorpay SDK v2.0.1 facade tests
 │   ├── verify_ledger.py      # Zero-dependency standalone CLI audit ledger verifier
 │   └── requirements.txt      # Pinned Python dependencies
@@ -196,7 +196,7 @@ cd backend
 pytest -v tests/
 ```
 
-### Verified Test Results (75/75 Passing):
+### Verified Test Results (76/76 Passing):
 * **29 Architectural Core Tests** (`tests/test_recovery_brain.py`):
   * Webhook concurrency & atomic lease locks (10 simultaneous threads).
   * RBI Fair Practices Code contact windows (9:30 PM blocked, 2:00 PM allowed).
@@ -220,8 +220,8 @@ pytest -v tests/
   * Devanagari script credential extraction, punctuation evasion, mixed Hinglish blocking, and legitimate words whitelist.
 * **5 Concurrency & Rate Limit Tests** (`tests/test_webhook_idempotency.py`):
   * Rapid replay attacks, edge-level 409 Conflict rejection, and multiprocess sliding-window rate limiting.
-* **4 RAILS Verification-Native Clearing Tests** (`tests/test_rails_clearing.py`):
-  * SHA-256 Merkle root verification, deterministic dispute-evidence generation, and transaction sealing.
+* **5 RAILS Verification-Native Clearing Tests** (`tests/test_rails_clearing.py`):
+  * SHA-256 Merkle root verification, deterministic dispute-evidence generation, transaction sealing, and dynamic case hash-chain head anti-regression verification.
 * **4 Official Razorpay SDK Tests** (`tests/test_razorpay_sdk.py`):
   * RazorpayClientWrapper facade, SDK v2.0.1 utility HMAC validation, and payment link creation/invalidation.
 

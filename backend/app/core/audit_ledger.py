@@ -313,6 +313,24 @@ class CryptographicAuditLedger:
                 filtered = [r for r in filtered if r.case_id == case_id]
             return [r.to_dict() for r in filtered[-limit:]]
 
+    def get_chain_head_hash(self, case_id: Optional[str] = None) -> Optional[str]:
+        """
+        Return the actual current SHA-256 hash-chain head for a case's ledger entries.
+        If case_id is None, returns the global chain head hash.
+        Returns None if no records exist for the specified case_id.
+        """
+        with self._mutex:
+            if not self._records:
+                self.reload_from_db()
+                if not self._records:
+                    return None
+            if case_id:
+                for r in reversed(self._records):
+                    if r.case_id == case_id:
+                        return r.content_hash
+                return None
+            return self._records[-1].content_hash
+
 
 # Singleton instance
 audit_ledger = CryptographicAuditLedger()
