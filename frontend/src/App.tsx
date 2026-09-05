@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import type { ViewMode, ConsoleTab } from './components/Navbar';
 import { ShowcaseHero } from './components/showcase/ShowcaseHero';
+import { TrustLogoStrip } from './components/showcase/TrustLogoStrip';
 import { ProofRibbon } from './components/showcase/ProofRibbon';
-import { StickyStoryTour } from './components/showcase/StickyStoryTour';
+import { TheFiveLeaksSection } from './components/showcase/TheFiveLeaksSection';
+import { ProductWorkflowSection } from './components/showcase/ProductWorkflowSection';
+import { RazorEdgeEngineSection } from './components/showcase/RazorEdgeEngineSection';
+import { Razorpay3DArchitectureStack } from './components/showcase/Razorpay3DArchitectureStack';
 import { ThreePillarsSection } from './components/showcase/ThreePillarsSection';
 import { CrossLeakShowcase } from './components/showcase/CrossLeakShowcase';
+import { EnterpriseRoiCalculator } from './components/showcase/EnterpriseRoiCalculator';
 import { LiveSimulatorSandbox } from './components/showcase/LiveSimulatorSandbox';
 import { ComplianceTrustSeal } from './components/showcase/ComplianceTrustSeal';
+import { ShowcaseFaqSection } from './components/showcase/ShowcaseFaqSection';
+import { StickyBottomBar } from './components/showcase/StickyBottomBar';
 import { StatsGrid } from './components/StatsGrid';
 import { CaseTable } from './components/CaseTable';
 import { CaseDetailModal } from './components/CaseDetailModal';
@@ -19,10 +27,12 @@ import { LiveEventTicker } from './components/LiveEventTicker';
 import { ABTestResults } from './components/ABTestResults';
 import { ArchitectureFlow } from './components/ArchitectureFlow';
 import { FailureInjectionPanel } from './components/FailureInjectionPanel';
+import { RecoveryFlow3D } from './components/RecoveryFlow3D';
+import { Dashboard } from './pages/Dashboard';
 import type { BatchSummary, CaseItem } from './types';
 import { API_BASE } from './api';
 
-export const App: React.FC = () => {
+const MainLayout: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('showcase');
   const [consoleTab, setConsoleTab] = useState<ConsoleTab>('overview');
   const [summary, setSummary] = useState<BatchSummary | null>(null);
@@ -86,7 +96,7 @@ export const App: React.FC = () => {
       } else {
         setSelectedCase(c);
       }
-    } catch (err) {
+    } catch {
       setSelectedCase(c);
     }
   };
@@ -103,9 +113,13 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#030712] text-[#f3f4f6] font-sans selection:bg-blue-500/30 selection:text-white flex flex-col justify-between razorpay-grid">
+    <div
+      className="min-h-screen font-body flex flex-col justify-between bg-[#17202e] text-[#ffffff] selection:bg-[#305EFF]/20 selection:text-[#305EFF] relative overflow-x-hidden"
+    >
+      {/* Deep-Sea Horizon Glow */}
+      <div className="absolute top-0 inset-x-0 h-[650px] pointer-events-none horizon-glow opacity-80" />
       
-      {/* Universal Dual-Mode Navbar */}
+      {/* Universal Dual-Mode Navbar with Theme Toggle */}
       <Navbar
         viewMode={viewMode}
         setViewMode={setViewMode}
@@ -132,11 +146,26 @@ export const App: React.FC = () => {
               recoveryRate={summary?.recovery_rate || 2.6}
             />
 
+            {/* Institutional Unicorn Trust Strip */}
+            <TrustLogoStrip />
+
             {/* Proof Metrics Ribbon */}
             <ProofRibbon summary={summary} />
 
-            {/* 4-Chapter Sticky Story Tour (Magic Checkout Pinned Style) */}
-            <StickyStoryTour />
+            {/* The 5 Silent Revenue Leaks in Indian Payments */}
+            <TheFiveLeaksSection />
+
+            {/* Autonomous End-to-End Product Lifecycle & Simulation */}
+            <ProductWorkflowSection
+              onLaunchConsole={() => setViewMode('console')}
+              onOpenSimulator={scrollToSimulator}
+            />
+
+            {/* Razor-Edge Sub-150ms Switchboard & Latency Benchmark */}
+            <RazorEdgeEngineSection />
+
+            {/* Autonomous Decoupled 3-Plane Architecture Card Stack */}
+            <Razorpay3DArchitectureStack />
 
             {/* Core Innovations / Three Pillars */}
             <ThreePillarsSection
@@ -157,11 +186,24 @@ export const App: React.FC = () => {
             {/* Cross-Leak Identity Unification Moat */}
             <CrossLeakShowcase />
 
+            {/* Enterprise Revenue Recovery ROI Calculator */}
+            <EnterpriseRoiCalculator onLaunchConsole={() => setViewMode('console')} />
+
             {/* Interactive Failure Scenario Simulator */}
             <LiveSimulatorSandbox />
 
             {/* Compliance & Trust Seal */}
             <ComplianceTrustSeal onLaunchConsole={() => setViewMode('console')} />
+
+            {/* Enterprise FAQ Accordion */}
+            <ShowcaseFaqSection />
+
+            {/* Floating Sticky Navigation Bar */}
+            <StickyBottomBar
+              onLaunchConsole={() => setViewMode('console')}
+              onOpenSimulator={scrollToSimulator}
+              totalAtRisk={summary?.total_at_risk || 9579541}
+            />
           </div>
         )}
 
@@ -183,8 +225,22 @@ export const App: React.FC = () => {
                 {/* Economic Yield & Impact Summary */}
                 <ImpactCounter />
 
+                {/* 3D Recovery Flow Visualization Centerpiece */}
+                <RecoveryFlow3D summary={summary} cases={cases} onSelectCase={handleSelectCase} />
+
                 {/* Clean Case Ledger */}
                 <CaseTable cases={cases} onSelectCase={handleSelectCase} />
+              </div>
+            )}
+
+            {consoleTab === 'recovery_flow' && (
+              <div className="space-y-4">
+                <Dashboard
+                  summary={summary}
+                  cases={cases}
+                  onSelectCase={handleSelectCase}
+                  onNavigateTab={setConsoleTab}
+                />
               </div>
             )}
 
@@ -241,18 +297,28 @@ export const App: React.FC = () => {
         onClose={() => setSelectedCase(null)}
       />
 
-      {/* Authentic Razorpay Footer */}
-      <footer className="border-t border-white/5 py-8 text-center text-xs text-gray-500 font-mono space-y-2 bg-[#02050c]">
+      {/* Deep-Sea Terminal Footer */}
+      <footer className="border-t border-[rgba(255,255,255,0.08)] py-8 text-center text-sm font-body space-y-2 bg-[#17202e] text-[#cdd0d6] relative z-10">
         <div className="flex items-center justify-center space-x-2">
-          <span className="w-2 h-2 rounded-full bg-blue-500" />
-          <span className="text-gray-300 font-medium">Razorpay AI Buildathon 2026 · Track 03: AI Revenue Recovery</span>
+          <span className="w-2 h-2 rounded-full bg-[#305EFF] animate-ping" />
+          <span className="font-heading font-semibold text-sm text-[#ffffff]">
+            Autonomous Revenue Recovery Engine · High-Frequency Settlement Infrastructure
+          </span>
         </div>
-        <p className="text-[11px] text-gray-400">
-          Engineered with FastAPI, Razorpay Test Mode APIs, and React · Dual-Mode Architecture (Showcase + Operations Console)
+        <p className="text-xs text-[#cdd0d6]/70 font-mono">
+          Engineered with FastAPI, Banking APIs & React · Deep-Sea Financial Terminal Architecture
         </p>
       </footer>
 
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <MainLayout />
+    </ThemeProvider>
   );
 };
 

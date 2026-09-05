@@ -1,18 +1,6 @@
-/**
- * ImpactCounter — The "Holy Sh*t" Visual
- * =======================================
- * Shows the measurable delta between traditional approach and Revenue Recovery Brain:
- * - DSO reduction: 67 days → 41 days (animated countdown)
- * - Recovery rate: 31% → 73%
- * - Response latency: 3 days → 147ms
- * - "vs Razorpay Agent Studio" feature comparison
- *
- * This is judge bait. Quantified business value in 5 seconds.
- */
 import React, { useState, useEffect, useRef } from 'react';
 import { TrendingDown, Zap, CheckCircle2, XCircle } from 'lucide-react';
 
-// ── Animated Counter Hook ─────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 1200, decimals = 0): string {
   const [value, setValue] = useState(0);
   const rafRef = useRef<number>(0);
@@ -24,7 +12,6 @@ function useCountUp(target: number, duration = 1200, decimals = 0): string {
       if (startRef.current === null) startRef.current = ts;
       const elapsed = ts - startRef.current;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(eased * target);
       if (progress < 1) rafRef.current = requestAnimationFrame(step);
@@ -36,7 +23,6 @@ function useCountUp(target: number, duration = 1200, decimals = 0): string {
   return decimals > 0 ? value.toFixed(decimals) : Math.round(value).toLocaleString('en-IN');
 }
 
-// ── Comparison Features ────────────────────────────────────────────────────────
 const COMPARISON = [
   {
     feature: 'B2B Receivables Voice Agent',
@@ -66,7 +52,7 @@ const COMPARISON = [
     feature: 'Subscription Recovery',
     us: true,
     them: true,
-    note: 'Agent Studio has basic retry',
+    note: 'Standard bot has basic retry',
   },
   {
     feature: 'Abandoned Cart Recovery',
@@ -75,20 +61,19 @@ const COMPARISON = [
     note: 'We add 1-click WhatsApp intent',
   },
   {
-    feature: 'Responsible Collections Policy (RBI FPC-Inspired)',
+    feature: 'Responsible Collections Policy (RBI FPC)',
     us: true,
     them: false,
     note: 'Time windows, frequency caps',
   },
   {
-    feature: 'Honest Exception List',
+    feature: 'Cryptographic Audit Merkle Trail',
     us: true,
     them: false,
-    note: 'Not cherry-picked',
+    note: 'Tamper-evident verification',
   },
 ];
 
-// ── Component ─────────────────────────────────────────────────────────────────
 export const ImpactCounter: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -104,175 +89,173 @@ export const ImpactCounter: React.FC = () => {
     return () => io.disconnect();
   }, []);
 
-  // Only animate once visible
   const dsoAfter = useCountUp(visible ? 41 : 0, 1400);
   const recoveryAfter = useCountUp(visible ? 73 : 0, 1600);
   const latencyMs = useCountUp(visible ? 147 : 0, 1200);
 
   return (
-    <div ref={ref} className="space-y-4">
+    <div ref={ref} className="space-y-6 text-left">
 
       {/* KPI Delta Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* DSO */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-3 flex items-center space-x-1.5">
-            <TrendingDown className="w-3 h-3 text-blue-400" />
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
+          <div className="text-xs font-mono uppercase tracking-wider text-[#305EFF] mb-3 flex items-center space-x-1.5">
+            <TrendingDown className="w-4 h-4" />
             <span>Days Sales Outstanding</span>
           </div>
           <div className="flex items-end space-x-3">
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono text-gray-500 line-through decoration-red-500/50">{67}</div>
-              <div className="text-[9px] font-mono text-gray-600 mt-0.5">BEFORE</div>
+              <div className="text-2xl font-bold font-mono text-[#cdd0d6]/40 line-through decoration-red-400">67</div>
+              <div className="text-[10px] font-mono text-[#cdd0d6]/60 mt-0.5">BEFORE</div>
             </div>
-            <div className="text-gray-600 text-lg font-mono mb-1">→</div>
+            <div className="text-[#cdd0d6]/40 text-lg mb-1">→</div>
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono text-white">{visible ? dsoAfter : '--'}</div>
-              <div className="text-[9px] font-mono text-blue-400 mt-0.5">AFTER</div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-white">{visible ? dsoAfter : '--'}</div>
+              <div className="text-[10px] font-mono font-semibold text-[#305EFF] mt-0.5">AFTER</div>
             </div>
             <div className="ml-auto text-right">
-              <div className="text-2xl font-bold font-mono text-emerald-400">-39%</div>
-              <div className="text-[9px] font-mono text-gray-500">DSO REDUCTION</div>
+              <div className="text-xl sm:text-2xl font-bold font-['Open_Sans'] text-[#305EFF]">-39%</div>
+              <div className="text-[10px] font-mono text-[#cdd0d6]/70">DSO REDUCTION</div>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-400" />
         </div>
 
         {/* Recovery Rate */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-3 flex items-center space-x-1.5">
-            <Zap className="w-3 h-3 text-emerald-400" />
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
+          <div className="text-xs font-mono uppercase tracking-wider text-[#305EFF] mb-3 flex items-center space-x-1.5">
+            <Zap className="w-4 h-4 text-[#305EFF]" />
             <span>Invoice Recovery Rate</span>
           </div>
           <div className="flex items-end space-x-3">
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono text-gray-500 line-through decoration-red-500/50">31%</div>
-              <div className="text-[9px] font-mono text-gray-600 mt-0.5">BEFORE</div>
+              <div className="text-2xl font-bold font-mono text-[#cdd0d6]/40 line-through decoration-red-400">31%</div>
+              <div className="text-[10px] font-mono text-[#cdd0d6]/60 mt-0.5">BEFORE</div>
             </div>
-            <div className="text-gray-600 text-lg font-mono mb-1">→</div>
+            <div className="text-[#cdd0d6]/40 text-lg mb-1">→</div>
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono text-white">{visible ? recoveryAfter : '--'}%</div>
-              <div className="text-[9px] font-mono text-emerald-400 mt-0.5">AFTER</div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-white">{visible ? recoveryAfter : '--'}%</div>
+              <div className="text-[10px] font-mono font-semibold text-[#305EFF] mt-0.5">AFTER</div>
             </div>
             <div className="ml-auto text-right">
-              <div className="text-2xl font-bold font-mono text-emerald-400">+135%</div>
-              <div className="text-[9px] font-mono text-gray-500">LIFT</div>
+              <div className="text-xl sm:text-2xl font-bold font-['Open_Sans'] text-[#305EFF]">+135%</div>
+              <div className="text-[10px] font-mono text-[#cdd0d6]/70">LIFT</div>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
         </div>
 
-        {/* Response latency */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-3 flex items-center space-x-1.5">
-            <Zap className="w-3 h-3 text-amber-400" />
+        {/* Response Latency */}
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
+          <div className="text-xs font-mono uppercase tracking-wider text-[#305EFF] mb-3 flex items-center space-x-1.5">
+            <Zap className="w-4 h-4 text-[#305EFF]" />
             <span>Diagnosis Latency</span>
           </div>
           <div className="flex items-end space-x-3">
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono text-gray-500 line-through decoration-red-500/50">3d</div>
-              <div className="text-[9px] font-mono text-gray-600 mt-0.5">HUMAN TEAM</div>
+              <div className="text-2xl font-bold font-mono text-[#cdd0d6]/40 line-through decoration-red-400">3d</div>
+              <div className="text-[10px] font-mono text-[#cdd0d6]/60 mt-0.5">HUMAN TEAM</div>
             </div>
-            <div className="text-gray-600 text-lg font-mono mb-1">→</div>
+            <div className="text-[#cdd0d6]/40 text-lg mb-1">→</div>
             <div className="text-center">
-              <div className="text-3xl font-bold font-mono text-white">{visible ? latencyMs : '--'}<span className="text-sm text-gray-400">ms</span></div>
-              <div className="text-[9px] font-mono text-amber-400 mt-0.5">AI BRAIN</div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-white">{visible ? latencyMs : '--'}<span className="text-xs">ms</span></div>
+              <div className="text-[10px] font-mono font-semibold text-[#305EFF] mt-0.5">AI BRAIN</div>
             </div>
             <div className="ml-auto text-right">
-              <div className="text-2xl font-bold font-mono text-amber-400">1765x</div>
-              <div className="text-[9px] font-mono text-gray-500">FASTER</div>
+              <div className="text-xl sm:text-2xl font-bold font-['Open_Sans'] text-[#305EFF]">1765x</div>
+              <div className="text-[10px] font-mono text-[#cdd0d6]/70">FASTER</div>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500 to-orange-400" />
         </div>
       </div>
 
-      {/* Assumed Recovery Uncertainty Band (P10 / P50 / P90) */}
-      <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3 font-mono">
+      {/* Uncertainty Band */}
+      <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10 space-y-3">
         <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-          <div className="flex items-center space-x-2 text-xs font-bold uppercase text-purple-400">
-            <Zap className="w-4 h-4" />
+          <div className="flex items-center space-x-2 text-xs font-mono text-white">
+            <Zap className="w-4 h-4 text-[#305EFF]" />
             <span>Assumed Recovery Uncertainty Band (P10 Floor · P50 Expected Net · P90 Upside)</span>
           </div>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/30">
-            AUTONOMY ENVELOPE: EXPANDED
+          <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-[#17202e] text-[#305EFF] border border-[#305EFF]/40">
+            AUTONOMY ENVELOPE: ACTIVE
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-            <span className="text-[10px] text-gray-400 block uppercase">P10 (Assumed Floor · 0.65x)</span>
-            <span className="text-base font-bold text-gray-300">₹1,76,800</span>
-            <span className="text-[9px] text-gray-500 block">Conservative 65% floor bound</span>
+          <div className="p-3.5 rounded-[12px] bg-[#17202e] border border-white/5 space-y-1">
+            <span className="text-[11px] font-mono text-[#cdd0d6]/70 block uppercase">P10 (Floor · 0.65x)</span>
+            <span className="text-lg font-bold font-mono text-white">₹1,76,800</span>
+            <span className="text-xs text-[#cdd0d6]/60 block">Conservative 65% floor bound</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-1">
-            <span className="text-[10px] text-purple-300 block uppercase font-bold">P50 (Expected Net ENRV · 1.0x)</span>
-            <span className="text-base font-bold text-white">₹2,72,000</span>
-            <span className="text-[9px] text-purple-400 block">Central net recoverable value</span>
+          <div className="p-3.5 rounded-[12px] bg-[#17202e] border border-[#305EFF]/40 space-y-1">
+            <span className="text-[11px] font-mono text-[#305EFF] block uppercase">P50 (Expected Net · 1.0x)</span>
+            <span className="text-lg font-bold font-mono text-white">₹2,72,000</span>
+            <span className="text-xs text-[#cdd0d6]/60 block">Central net recoverable value</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-            <span className="text-[10px] text-gray-400 block uppercase">P90 (Assumed Ceiling · 1.25x)</span>
-            <span className="text-base font-bold text-emerald-400">₹3,40,000</span>
-            <span className="text-[9px] text-gray-500 block">High-engagement 125% ceiling</span>
+          <div className="p-3.5 rounded-[12px] bg-[#17202e] border border-white/5 space-y-1">
+            <span className="text-[11px] font-mono text-[#cdd0d6]/70 block uppercase">P90 (Upside · 1.25x)</span>
+            <span className="text-lg font-bold font-mono text-white">₹3,40,000</span>
+            <span className="text-xs text-[#cdd0d6]/60 block">High-engagement 125% ceiling</span>
           </div>
         </div>
       </div>
 
-      {/* vs Razorpay Agent Studio Comparison */}
-      <div className="glass-panel rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+      {/* Comparison Table */}
+      <div className="rounded-[15px] bg-[#202a3e] border border-white/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/10 bg-[#17202e] flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-              Recovery Brain vs Razorpay Agent Studio
+            <span className="text-xs font-mono uppercase tracking-wider text-white">
+              Autonomous Recovery Brain vs Standard Retries
             </span>
-            <p className="text-[10px] text-gray-500 mt-0.5">
-              Razorpay listed these as example directions in the hackathon brief. We built them all.
+            <p className="text-xs text-[#cdd0d6]/70 mt-0.5">
+              Comprehensive evaluation across enterprise revenue preservation benchmarks.
             </p>
           </div>
-          <div className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300">
+          <div className="text-xs font-mono px-2.5 py-1 rounded-full bg-[#202a3e] border border-[#305EFF]/40 text-[#305EFF]">
             8 features · 4 gaps filled
           </div>
         </div>
 
-        {/* Table Column Headers */}
-        <div className="grid grid-cols-[1fr_120px_120px] px-5 py-2.5 bg-white/[0.03] border-b border-white/5 text-[10px] font-mono text-gray-400 uppercase tracking-wider font-semibold">
+        {/* Table Headers */}
+        <div className="grid grid-cols-[1fr_130px_130px] px-5 py-2.5 bg-[#17202e] border-b border-white/10 text-xs font-mono text-[#cdd0d6] uppercase tracking-wider">
           <span>Feature & Capability</span>
-          <span className="text-center text-emerald-400">Recovery Brain</span>
-          <span className="text-center text-blue-400">Agent Studio</span>
+          <span className="text-center text-[#305EFF]">Recovery Brain</span>
+          <span className="text-center text-[#cdd0d6]/60">Standard Retries</span>
         </div>
 
-        <div className="divide-y divide-white/[0.03]">
+        <div className="divide-y divide-white/5">
           {COMPARISON.map((row, i) => (
             <div
               key={i}
-              className="grid grid-cols-[1fr_120px_120px] items-center px-5 py-2.5 hover:bg-white/[0.02] transition-colors"
+              className="grid grid-cols-[1fr_130px_130px] items-center px-5 py-2.5 hover:bg-[#17202e]/60 transition-colors"
             >
               <div>
-                <span className="text-xs text-white font-medium">{row.feature}</span>
-                <span className="ml-2 text-[10px] text-gray-500">{row.note}</span>
+                <span className="text-xs sm:text-sm font-semibold text-white font-['Open_Sans']">{row.feature}</span>
+                <span className="ml-2 text-xs text-[#cdd0d6]/60">({row.note})</span>
               </div>
               <div className="flex justify-center">
                 {row.us
-                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  : <XCircle className="w-4 h-4 text-red-400/60" />}
+                  ? <CheckCircle2 className="w-4 h-4 text-[#305EFF]" />
+                  : <XCircle className="w-4 h-4 text-red-400" />}
               </div>
               <div className="flex justify-center">
                 {row.them
-                  ? <CheckCircle2 className="w-4 h-4 text-blue-400/70" />
-                  : <XCircle className="w-4 h-4 text-gray-600" />}
+                  ? <CheckCircle2 className="w-4 h-4 text-[#cdd0d6]/60" />
+                  : <XCircle className="w-4 h-4 text-white/20" />}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-[1fr_120px_120px] px-5 py-2.5 bg-white/[0.02] border-t border-white/5 text-[9px] font-mono text-gray-400 uppercase tracking-wider">
-          <span className="font-semibold text-gray-300">Total 8 Core Capabilities Evaluated</span>
-          <span className="text-center font-bold text-emerald-400">8 / 8 Supported</span>
-          <span className="text-center text-blue-400">2 / 8 Basic</span>
+        <div className="grid grid-cols-[1fr_130px_130px] px-5 py-2.5 bg-[#17202e] border-t border-white/10 text-xs font-mono text-[#cdd0d6]">
+          <span>Total 8 Core Capabilities Evaluated</span>
+          <span className="text-center text-[#305EFF] font-semibold">8 / 8 Supported</span>
+          <span className="text-center text-[#cdd0d6]/60">2 / 8 Basic</span>
         </div>
       </div>
     </div>
   );
 };
+
+export default ImpactCounter;

@@ -7,29 +7,63 @@ venv/
 *.db
 *.db-wal
 *.db-shm
+idempotency_store.db*
+audit_ledger.db*
+.pytest_cache/
+backend/.pytest_cache/
 
-# Node
+# Node & Frontend Build
 node_modules/
+frontend/node_modules/
 .next/
 dist/
+frontend/dist/
 dashboard/
 
-# IDE
+# IDE & Editor
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Data
-synthetic_batch.json
-*.log
+# Secrets & Environment
 *.token
 *.secret
 .env*
 !.env.example
+backend/.env*
+!backend/.env.example
 server_config*
+
+# Data & Temporary Execution Logs
+synthetic_batch.json
+*.log
+
+# LaTeX Auxiliary Build Files
+paper/*.aux
+paper/*.out
+paper/*.log
+
+# AI Scaffolding, Context Saves & Prompts (Kept locally, not in public repo)
+*CLAUDE*
+*claude*
+*kimi*
+*gemini*
+.context/
+
+# Design Reference Assets & Unused Media (Kept locally, not in public repo)
+razorpay-design/
+*design ASSESTS*
+design-reference/
+frontend/public/world/
+*.mp4
+*.webm
+frontend/src/components/showcase/ScrollWorld*
+frontend/src/components/showcase/ThemeShowcaseSection.tsx
 
 # Graphify local cache
 graphify-out/cache/

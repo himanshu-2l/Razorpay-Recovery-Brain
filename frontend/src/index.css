@@ -1,110 +1,222 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ── Idle Finance — Style Reference Design Tokens ────────────────────────────── */
 :root {
-  --razorpay-blue: #0052cc;
-  --razorpay-accent: #2b82fb;
-  --razorpay-dark: #030712;
-  --razorpay-surface: #080d1a;
-  --razorpay-border: rgba(255, 255, 255, 0.08);
+  /* Colors — Razorpay Electric Blue Palette */
+  --color-abyss-navy: #17202e;
+  --color-tide-card: #202a3e;
+  --color-spectral-cyan: #305EFF;
+  --color-razorpay-blue: #305EFF;
+  --color-razorpay-blue-hover: #4D7CFF;
+  --color-bone-white: #ffffff;
+  --color-carbon-black: #000000;
+  --color-fog-gray: #cdd0d6;
+  --color-horizon-glow: #305EFF;
+  --gradient-horizon-glow: radial-gradient(circle at 50% 0%, rgb(18, 48, 175) 0%, rgb(48, 94, 255) 30%, transparent 65%);
+  --color-yield-gradient: #305EFF;
+  --gradient-yield-gradient: linear-gradient(73.6deg, rgb(48, 94, 255) 2.11%, rgb(77, 124, 255));
+
+  /* Typography */
+  --font-open-sans: 'Open Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-source-sans-pro: 'Source Sans 3', 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Border Radius */
+  --radius-cards: 15px;
+  --radius-links: 8px;
+  --radius-badges: 80px;
+  --radius-inputs: 4px;
+  --radius-panels: 24px;
+  --radius-buttons: 80px;
+
+  /* Razorpay Brand mappings */
+  --rzp-bg: #17202e;
+  --rzp-bg-alt: #202a3e;
+  --rzp-surface: #202a3e;
+  --rzp-surface-card: #202a3e;
+  --rzp-border: rgba(255, 255, 255, 0.08);
+  --rzp-text-heading: #ffffff;
+  --rzp-text-body: #cdd0d6;
+  --rzp-blue-primary: #305EFF;
+  --rzp-blue-hover: #4D7CFF;
+  --rzp-card-shadow: none;
 }
 
 @layer base {
   body {
     margin: 0;
     padding: 0;
-    background-color: #030712;
-    color: #f3f4f6;
-    font-family: 'Inter', 'Inter Tight', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-abyss-navy);
+    color: var(--color-bone-white);
+    font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.015em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+    color: var(--color-bone-white);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.036em;
   }
 }
 
-.font-display {
-  font-family: 'Inter Tight', 'Geist', system-ui, -apple-system, sans-serif;
-  letter-spacing: -0.025em;
-  font-weight: 700;
+/* ── Typography Utilities ────────────────────────────────────────────────────── */
+.font-heading, .font-display, .font-sans {
+  font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.036em;
 }
 
-.font-serif {
-  font-family: 'DM Serif Display', Georgia, serif;
+.font-body {
+  font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.015em;
 }
 
-.font-serif-italic {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-style: italic;
-}
-
-.font-sans {
-  font-family: 'Geist', 'Inter Tight', system-ui, -apple-system, sans-serif;
+.font-data, .font-tabular {
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 }
 
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.02em;
 }
 
-/* Authentic Razorpay Dark Mesh & Glows */
-.razorpay-grid {
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
+/* ── Horizon Glow Radial Background ──────────────────────────────────────────── */
+.horizon-glow {
+  background-image: radial-gradient(circle at 50% -10%, rgb(18, 48, 175) 0%, rgb(48, 94, 255) 25%, transparent 60%);
 }
 
-.razorpay-glow-hero {
-  background: radial-gradient(circle at 50% -20%, rgba(0, 82, 204, 0.28) 0%, rgba(43, 130, 251, 0.12) 35%, rgba(16, 185, 129, 0.04) 65%, transparent 85%);
+.paper-grid, .razorpay-grid {
+  background-image: radial-gradient(rgba(48, 94, 255, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-.razorpay-radial-blue {
-  background: radial-gradient(circle at center, rgba(0, 82, 204, 0.18) 0%, transparent 70%);
+/* ── Idle Finance Components ─────────────────────────────────────────────────── */
+
+/* 1. Tide Card: flat #202a3e with hairline 1px border and 15px radius */
+.idle-card, .sketch-card, .rzp-card, .glass-panel {
+  background-color: var(--color-tide-card) !important;
+  color: var(--color-bone-white) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 15px !important;
+  box-shadow: none !important;
+  position: relative;
 }
 
-/* Glassmorphic Cards */
-.glass-panel {
-  background: rgba(8, 13, 26, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+.idle-card:hover {
+  border-color: rgba(48, 94, 255, 0.35) !important;
 }
 
-.glass-panel-hover {
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+/* 2. Pill Action Button (Filled): 80px radius, #ffffff fill, #000000 text */
+.idle-btn-primary, .sketch-btn, .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 80px !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-family: 'Open Sans', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.25rem !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer;
+  letter-spacing: -0.015em;
+  transform: none !important;
 }
 
-.glass-panel-hover:hover {
-  background: rgba(13, 20, 38, 0.9);
-  border-color: rgba(43, 130, 251, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(0, 82, 204, 0.2);
+.idle-btn-primary:hover, .sketch-btn:hover {
+  background-color: #cdd0d6 !important;
+  color: #000000 !important;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2) !important;
 }
 
-/* Glow effects */
-.glow-blue {
-  box-shadow: 0 0 35px rgba(0, 82, 204, 0.3);
+.idle-btn-primary:active, .sketch-btn:active {
+  transform: scale(0.97) !important;
 }
 
-.glow-emerald {
-  box-shadow: 0 0 35px rgba(16, 185, 129, 0.25);
+/* 3. Ghost Link Button: 8px radius, transparent fill, Razorpay Blue border and text */
+.idle-btn-ghost, .sketch-btn-blue, .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px !important;
+  background-color: transparent !important;
+  color: var(--color-spectral-cyan) !important;
+  border: 1px solid var(--color-spectral-cyan) !important;
+  font-family: 'Open Sans', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.5rem 1rem !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer;
 }
 
-/* Custom Scrollbar */
+.idle-btn-ghost:hover, .sketch-btn-blue:hover {
+  background-color: rgba(48, 94, 255, 0.15) !important;
+  box-shadow: 0 0 15px rgba(48, 94, 255, 0.3) !important;
+}
+
+/* 4. Chain Badge / Capsule: 80px radius pill */
+.idle-badge, .sketch-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 80px !important;
+  border: 1px solid var(--color-spectral-cyan) !important;
+  background-color: rgba(32, 42, 62, 0.8) !important;
+  color: var(--color-spectral-cyan) !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+/* 5. Filter Tab: 80px radius pill */
+.idle-tab-active {
+  border-radius: 80px !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.idle-tab-inactive {
+  border-radius: 80px !important;
+  background-color: transparent !important;
+  color: var(--color-fog-gray) !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.idle-tab-inactive:hover {
+  color: #ffffff !important;
+}
+
+/* Neutralize hand-drawn tape and tack effects */
+.sketch-tape, .sketch-tack {
+  display: none !important;
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #030712;
+  background: #17202e;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 9999px;
+  background: #202a3e;
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(43, 130, 251, 0.4);
+  background: #6ae4ff;
 }

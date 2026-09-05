@@ -82,7 +82,7 @@ export const StickyAgentShowcase: React.FC<StickyAgentShowcaseProps> = ({
           </h2>
 
           <p className="text-sm sm:text-base text-gray-400 font-sans leading-relaxed">
-            Inspired by RazorpayX Agentic Banking: Self-orchestrating AI agents that monitor failed flows, resolve overdue B2B receivables, and mathematically maximize Expected Net Recoverable Value.
+            Self-orchestrating autonomous AI agents that monitor failed flows, resolve overdue B2B receivables, and mathematically maximize Expected Net Recoverable Value.
           </p>
         </div>
 
@@ -155,7 +155,7 @@ export const StickyAgentShowcase: React.FC<StickyAgentShowcaseProps> = ({
             })}
           </div>
 
-          {/* Prompt Capsule (Modeled after RazorpayX Ray AI) */}
+          {/* Autonomous Prompt Capsule */}
           <div
             onClick={onOpenVoice}
             className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/30 via-indigo-900/20 to-purple-900/30 border border-blue-500/20 backdrop-blur-xl flex items-center justify-between cursor-pointer hover:border-blue-400/40 transition-all group shadow-lg"

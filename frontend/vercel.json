@@ -3,7 +3,10 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "env": {
-    "VITE_API_BASE_URL": "@revenue_recovery_api_url"
-  }
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

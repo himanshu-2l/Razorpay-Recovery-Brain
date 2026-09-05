@@ -12,7 +12,10 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ summary, loading }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-pulse">
         {[1, 2, 3, 4].map((n) => (
-          <div key={n} className="h-28 rounded-2xl bg-white/[0.03] border border-white/5" />
+          <div
+            key={n}
+            className="h-28 bg-[#202a3e] rounded-[15px] border border-white/10"
+          />
         ))}
       </div>
     );
@@ -27,104 +30,100 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ summary, loading }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       {/* Top 4 Primary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
         {/* Card 1: Total at Risk */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-medium text-gray-400 uppercase tracking-wider">
+            <span className="text-xs font-mono uppercase tracking-wider text-red-400">
               Total Revenue At Risk
             </span>
-            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400">
+            <div className="w-8 h-8 rounded-full bg-[#17202e] border border-red-500/30 flex items-center justify-center text-red-400">
               <AlertOctagon className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-white tracking-tight">
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {formatCurrency(summary.total_at_risk)}
             </div>
-            <div className="text-[11px] text-gray-400 mt-1 flex items-center space-x-1">
-              <span>Across {summary.total_cases} live leak signals</span>
+            <div className="text-xs text-[#cdd0d6] mt-1">
+              Across {summary.total_cases} live leak signals
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500/50 to-orange-500/50" />
         </div>
 
         {/* Card 2: Measured Money Recovered */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden group glow-blue">
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-medium text-blue-300 uppercase tracking-wider">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#305EFF]">
               Measured Money Recovered
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-[#2B7FFF]">
+            <div className="w-8 h-8 rounded-full bg-[#17202e] border border-[#305EFF]/40 flex items-center justify-center text-[#305EFF]">
               <IndianRupee className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-white tracking-tight">
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {formatCurrency(summary.total_recovered)}
             </div>
-            <div className="text-[11px] text-emerald-400 mt-1 flex items-center space-x-1 font-mono">
-              <TrendingUp className="w-3 h-3" />
+            <div className="text-xs text-[#305EFF] mt-1 flex items-center space-x-1">
+              <TrendingUp className="w-3.5 h-3.5" />
               <span>Realized cash via targeted interventions</span>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#2B7FFF] to-cyan-400" />
         </div>
 
         {/* Card 3: Recovery Efficiency */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-medium text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#305EFF]">
               Recovery Rate
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-full bg-[#17202e] border border-[#305EFF]/40 flex items-center justify-center text-[#305EFF]">
               <CheckCircle className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-white tracking-tight">
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {summary.recovery_rate}%
             </div>
-            <div className="text-[11px] text-gray-400 mt-1 flex items-center space-x-1">
-              <span>Ground truth benchmark vs blind retries</span>
+            <div className="text-xs text-[#cdd0d6] mt-1">
+              Ground truth benchmark vs blind retries
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />
         </div>
 
         {/* Card 4: Compliance & Stopping Rules */}
-        <div className="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <div className="p-5 rounded-[15px] bg-[#202a3e] border border-white/10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-medium text-purple-300 uppercase tracking-wider">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#305EFF]">
               RBI Compliance Gate
             </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+            <div className="w-8 h-8 rounded-full bg-[#17202e] border border-[#305EFF]/40 flex items-center justify-center text-[#305EFF]">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-mono text-white tracking-tight">
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {summary.compliance.blocked} Blocked
             </div>
-            <div className="text-[11px] text-gray-400 mt-1 flex items-center space-x-1">
-              <span>8 AM–7 PM window & frequency caps enforced</span>
+            <div className="text-xs text-[#cdd0d6] mt-1">
+              8 AM–7 PM window & frequency caps enforced
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500" />
         </div>
 
       </div>
 
-      {/* Category Breakdown Breakdown Pills */}
-      <div className="glass-panel p-5 rounded-2xl space-y-3">
-        <div className="flex items-center justify-between border-b border-white/5 pb-3">
-          <span className="text-xs font-mono uppercase tracking-wider text-gray-300 font-semibold">
+      {/* Category Breakdown Ledger Sheet */}
+      <div className="p-6 rounded-[15px] bg-[#202a3e] border border-white/10 space-y-4 text-left">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <span className="text-xs font-mono uppercase tracking-wider text-white">
             Recovery Breakdown by Failure Category
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-[#cdd0d6]/70">
             Same symptom diagnosed into discrete root-cause buckets
           </span>
         </div>
@@ -141,28 +140,31 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ summary, loading }) => {
             const percentage = stats.at_risk > 0 ? Math.round((stats.recovered / stats.at_risk) * 100) : 0;
 
             return (
-              <div key={leakKey} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                <div className="text-xs font-medium text-gray-300 truncate">
+              <div
+                key={leakKey}
+                className="p-4 rounded-[12px] bg-[#17202e] border border-white/5 space-y-2"
+              >
+                <div className="text-xs font-semibold text-white truncate font-['Open_Sans']">
                   {labelMap[leakKey] || leakKey}
                 </div>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-lg font-bold font-mono text-white">
+                  <span className="text-base sm:text-lg font-bold font-mono text-white">
                     {formatCurrency(stats.recovered)}
                   </span>
-                  <span className="text-xs font-mono text-gray-400">
+                  <span className="text-xs font-mono text-[#cdd0d6]/60">
                     of {formatCurrency(stats.at_risk)}
                   </span>
                 </div>
                 {/* Progress Bar */}
-                <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-[#202a3e] rounded-full overflow-hidden border border-white/10">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-700"
+                    className="h-full bg-[#305EFF] transition-all duration-700"
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+                <div className="flex justify-between text-xs font-mono text-[#cdd0d6]/70">
                   <span>{stats.count} cases</span>
-                  <span className="text-emerald-400 font-semibold">{percentage}% recovered</span>
+                  <span className="text-[#305EFF] font-semibold">{percentage}% recovered</span>
                 </div>
               </div>
             );
@@ -172,3 +174,5 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ summary, loading }) => {
     </div>
   );
 };
+
+export default StatsGrid;

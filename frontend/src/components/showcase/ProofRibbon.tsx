@@ -12,56 +12,58 @@ export const ProofRibbon: React.FC<ProofRibbonProps> = ({ summary }) => {
   const casesCount = summary?.total_cases || 53;
 
   return (
-    <section className="py-6 border-y border-white/5 bg-white/[0.01]">
+    <section className="py-12 border-b border-[rgba(255,255,255,0.08)] bg-[#17202e]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center md:text-left">
           
-          {/* Stat 1 */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-gray-400 font-mono">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+          {/* Stat 1: Net Recovered Yield */}
+          <div className="p-6 bg-[#202a3e] border border-[rgba(255,255,255,0.08)] rounded-[15px] space-y-1">
+            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-[#305EFF] font-mono">
+              <TrendingUp className="w-4 h-4" />
               <span>Net Recovered Yield</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+            <div className="text-3xl font-heading font-bold text-[#ffffff] tracking-[-0.036em]">
               ₹{Math.round(recovered).toLocaleString('en-IN')}
             </div>
-            <p className="text-[11px] text-gray-400">From ₹{Math.round(atRisk).toLocaleString('en-IN')} flagged at risk</p>
+            <p className="text-xs text-[#cdd0d6]/70 font-mono">
+              From ₹{Math.round(atRisk).toLocaleString('en-IN')} flagged at risk
+            </p>
           </div>
 
-          {/* Stat 2 */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-gray-400 font-mono">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
+          {/* Stat 2: Time-To-Intervene */}
+          <div className="p-6 bg-[#202a3e] border border-[rgba(255,255,255,0.08)] rounded-[15px] space-y-1">
+            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-[#305EFF] font-mono">
+              <Clock className="w-4 h-4" />
               <span>Time-To-Intervene</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+            <div className="text-3xl font-heading font-bold text-[#305EFF] tracking-[-0.036em]">
               &lt;780 ms
             </div>
-            <p className="text-[11px] text-gray-400">Zero human intervention delay</p>
+            <p className="text-xs text-[#cdd0d6]/70 font-mono">Zero human intervention latency</p>
           </div>
 
-          {/* Stat 3 */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-gray-400 font-mono">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          {/* Stat 3: Regulatory Veto */}
+          <div className="p-6 bg-[#202a3e] border border-[rgba(255,255,255,0.08)] rounded-[15px] space-y-1">
+            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-[#305EFF] font-mono">
+              <ShieldCheck className="w-4 h-4" />
               <span>Regulatory Veto Rate</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-emerald-400 font-mono tracking-tight">
+            <div className="text-3xl font-heading font-bold text-[#ffffff] tracking-[-0.036em]">
               0 Violations
             </div>
-            <p className="text-[11px] text-gray-400">100% compliant with RBI 7 PM curfew</p>
+            <p className="text-xs text-[#cdd0d6]/70 font-mono">100% compliant with RBI 7 PM curfew</p>
           </div>
 
-          {/* Stat 4 */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-gray-400 font-mono">
-              <Database className="w-3.5 h-3.5 text-purple-400" />
+          {/* Stat 4: Merkle Ledger */}
+          <div className="p-6 bg-[#202a3e] border border-[rgba(255,255,255,0.08)] rounded-[15px] space-y-1">
+            <div className="flex items-center justify-center md:justify-start space-x-1.5 text-xs text-[#305EFF] font-mono">
+              <Database className="w-4 h-4" />
               <span>Verifiable Ledger</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+            <div className="text-3xl font-heading font-bold text-[#ffffff] tracking-[-0.036em]">
               {casesCount * 3 + 145} Blocks
             </div>
-            <p className="text-[11px] text-gray-400">SHA-256 Merkle chain in SQLite</p>
+            <p className="text-xs text-[#cdd0d6]/70 font-mono">SHA-256 Merkle chain in SQLite</p>
           </div>
 
         </div>
@@ -69,3 +71,5 @@ export const ProofRibbon: React.FC<ProofRibbonProps> = ({ summary }) => {
     </section>
   );
 };
+
+export default ProofRibbon;

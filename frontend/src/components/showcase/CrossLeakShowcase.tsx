@@ -66,7 +66,6 @@ export const CrossLeakShowcase: React.FC = () => {
       }
       const json = await res.json();
       
-      // Robust normalization supporting both unified-recovery-scenario response formats
       const casesList = json.cases_by_priority || json.all_cases || [];
       const sec43 = json.cross_leak_intelligence?.section_43bh_urgency || json.tax_clock || {};
       const suppressed = json.cross_leak_intelligence?.suppressed_duplicate_contacts || json.deduplication_log || [];
@@ -113,27 +112,22 @@ export const CrossLeakShowcase: React.FC = () => {
   };
 
   return (
-    <section className="relative py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Background Accent Glow */}
-      <div className="absolute inset-0 -z-10 flex items-center justify-center">
-        <div className="w-[600px] h-[350px] bg-blue-600/10 blur-[130px] rounded-full pointer-events-none" />
-      </div>
-
+    <section className="relative py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-[#17202e] border-t border-white/10 text-white">
       {/* Header Badge & Title */}
-      <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs font-mono font-medium tracking-wide">
-          <Layers className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-          <span>THE UNCONTESTED MOAT · CROSS-LEAK UNIFICATION</span>
+      <div className="text-center max-w-3xl mx-auto space-y-4 mb-14">
+        <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#202a3e] border border-[#305EFF]/40 text-xs font-semibold text-[#305EFF]">
+          <Layers className="w-3.5 h-3.5 text-[#305EFF]" />
+          <span>CROSS-LEAK UNIFICATION ENGINE</span>
         </div>
         
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+        <h2 className="text-3xl sm:text-5xl font-bold font-['Open_Sans'] tracking-[-0.036em] text-white leading-tight">
           One Customer. Four Silos. <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400">
+          <span className="text-[#305EFF]">
             A Single Coordinated Revenue Brain.
           </span>
         </h2>
         
-        <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+        <p className="text-sm sm:text-base font-['Open_Sans'] leading-relaxed text-[#cdd0d6]">
           Competitors build point solutions for single funnels. Revenue Recovery Brain unifies B2B Invoices, 
           Subscription Mandates, Checkout Drops, and Payment Failures under one identity—preventing bot spam 
           and solving the ₹240k Section 43B(h) tax cliff first.
@@ -141,111 +135,110 @@ export const CrossLeakShowcase: React.FC = () => {
       </div>
 
       {/* Comparison Grid: Siloed Bots vs Unified Brain */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-14 text-left">
+        
         {/* Left: The Competitor Trap */}
-        <div className="rounded-2xl border border-red-500/20 bg-red-950/10 p-6 sm:p-8 flex flex-col justify-between space-y-6">
+        <div className="rounded-[15px] bg-[#202a3e] border border-white/10 p-6 sm:p-8 flex flex-col justify-between space-y-6 relative">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-red-400 flex items-center gap-1.5 font-['Open_Sans']">
                 <XCircle className="w-4 h-4 text-red-400" />
-                Competitor Landscape: 3 Point Solutions
+                Competitor Point Solutions
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-red-950/40 text-red-300 border border-red-800/40">
                 Siloed Bot Spam
               </span>
             </div>
 
             <div className="space-y-3 pt-2">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-red-500/10">
-                <FileText className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-[10px] bg-[#17202e] border border-white/5">
+                <FileText className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-gray-200">Bot #1 (B2B Trade Receivables)</div>
-                  <div className="text-[11px] text-gray-400">Blasts generic legal notice for ₹240,000 overdue invoice at 08:30 AM.</div>
+                  <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans']">Bot #1 (B2B Trade Receivables)</div>
+                  <div className="text-xs text-[#cdd0d6]">Blasts generic legal notice for ₹240,000 overdue invoice at 08:30 AM.</div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-red-500/10">
-                <CreditCard className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-[10px] bg-[#17202e] border border-white/5">
+                <CreditCard className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-gray-200">Bot #2 (SaaS Subscription Mandate)</div>
-                  <div className="text-[11px] text-gray-400">Sends WhatsApp nudge for failed ₹4,999 card renewal at 09:15 AM.</div>
+                  <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans']">Bot #2 (SaaS Subscription Mandate)</div>
+                  <div className="text-xs text-[#cdd0d6]">Sends WhatsApp nudge for failed ₹4,999 card renewal at 09:15 AM.</div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-red-500/10">
-                <ShoppingCart className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-[10px] bg-[#17202e] border border-white/5">
+                <ShoppingCart className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-gray-200">Bot #3 (Abandoned Cart Recovery)</div>
-                  <div className="text-[11px] text-gray-400">Automated IVR call for ₹12,000 cart dropoff at 10:00 AM.</div>
+                  <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans']">Bot #3 (Abandoned Cart Recovery)</div>
+                  <div className="text-xs text-[#cdd0d6]">Automated IVR call for ₹12,000 cart dropoff at 10:00 AM.</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300 space-y-1">
-            <span className="font-semibold block">The Result: Severe Contact Fatigue</span>
+          <div className="p-3.5 rounded-[10px] bg-[#17202e] border border-red-900/30 text-xs text-[#cdd0d6] space-y-1">
+            <span className="font-semibold text-red-300 block">The Result: Severe Contact Fatigue</span>
             <span>Debtor Rohit Mehta blocks all 3 numbers. Zero rupees recovered, merchant reputation damaged.</span>
           </div>
         </div>
 
         {/* Right: Revenue Recovery Brain — Unified Cross-Leak OS */}
-        <div className="rounded-2xl border border-emerald-500/25 bg-emerald-950/10 p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
+        <div className="rounded-[15px] bg-[#202a3e] border border-[#305EFF]/40 p-6 sm:p-8 flex flex-col justify-between space-y-6 relative">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                Revenue Recovery Brain: Cross-Leak Operating System
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#305EFF] flex items-center gap-1.5 font-['Open_Sans']">
+                <CheckCircle2 className="w-4 h-4 text-[#305EFF]" />
+                Revenue Recovery Brain
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-[#17202e] text-[#305EFF] border border-[#305EFF]/40">
                 Unified Orchestration
               </span>
             </div>
 
             <div className="space-y-3 pt-2">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-emerald-500/15">
-                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-[10px] bg-[#17202e] border border-white/5">
+                <ShieldCheck className="w-4 h-4 text-[#305EFF] shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-gray-200">Single Customer Identity Graph</div>
-                  <div className="text-[11px] text-gray-400">Links Rohit Mehta across merchant accounts, aggregate debt: ₹256,999.</div>
+                  <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans']">Single Customer Identity Graph</div>
+                  <div className="text-xs text-[#cdd0d6]">Links Rohit Mehta across merchant accounts, aggregate debt: ₹256,999.</div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-emerald-500/15">
-                <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-[10px] bg-[#17202e] border border-white/5">
+                <Clock className="w-4 h-4 text-[#305EFF] shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-gray-200">Statutory Tax Clock Priority (§43B(h))</div>
-                  <div className="text-[11px] text-gray-400">Prioritizes ₹240k invoice (Day 38/45) to avoid 30% IT deduction penalty.</div>
+                  <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans']">Statutory Tax Clock Priority (§43B(h))</div>
+                  <div className="text-xs text-[#cdd0d6]">Prioritizes ₹240k invoice (Day 38/45) to avoid 30% IT deduction penalty.</div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-emerald-500/15">
-                <Sparkles className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-[10px] bg-[#17202e] border border-white/5">
+                <Sparkles className="w-4 h-4 text-[#305EFF] shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-gray-200">Single Bundled Smart Link + Gap Defense</div>
-                  <div className="text-[11px] text-gray-400">1 WhatsApp touchpoint with unified Razorpay link; halts instantly if paid at T1.</div>
+                  <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans']">Single Bundled Smart Link + Gap Defense</div>
+                  <div className="text-xs text-[#cdd0d6]">1 WhatsApp touchpoint with unified link; halts instantly if paid at T1.</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
-            <span className="font-semibold block">The Result: Seamless High-Value Closure</span>
+          <div className="p-3.5 rounded-[10px] bg-[#17202e] border border-[#305EFF]/30 text-xs text-[#cdd0d6] space-y-1">
+            <span className="font-semibold text-[#305EFF] block">The Result: Seamless High-Value Closure</span>
             <span>Debtor pays ₹240k invoice immediately to protect tax deduction, and refreshes mandate in 1 click.</span>
           </div>
         </div>
       </div>
 
-      {/* Interactive Live Demo Trigger */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/80 to-black/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+      {/* Interactive Live Demo Notebook */}
+      <div className="rounded-[15px] bg-[#202a3e] border border-white/10 p-6 sm:p-8 space-y-6 text-left relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" />
+            <h3 className="text-xl sm:text-2xl font-bold font-['Open_Sans'] flex items-center gap-2 text-white">
+              <Zap className="w-4 h-4 text-[#305EFF]" />
               Live Demonstration: Rohit Mehta (Mehta Textiles Pvt Ltd)
             </h3>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm font-['Open_Sans'] text-[#cdd0d6] mt-1">
               Trigger real-time cross-funnel diagnosis across B2B invoice, checkout dropoff, and subscription mandate.
             </p>
           </div>
@@ -253,114 +246,80 @@ export const CrossLeakShowcase: React.FC = () => {
           <button
             onClick={runScenario}
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold tracking-wide flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="idle-btn-primary text-xs px-6 py-2.5 flex items-center space-x-2 cursor-pointer disabled:opacity-50"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Processing Unified Scenario...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Orchestrating Brain...</span>
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4 fill-current text-amber-300" />
-                Run Unified Scenario
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Run Cross-Leak Diagnosis</span>
               </>
             )}
           </button>
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs">
+          <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/40 text-xs text-red-300">
             {error}
           </div>
         )}
 
-        {/* Live Scenario Results Display */}
         {data && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-400">
-            {/* Customer & Total Exposure Banner */}
+          <div className="space-y-6">
+            {/* Customer Summary & Tax Urgency */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                <span className="text-[11px] text-gray-400 font-mono uppercase">Customer Identity</span>
-                <div className="text-sm font-bold text-white mt-1">{data.customer.name}</div>
-                <div className="text-xs text-gray-400">{data.customer.company}</div>
+              <div className="p-4 rounded-[10px] bg-[#17202e] border border-white/10">
+                <span className="text-xs font-mono text-[#cdd0d6]/70 block">Identified Debtor</span>
+                <span className="text-base font-bold text-white block mt-0.5">{data.customer.name}</span>
+                <span className="text-xs text-[#cdd0d6]/80">{data.customer.company}</span>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                <span className="text-[11px] text-gray-400 font-mono uppercase">Total Unified Exposure</span>
-                <div className="text-sm font-bold text-emerald-400 mt-1">₹{data.total_exposure_inr.toLocaleString()}</div>
-                <div className="text-xs text-gray-400">Across 4 distinct funnel positions</div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <span className="text-[11px] text-amber-400 font-mono uppercase flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-amber-400" />
-                  Section 43B(h) Urgency
+              <div className="p-4 rounded-[10px] bg-[#17202e] border border-white/10">
+                <span className="text-xs font-mono text-[#cdd0d6]/70 block">Total Cross-Funnel Exposure</span>
+                <span className="text-xl font-bold font-mono text-[#305EFF] block mt-0.5">
+                  ₹{data.total_exposure_inr.toLocaleString('en-IN')}
                 </span>
-                <div className="text-sm font-bold text-amber-300 mt-1">{data.tax_clock?.days_remaining ?? 7} Days Remaining</div>
-                <div className="text-[11px] text-amber-400/80 line-clamp-1">{data.tax_clock?.cfo_lever_message || 'Statutory MSME 45-day interest penalty risk'}</div>
+                <span className="text-xs text-[#cdd0d6]/80">{data.all_cases.length} Intercepted Leaks Combined</span>
+              </div>
+
+              <div className="p-4 rounded-[10px] bg-[#17202e] border border-white/10">
+                <span className="text-xs font-mono text-[#305EFF] block">Section 43B(h) Clock</span>
+                <span className="text-xl font-bold font-mono text-white block mt-0.5">
+                  {data.tax_clock.days_remaining} Days to Tax Cliff
+                </span>
+                <span className="text-xs font-semibold text-[#305EFF]">{data.tax_clock.urgency} Urgency</span>
               </div>
             </div>
 
-            {/* Resolved Funnel Cases Table */}
-            <div className="border border-white/10 rounded-xl overflow-hidden bg-black/40">
-              <div className="px-4 py-3 bg-white/[0.02] border-b border-white/10 text-xs font-mono font-medium text-gray-300 flex items-center justify-between">
-                <span>CONSOLIDATED LEAK WATERFALL (ORDERED BY VALUE & STATUTORY RISK)</span>
-                <span className="text-[11px] text-blue-400">Gap Defense: Verified T1 Active</span>
-              </div>
-              <div className="divide-y divide-white/5">
-                {data.all_cases.map((c) => (
-                  <div key={c.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.01] transition-colors">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white uppercase font-mono">{c.leak_type.replace('_', ' ')}</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                          {c.id.slice(0, 16)}...
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-400">Root Cause: <span className="text-gray-300">{c.root_cause}</span></div>
+            {/* Unified Leaks in Priority Order */}
+            <div className="space-y-3">
+              <span className="text-xs font-mono uppercase tracking-wider text-[#cdd0d6]/70 block">
+                Cases Resolved & Prioritized By Statutory Urgency:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {data.all_cases.map((c, i) => (
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-[10px] bg-[#17202e] border border-white/10 hover:border-white/20 transition-all"
+                  >
+                    <div className="flex items-center justify-between text-xs font-mono mb-1">
+                      <span className={i === 0 ? 'text-[#305EFF] font-bold' : 'text-[#cdd0d6]/70'}>
+                        PRIORITY #{i + 1}
+                      </span>
+                      <span className="font-bold text-white">₹{c.amount_at_risk.toLocaleString('en-IN')}</span>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-white font-mono">₹{c.amount_at_risk.toLocaleString()}</div>
-                        <div className="text-[11px] text-emerald-400 font-mono">{toTitleCase(c.chosen_intervention)}</div>
-                      </div>
-                      <div className="px-2.5 py-1 rounded text-[11px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        {toTitleCase(c.status)}
-                      </div>
+                    <div className="text-xs sm:text-sm font-bold text-white font-['Open_Sans'] truncate">
+                      {toTitleCase(c.leak_type)}
+                    </div>
+                    <div className="text-xs font-mono text-[#305EFF] mt-1">
+                      {toTitleCase(c.chosen_intervention)}
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Deduplication & Cryptographic Proof */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-2">
-                <span className="text-xs font-mono font-semibold text-blue-400 uppercase tracking-wider block">
-                  Outreach Deduplication Engine
-                </span>
-                {data.deduplication_log.length > 0 ? (
-                  data.deduplication_log.map((log, i) => (
-                    <div key={i} className="text-xs text-gray-300 flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                      <span>{log.reason}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-xs text-gray-400">Secondary outreach suppressed to avoid duplicate notifications.</div>
-                )}
-              </div>
-
-              <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
-                <span className="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-wider block">
-                  Cryptographic Ledger Proof
-                </span>
-                <div className="text-xs text-gray-300 font-mono break-all flex items-start gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                  <span>{data.audit_ledger_event}</span>
-                </div>
               </div>
             </div>
           </div>
@@ -369,3 +328,5 @@ export const CrossLeakShowcase: React.FC = () => {
     </section>
   );
 };
+
+export default CrossLeakShowcase;

@@ -28,12 +28,12 @@ const EVENT_ICONS: Record<string, string> = {
 };
 
 const INTERVENTION_COLORS: Record<string, string> = {
-  instant_retry: 'text-blue-400',
-  smart_delay_retry: 'text-cyan-400',
-  whatsapp_soft_nudge: 'text-emerald-400',
-  dynamic_discount_checkout: 'text-amber-400',
-  mandate_relink: 'text-purple-400',
-  hinglish_voice_call: 'text-pink-400',
+  instant_retry: 'text-[#305EFF]',
+  smart_delay_retry: 'text-[#305EFF]',
+  whatsapp_soft_nudge: 'text-[#305EFF]',
+  dynamic_discount_checkout: 'text-amber-300',
+  mandate_relink: 'text-[#305EFF]',
+  hinglish_voice_call: 'text-[#305EFF]',
   human_escalation: 'text-red-400',
 };
 
@@ -64,7 +64,7 @@ export const LiveEventTicker: React.FC = () => {
             payload: data.payload,
           };
 
-          setEvents(prev => [event, ...prev].slice(0, 30)); // keep last 30
+          setEvents(prev => [event, ...prev].slice(0, 30));
 
           if (data.type === 'webhook_processed') {
             setTotalProcessed(p => p + 1);
@@ -74,7 +74,6 @@ export const LiveEventTicker: React.FC = () => {
             }
           }
 
-          // Auto-scroll to top
           if (listRef.current) {
             listRef.current.scrollTop = 0;
           }
@@ -84,7 +83,6 @@ export const LiveEventTicker: React.FC = () => {
       es.onerror = () => {
         setConnected(false);
         es.close();
-        // Reconnect after 5s
         setTimeout(connect, 5000);
       };
     };
@@ -106,35 +104,35 @@ export const LiveEventTicker: React.FC = () => {
     n > 0 ? `₹${n.toLocaleString('en-IN')}` : '';
 
   return (
-    <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
+    <div className="rounded-[15px] bg-[#202a3e] border border-white/10 overflow-hidden text-left">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#17202e]">
         <div className="flex items-center space-x-2">
-          <Radio className={`w-3.5 h-3.5 ${connected ? 'text-emerald-400 animate-pulse' : 'text-gray-500'}`} />
-          <span className="text-xs font-mono font-semibold text-white uppercase tracking-wider">
-            Live Event Stream
+          <Radio className={`w-3.5 h-3.5 ${connected ? 'text-[#305EFF] animate-pulse' : 'text-white/40'}`} />
+          <span className="text-xs font-mono uppercase tracking-wider text-white">
+            Live Telemetry Stream
           </span>
           <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
             connected
-              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-              : 'bg-white/5 border-white/10 text-gray-500'
+              ? 'bg-[#202a3e] border-[#305EFF]/40 text-[#305EFF]'
+              : 'bg-[#202a3e] border-amber-500/40 text-amber-300'
           }`}>
-            {connected ? 'SSE CONNECTED' : 'RECONNECTING...'}
+            {connected ? 'SSE ACTIVE' : 'RECONNECTING...'}
           </span>
         </div>
 
         {/* Live counters */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 font-mono text-xs">
           {totalProcessed > 0 && (
-            <div className="flex items-center space-x-1 text-[10px] font-mono text-blue-300">
-              <Zap className="w-3 h-3" />
+            <div className="flex items-center space-x-1 text-[#305EFF]">
+              <Zap className="w-3.5 h-3.5" />
               <span>{totalProcessed} processed</span>
             </div>
           )}
           {totalAmountRecovered > 0 && (
-            <div className="flex items-center space-x-1 text-[10px] font-mono text-emerald-400">
-              <TrendingUp className="w-3 h-3" />
-              <span>{formatAmount(totalAmountRecovered)} recovered this session</span>
+            <div className="flex items-center space-x-1 text-[#305EFF]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>{formatAmount(totalAmountRecovered)} recovered</span>
             </div>
           )}
         </div>
@@ -143,18 +141,18 @@ export const LiveEventTicker: React.FC = () => {
       {/* Event List */}
       <div
         ref={listRef}
-        className="max-h-[180px] overflow-y-auto divide-y divide-white/[0.03]"
+        className="max-h-[180px] overflow-y-auto divide-y divide-white/5 bg-[#17202e]"
       >
         {events.length === 0 ? (
-          <div className="py-8 text-center text-[11px] font-mono text-gray-500 space-y-1">
-            <p>Waiting for events...</p>
-            <p className="text-gray-600">Fire a webhook from the Webhook Sandbox tab to see live events here</p>
+          <div className="py-8 text-center text-xs font-mono text-[#cdd0d6]/60 space-y-1">
+            <p>Waiting for live events...</p>
+            <p className="text-[11px] text-[#cdd0d6]/40">Fire a webhook from Webhook Sandbox to see live signals here</p>
           </div>
         ) : (
           events.map(ev => (
             <div
               key={ev.id}
-              className="flex items-start space-x-3 px-4 py-2.5 hover:bg-white/[0.02] transition-colors animate-in slide-in-from-top-2 duration-200"
+              className="flex items-start space-x-3 px-4 py-2.5 hover:bg-[#202a3e]/60 transition-colors text-xs font-mono"
             >
               <span className="text-sm mt-0.5 shrink-0">
                 {EVENT_ICONS[ev.payload?.event ?? ev.type] ?? '📡'}
@@ -162,39 +160,35 @@ export const LiveEventTicker: React.FC = () => {
 
               <div className="flex-1 min-w-0 space-y-0.5">
                 <div className="flex items-center space-x-2 flex-wrap gap-1">
-                  <span className="text-[11px] font-mono font-bold text-white">
+                  <span className="font-bold text-white">
                     {ev.payload?.event ?? ev.type}
                   </span>
                   {ev.payload?.latency_ms !== undefined && (
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full border ${
-                      ev.payload.latency_ms < 300
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                    }`}>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#202a3e] text-[#cdd0d6] border border-white/10">
                       {ev.payload.latency_ms}ms
                     </span>
                   )}
                   {ev.payload?.compliance && (
                     ev.payload.compliance === 'allowed'
-                      ? <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                      : <ShieldX className="w-3 h-3 text-red-400" />
+                      ? <ShieldCheck className="w-3.5 h-3.5 text-[#305EFF]" />
+                      : <ShieldX className="w-3.5 h-3.5 text-red-400" />
                   )}
                   {ev.payload?.amount ? (
-                    <span className="text-[10px] font-mono text-amber-300">
+                    <span className="font-bold text-[#305EFF]">
                       {formatAmount(ev.payload.amount)}
                     </span>
                   ) : null}
                 </div>
 
-                <div className="flex items-center space-x-3 flex-wrap gap-1">
+                <div className="flex items-center space-x-3 flex-wrap gap-1 text-[11px]">
                   {ev.payload?.root_cause && (
-                    <span className="text-[10px] font-mono text-gray-400 truncate max-w-[180px]">
+                    <span className="text-[#cdd0d6]/70 truncate max-w-[200px]">
                       {ev.payload.root_cause.replace(/_/g, ' ')}
                     </span>
                   )}
                   {ev.payload?.intervention && (
-                    <span className={`text-[10px] font-mono font-semibold ${
-                      INTERVENTION_COLORS[ev.payload.intervention] ?? 'text-gray-300'
+                    <span className={`font-semibold ${
+                      INTERVENTION_COLORS[ev.payload.intervention] ?? 'text-white'
                     }`}>
                       → {ev.payload.intervention.replace(/_/g, ' ')}
                     </span>
@@ -202,7 +196,7 @@ export const LiveEventTicker: React.FC = () => {
                 </div>
               </div>
 
-              <span className="text-[9px] font-mono text-gray-600 shrink-0 mt-0.5">
+              <span className="text-[10px] text-[#cdd0d6]/50 shrink-0 mt-0.5">
                 {formatTs(ev.ts)}
               </span>
             </div>
@@ -212,3 +206,5 @@ export const LiveEventTicker: React.FC = () => {
     </div>
   );
 };
+
+export default LiveEventTicker;
