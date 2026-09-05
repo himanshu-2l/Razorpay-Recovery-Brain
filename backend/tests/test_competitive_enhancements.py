@@ -228,6 +228,17 @@ def test_whatsapp_service_and_api_key_initialization():
     assert "status" in data
 
 
+def test_bolna_phone_normalization():
+    """Verify phone normalization to E.164 format without requiring live API keys."""
+    from app.services.bolna_caller import _normalize_phone_number
+    assert _normalize_phone_number("9876543210") == "+919876543210"
+    assert _normalize_phone_number("+919876543210") == "+919876543210"
+
+
+@pytest.mark.skipif(
+    not __import__("app.services.bolna_caller", fromlist=["is_bolna_configured"]).is_bolna_configured(),
+    reason="requires live BOLNA_API_KEY",
+)
 def test_bolna_telephony_service_and_status():
     """Verify Bolna AI service integration, phone normalization, and telephony status endpoint."""
     from app.services.bolna_caller import (

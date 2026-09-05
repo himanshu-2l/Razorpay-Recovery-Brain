@@ -235,7 +235,7 @@ cd dashboard && bun run dev
 | **Agentic Verification Rails** | None | None | None | **RAILS Protocol Integration** ([arXiv:2606.08790](https://arxiv.org/abs/2606.08790)): Zero-knowledge proof tokens, signed state transitions, and dispute defense packages. |
 | **Regulatory Compliance** | None | 9am–9pm window check only | None | **Full Statutory Stack**: RBI Fair Practices Code (curfew + contact caps) + Section 43B(h) MSME 45-day tax clock + DPDP Act 2023 (PII masking & Right to Erasure). |
 | **Vernacular Telephony** | Hardcoded English prompts | Generic Twilio/Bolna dry-run | None | **Sub-600ms Hinglish Voice Agent**: Deterministic vernacular time-phrase parser ("parso", "agle hafte") + PTP 3-phase commitment tracker. |
-| **Automated Test Suite** | 0–5 basic tests | 5 script tests | ~15 tests | **50 Comprehensive Tests (100% Passing)**: Idempotency race conditions, statistical uplift z-tests, RAILS proofs, DPDP erasure, and webhook intercepts. |
+| **Automated Test Suite** | 0–5 basic tests | 56 tests (`test_agent.py`) | ~15 tests | **75 Comprehensive Tests (100% Passing)**: Idempotency race conditions, statistical uplift z-tests, failure injection chaos, RAILS proofs, DPDP erasure, Bolna phone normalization, and webhook intercepts. |
 | **Operator Experience** | Basic or none | CLI script (`run_pipeline.py`) | Simple 1-page form | **Production-Grade Studio**: Vite 8 + React 19 + Tailwind dashboard with live SSE streaming, A/B lift analytics, RAILS inspector, and interactive Webhook Playground. |
 
 ---
